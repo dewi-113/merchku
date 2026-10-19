@@ -34,10 +34,7 @@ class UploadRejected(Exception):
 
 
 def _check_magic(data: bytes, kind: str):
-    for prefix in MAGIC[kind]:
-        if data.startswith(prefix):
-            return True
-    return False
+    return any(data.startswith(prefix) for prefix in MAGIC[kind])
 
 
 def validate_image_upload(file, kind='produk', max_bytes=MAX_PRODUCT_BYTES):
@@ -78,8 +75,8 @@ def validate_image_upload(file, kind='produk', max_bytes=MAX_PRODUCT_BYTES):
             file.stream.seek(0)
             img = Image.open(file.stream)
             img.load()
-        except (UnidentifiedImageError, OSError):
-            raise UploadRejected('gambar rusak/tidak terbaca Pillow')
+        except (UnidentifiedImageError, OSError) as exc:
+            raise UploadRejected('gambar rusak/tidak terbaca Pillow') from exc
         if img.mode not in ('RGB', 'L'):
             img = img.convert('RGB')
         return data, img
@@ -102,8 +99,8 @@ def validate_image_upload(file, kind='produk', max_bytes=MAX_PRODUCT_BYTES):
         file.stream.seek(0)
         img = Image.open(file.stream)
         img.load()
-    except (UnidentifiedImageError, OSError):
-        raise UploadRejected('gambar rusak/tidak terbaca Pillow')
+    except (UnidentifiedImageError, OSError) as exc:
+        raise UploadRejected('gambar rusak/tidak terbaca Pillow') from exc
     if img.mode not in ('RGB', 'L'):
         img = img.convert('RGB')
     return data, img

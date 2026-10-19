@@ -35,5 +35,8 @@ def register_error_handlers(app):
             if code==429: return e429(e)
             if code==500: return e500(e)
             return render_template('errors/500.html'), code
+        # di mode testing/debug, biarkan exception naik agar mudah dilacak
+        if app.config.get('PROPAGATE_EXCEPTIONS') or app.testing:
+            raise e
         sec_log(event='server_error', ip=get_client_ip(app.config.get('TRUSTED_PROXIES')), path=request.path, method=request.method)
         return render_template('errors/500.html'), 500

@@ -1,4 +1,4 @@
-import click
+﻿import click
 from flask.cli import with_appcontext
 
 from app import db
@@ -7,7 +7,7 @@ from app.auth.security import hash_password
 
 
 @click.command('create-admin')
-@click.option('--email', default='admin@merchku.local')
+@click.option('--email', default='admin@merchku.test')
 @click.option('--password', default='admin12345678') # min 10
 @with_appcontext
 def create_admin(email, password):
@@ -25,3 +25,4 @@ def create_admin(email, password):
     db.session.add(u)
     db.session.commit()
     click.echo('admin created')
+

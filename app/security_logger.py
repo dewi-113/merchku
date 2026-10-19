@@ -30,7 +30,7 @@ class JsonFormatter(logging.Formatter):
                 try:
                     json.dumps({k:v})
                     log[k]=v
-                except Exception:
+                except Exception:  # nosec B110 - field tambahan yang tidak serializable diabaikan
                     pass
         return json.dumps(log, ensure_ascii=False)
 
@@ -73,7 +73,7 @@ def sec_log(**kwargs):
                 extra.setdefault('user_id', current_user.id)
                 extra.setdefault('email', current_user.email)
                 extra.setdefault('role', current_user.role)
-    except Exception:
+    except Exception:  # nosec B110 - logging tidak boleh gagal karena konteks request
         pass
     fn = getattr(lg, lvl, lg.info)
     fn(extra.get('event', 'event'), extra=extra)

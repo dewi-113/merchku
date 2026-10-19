@@ -15,7 +15,8 @@
     <div id='stock-tunggal' class='mb-3'>{{ form.stock.label(class='form-label') }}{{ form.stock(class='form-control', min=0) }}</div>
     <div id='stock-ukuran' class='row'>
       {% for s in ['S','M','L','XL','XXL'] %}
-      <div class='col-md-2 mb-3'>{{ getattr(form, 'stock_' + s).label(class='form-label') }}{{ getattr(form, 'stock_' + s)(class='form-control', min=0) }}</div>
+      {% set field = form|attr('stock_' + s) %}
+      <div class='col-md-2 mb-3'>{{ field.label(class='form-label') }}{{ field(class='form-control', min=0) }}</div>
       {% endfor %}
     </div>
     <div class='mb-3'>
