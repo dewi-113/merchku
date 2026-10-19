@@ -1,0 +1,13 @@
+﻿{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4' style='max-width:520px'>
+  <h3>Ubah Role: {{ user.email }}</h3>
+  <p>Role saat ini: <strong>{{ user.role }}</strong></p>
+  <form method='post'>
+    {{ form.csrf_token }}
+    <div class='mb-3'>{{ form.confirm.label(class='form-label') }}{{ form.confirm(class='form-control') }}</div>
+    {{ form.submit(class='btn btn-warning') }}
+    <a class='btn btn-outline-secondary' href='{{ url_for("admin.user_list") }}'>Batal</a>
+  </form>
+</div>
+{% endblock %}

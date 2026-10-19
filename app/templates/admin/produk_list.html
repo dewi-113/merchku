@@ -1,0 +1,41 @@
+﻿{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex justify-content-between mb-3'>
+    <h3>Produk</h3>
+    <a class='btn btn-success' href='{{ url_for("admin.produk_create") }}'>+ Produk Baru</a>
+  </div>
+  <table class='table table-striped align-middle'>
+    <thead><tr><th>#</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Ukuran</th><th>Aktif</th><th></th></tr></thead>
+    <tbody>
+    {% for p in pagination.items %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>{{ p.name }}</td>
+        <td>{{ p.category }}</td>
+        <td>Rp {{ '{:,}'.format(p.price).replace(',', '.') }}</td>
+        <td>{{ p.total_stock }}</td>
+        <td>{{ 'ya' if p.use_sizes else 'tidak' }}</td>
+        <td>{{ 'aktif' if p.is_active else 'nonaktif' }}</td>
+        <td class='text-end'>
+          <a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.produk_edit", pid=p.id) }}'>Edit</a>
+          <form class='d-inline' method='post' action='{{ url_for("admin.produk_delete", pid=p.id) }}' onsubmit='return confirm("Hapus produk ini?")'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button class='btn btn-sm btn-outline-danger' type='submit'>Hapus</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan='8' class='text-center'>Belum ada produk</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <nav>
+    <ul class='pagination'>
+      {% if pagination.has_prev %}<li class='page-item'><a class='page-link' href='{{ url_for("admin.produk_list", page=pagination.prev_num) }}'>Prev</a></li>{% endif %}
+      <li class='page-item disabled'><span class='page-link'>{{ pagination.page }}/{{ pagination.pages or 1 }}</span></li>
+      {% if pagination.has_next %}<li class='page-item'><a class='page-link' href='{{ url_for("admin.produk_list", page=pagination.next_num) }}'>Next</a></li>{% endif %}
+    </ul>
+  </nav>
+</div>
+{% endblock %}

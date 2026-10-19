@@ -55,7 +55,25 @@ def setup_security_logger(app=None):
 def sec_log(**kwargs):
     lg = logging.getLogger('security')
     extra = {}
-    for k,v in kwargs.items():
+    for k, v in kwargs.items():
         if v is not None:
-            extra[k]=v
-    lg.info(extra.get('event','event'), extra=extra)
+            extra[k] = v
+    # level khusus dipakai memilih level log, bukan field biasa
+    lvl = extra.pop('level', 'info')
+    # isi konteks request & user secara otomatis bila tersedia
+    try:
+        from flask import has_request_context, request
+        from flask_login import current_user
+
+        if has_request_context():
+            extra.setdefault('path', request.path)
+            extra.setdefault('method', request.method)
+            extra.setdefault('user_agent', request.user_agent.string or None)
+            if current_user.is_authenticated:
+                extra.setdefault('user_id', current_user.id)
+                extra.setdefault('email', current_user.email)
+                extra.setdefault('role', current_user.role)
+    except Exception:
+        pass
+    fn = getattr(lg, lvl, lg.info)
+    fn(extra.get('event', 'event'), extra=extra)

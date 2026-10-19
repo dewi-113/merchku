@@ -1,0 +1,32 @@
+﻿{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex justify-content-between mb-3'>
+    <h3>Pengguna</h3>
+  </div>
+  <table class='table table-striped align-middle'>
+    <thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Terdaftar</th><th></th></tr></thead>
+    <tbody>
+      {% for u in pagination.items %}
+      <tr>
+        <td>{{ u.email }}</td>
+        <td>{{ u.role }}</td>
+        <td>{{ 'aktif' if u.is_active else 'nonaktif' }}</td>
+        <td>{{ u.created_at }}</td>
+        <td class='text-end'>
+          <form class='d-inline' method='post' action='{{ url_for("admin.user_status", uid=u.id) }}'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button class='btn btn-sm btn-outline-secondary' type='submit'>Aktif/Nonaktif</button>
+          </form>
+          <a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.user_role", uid=u.id) }}'>Ubah Role</a>
+          <form class='d-inline' method='post' action='{{ url_for("admin.user_delete", uid=u.id) }}' onsubmit='return confirm("Hapus pengguna ini?")'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button class='btn btn-sm btn-outline-danger' type='submit'>Hapus</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

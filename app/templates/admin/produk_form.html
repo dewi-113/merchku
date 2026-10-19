@@ -1,0 +1,35 @@
+﻿{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4' style='max-width:720px'>
+  <h3>{{ 'Edit' if product else 'Produk Baru' }}</h3>
+  <form method='post' enctype='multipart/form-data'>
+    {{ form.csrf_token }}
+    <div class='mb-3'>{{ form.name.label(class='form-label') }}{{ form.name(class='form-control') }}</div>
+    <div class='mb-3'>{{ form.description.label(class='form-label') }}{{ form.description(class='form-control', rows=4) }}</div>
+    <div class='row'>
+      <div class='col-md-6 mb-3'>{{ form.category.label(class='form-label') }}{{ form.category(class='form-select') }}</div>
+      <div class='col-md-6 mb-3'>{{ form.price.label(class='form-label') }}{{ form.price(class='form-control', min=100) }}</div>
+    </div>
+    <div class='form-check mb-2'>{{ form.use_sizes(class='form-check-input') }}{{ form.use_sizes.label(class='form-check-label') }}</div>
+    <div class='form-check mb-3'>{{ form.is_active(class='form-check-input') }}{{ form.is_active.label(class='form-check-label') }}</div>
+    <div id='stock-tunggal' class='mb-3'>{{ form.stock.label(class='form-label') }}{{ form.stock(class='form-control', min=0) }}</div>
+    <div id='stock-ukuran' class='row'>
+      {% for s in ['S','M','L','XL','XXL'] %}
+      <div class='col-md-2 mb-3'>{{ getattr(form, 'stock_' + s).label(class='form-label') }}{{ getattr(form, 'stock_' + s)(class='form-control', min=0) }}</div>
+      {% endfor %}
+    </div>
+    <div class='mb-3'>
+      {{ form.image.label(class='form-label') }}
+      {{ form.image(class='form-control', accept='.jpg,.jpeg,.png,image/jpeg,image/png') }}
+      {% if product and product.image %}<img class='mt-2 d-block' style='max-height:120px' src='{{ url_for('static', filename='uploads/' + product.image) }}' alt=''> {% endif %}
+    </div>
+    {{ form.submit(class='btn btn-success') }}
+    <a class='btn btn-outline-secondary' href='{{ url_for("admin.produk_list") }}'>Batal</a>
+  </form>
+</div>
+<script>
+  const cb = document.getElementById('use_sizes');
+  function toggleStock(){ document.getElementById('stock-ukuran').style.display = cb.checked ? 'row' : 'none'; document.getElementById('stock-tunggal').style.display = cb.checked ? 'none' : 'block'; }
+  if(cb){ cb.addEventListener('change', toggleStock); toggleStock(); }
+</script>
+{% endblock %}
