@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 from flask import Flask, redirect, request
 from flask_limiter import Limiter
@@ -21,6 +21,13 @@ csrf = CSRFProtect()
 limiter = Limiter(key_func=get_remote_address)
 login_manager.login_view = 'auth.login'
 
+@login_manager.user_loader
+def load_user(user_id):
+    from app.auth.models import User
+    try:
+        return db.session.get(User, int(user_id))
+    except Exception:
+        return None
 def create_app(config_name=None):
     app = Flask(__name__, instance_relative_config=True)
     cfg = config_map.get(config_name or os.getenv('ENV') or os.getenv('FLASK_ENV') or 'dev','dev')
@@ -54,5 +61,21 @@ def create_app(config_name=None):
     def _https_forwarded():
         if app.config.get('SECURE_COOKIES') and request.headers.get('X-Forwarded-Proto')=='https':
             request.environ['wsgi.url_scheme'] = 'https'
+
+    @app.before_request
+    def _scan_suspicious():
+        from app.core.utils import scan_request
+        from app.security_logger import sec_log
+
+        kind = scan_request(request.path)
+        if kind:
+            sec_log(
+                event='suspicious_request',
+                level='warning',
+                ip=get_client_ip(app.config.get('TRUSTED_PROXIES')),
+                path=request.path,
+                method=request.method,
+                pattern=kind,
+            )
 
     return app
