@@ -1,6 +1,6 @@
 ﻿import os
 
-from flask import Flask, redirect, request
+from flask import Flask, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
@@ -33,7 +33,10 @@ def create_app(config_name=None):
     cfg = config_map.get(config_name or os.getenv('ENV') or os.getenv('FLASK_ENV') or 'dev','dev')
     app.config.from_object(cfg)
     if not app.config.get('SECRET_KEY'):
-        app.config['SECRET_KEY'] = 'dev-insecure-change'
+        # di dev saja: pakai secret acak sementara (tidak di-hardcode)
+        import secrets
+
+        app.config['SECRET_KEY'] = secrets.token_hex(32)
     os.makedirs(app.config['LOG_DIR'], exist_ok=True)
     os.makedirs(app.config['UPLOAD_PUBLIC'], exist_ok=True)
     os.makedirs(app.config['UPLOAD_PRIVATE'], exist_ok=True)

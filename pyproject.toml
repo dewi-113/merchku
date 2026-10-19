@@ -4,7 +4,12 @@ target-version = 'py312'
 
 [tool.ruff.lint]
 select = ['E','F','I','N','UP','B','A','C4','RET','SIM','RUF']
-ignore = ['E501']
+ignore = [
+  'E501',   # panjang baris diatur line-length
+  'N815',   # nama field WTForms varian ukuran (stock_S, stock_M, ...) memang mixedCase
+  'N818',   # UploadRejected sengaja tanpa sufiks Error
+  'E701',   # satu baris di handler error
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ['app']
