@@ -40,7 +40,7 @@ def _log(event, **kw):
     Nilai default hanya dipakai bila pemanggil tidak menyediakannya sendiri,
     sehingga pemanggil boleh meng-override (mis. `user_id`) tanpa error.
     """
-    level = kw.pop('level', 'info')
+    level = kw.pop('level', None)  # None: sec_log memilih info/warning sesuai event
     kw.setdefault('ip', get_client_ip(current_app.config.get('TRUSTED_PROXIES')))
     kw.setdefault('path', request.path)
     kw.setdefault('method', request.method)
