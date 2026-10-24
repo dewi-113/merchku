@@ -52,6 +52,9 @@ def setup_security_logger(app=None):
     logger.addHandler(sh)
     return logger
 
+WARNING_EVENTS = {'access_denied', 'file_upload_rejected', 'login_failed', 'suspicious_request'}
+
+
 def sec_log(**kwargs):
     """Catat event keamanan ke log JSON.
 
@@ -65,7 +68,10 @@ def sec_log(**kwargs):
             if v is not None:
                 extra[k] = v
         # level khusus dipakai memilih level log, bukan field biasa
-        lvl = extra.pop('level', 'info')
+        # Upaya yang ditolak (IDOR, file palsu, login gagal) minimal warning
+        # agar mudah disaring dari log biasa.
+        default_level = 'warning' if extra.get('event') in WARNING_EVENTS else 'info'
+        lvl = extra.pop('level', default_level)
         # isi konteks request & user secara otomatis bila tersedia
         try:
             from flask import has_request_context, request

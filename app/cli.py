@@ -360,7 +360,7 @@ def seed_demo(force):
 EXTRA_SHOPS = [
     {
         'email': 'ruangkreatif@demo.test',
-        'password': 'RuangKreatif123',
+        'password': 'RuangKreatif123',  # nosec B105 - akun demo seed-toko, ditolak di production
         'shop_name': 'Ruang Kreatif Merch',
         'shop_description': (
             'Merchandise bergaya streetwear dengan nuansa senja: hoodie oversize, '
@@ -380,7 +380,7 @@ EXTRA_SHOPS = [
     },
     {
         'email': 'himpunanstore@demo.test',
-        'password': 'HimpunanStore123',
+        'password': 'HimpunanStore123',  # nosec B105 - akun demo seed-toko
         'shop_name': 'Himpunan Store',
         'shop_description': (
             'Toko resmi merchandise himpunan mahasiswa. Jaket, kaos, dan atribut '
@@ -399,7 +399,7 @@ EXTRA_SHOPS = [
     },
     {
         'email': 'runclub@demo.test',
-        'password': 'KampusRunClub123',
+        'password': 'KampusRunClub123',  # nosec B105 - akun demo seed-toko
         'shop_name': 'Kampus Run Club',
         'shop_description': (
             'Perlengkapan dan merchandise komunitas lari kampus. Bahan ringan, '
@@ -690,7 +690,7 @@ def seed_promo(force, hapus):
     db.session.flush()
 
     # ── Riwayat penjualan ─────────────────────────────────────────────────
-    rng = random.Random(2026)
+    rng = random.Random(2026)  # nosec B311 - hanya mengacak data demo
     now = _utcnow()
     created_orders = 0
     for name, target in PROMO_SALES:
@@ -977,7 +977,7 @@ def seed_sosial(force, hapus):
         click.echo(f'Dihapus: {reviews} ulasan, {follows} pengikut, {users} akun demo.')
         return
 
-    rng = random.Random(2610)
+    rng = random.Random(2610)  # nosec B311 - hanya mengacak data demo
     now = _utcnow()
     # Satu hash untuk semua akun demo: akun nonaktif, password acak tidak pernah dipakai.
     unusable_hash = hash_password(secrets.token_urlsafe(24))
