@@ -355,7 +355,8 @@ def _send_product_photo(directory, filename, square=False):
         stat = os.stat(source)
         mode = 'square' if square else _PHOTO_MAX_SIZE
         key = hashlib.sha1(
-            f'{source}|{stat.st_mtime_ns}|{stat.st_size}|{mode}'.encode()
+            f'{source}|{stat.st_mtime_ns}|{stat.st_size}|{mode}'.encode(),
+            usedforsecurity=False,  # hanya nama file cache
         ).hexdigest()
         cached_name = f'{key}.jpg'
         cached_path = os.path.join(cache_dir, cached_name)
