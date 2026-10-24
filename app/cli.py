@@ -485,7 +485,11 @@ def seed_toko(force, regen_images):
 
     from flask import current_app
 
-    from app.core.routes import _PRODUCT_PHOTO_FOLDERS, list_photos, resolve_photo_directory
+    from app.core.routes import (
+        _PRODUCT_PHOTO_FOLDERS,
+        list_photos,
+        resolve_photo_directory,
+    )
     from app.katalog.models import SIZES, Product, ProductSizeStock
 
     env = current_app.config.get('ENV', 'dev') or os.getenv('FLASK_ENV', 'dev')

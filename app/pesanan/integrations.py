@@ -11,10 +11,13 @@ class IntegrationError(Exception):
 
 
 def _request_json(url, *, method='POST', headers=None, payload=None):
+    # URL berasal dari konfigurasi; hanya izinkan https agar tidak bisa membaca file:// dsb.
+    if not url.lower().startswith('https://'):
+        raise IntegrationError('Alamat layanan eksternal harus memakai https.')
     body = json.dumps(payload).encode('utf-8') if payload is not None else None
     request = Request(url, data=body, headers=headers or {}, method=method)
     try:
-        with urlopen(request, timeout=12) as response:
+        with urlopen(request, timeout=12) as response:  # nosec B310 - skema dibatasi https di atas
             return json.loads(response.read().decode('utf-8'))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise IntegrationError('Layanan eksternal tidak dapat diproses saat ini.') from exc
