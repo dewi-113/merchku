@@ -1,0 +1,184 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% block title %}Riwayat Pesanan — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .orders-page { max-width: 1040px; }
+  .orders-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  .orders-heading h1 { margin: 0; color: #101828; font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 750; }
+  .orders-heading p { margin: 5px 0 0; color: #667085; }
+  .order-filters { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px; }
+  .order-filter {
+    flex: 0 0 auto; padding: 8px 14px; border: 1px solid #e4e7ec;
+    border-radius: 999px; background: #fff; color: #475467; font-size: .87rem;
+    text-decoration: none; white-space: nowrap;
+  }
+  .order-filter:hover, .order-filter.active { border-color: #ee4d2d; color: #ee4d2d; background: #fff7f4; }
+  .order-card { overflow: hidden; margin-bottom: 16px; border: 1px solid #eaecf0; border-radius: 12px; background: #fff; }
+  .order-card-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px 18px; padding: 14px 18px; border-bottom: 1px solid #eaecf0; background: #fcfcfd;
+  }
+  .order-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; align-items: center; color: #667085; font-size: .83rem; }
+  .order-number { color: #344054; font-weight: 700; }
+  .order-status { padding: 5px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+  .status-warning { color: #b54708; background: #fffaeb; }
+  .status-info { color: #175cd3; background: #eff8ff; }
+  .status-primary { color: #3538cd; background: #eef4ff; }
+  .status-success { color: #027a48; background: #ecfdf3; }
+  .status-danger { color: #b42318; background: #fef3f2; }
+  .status-secondary { color: #475467; background: #f2f4f7; }
+  .order-line { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .order-thumb { width: 74px; height: 74px; flex: 0 0 74px; overflow: hidden; border: 1px solid #eaecf0; border-radius: 9px; background: #f2f4f7; }
+  .order-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .order-item-info { min-width: 0; flex: 1; }
+  .order-item-name { display: block; overflow: hidden; color: #101828; font-weight: 650; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+  .order-item-variant, .order-item-more { margin-top: 4px; color: #667085; font-size: .82rem; }
+  .order-shop { margin-top: 5px; color: #667085; font-size: .8rem; }
+  .order-total { min-width: 150px; text-align: right; }
+  .order-total-label { color: #667085; font-size: .78rem; }
+  .order-total-price { margin-top: 3px; color: #101828; font-size: 1.03rem; font-weight: 750; }
+  .order-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; border-top: 1px solid #eaecf0; }
+  .order-payment-label { color: #667085; font-size: .82rem; }
+  .order-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .orders-empty { padding: 46px 20px; border: 1px dashed #d0d5dd; border-radius: 14px; background: #fff; text-align: center; }
+  .orders-empty-icon { display: grid; width: 58px; height: 58px; margin: 0 auto 12px; place-items: center; border-radius: 50%; background: #fff3ed; color: #ee4d2d; font-size: 1.55rem; }
+  .orders-pagination { display: flex; justify-content: center; margin-top: 24px; }
+  @media (max-width: 575px) {
+    .orders-heading { align-items: flex-start; flex-direction: column; }
+    .order-card-head, .order-line, .order-card-foot { padding-right: 13px; padding-left: 13px; }
+    .order-line { align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .order-thumb { width: 60px; height: 60px; flex-basis: 60px; }
+    .order-total { width: 100%; padding-left: 70px; text-align: left; }
+    .order-card-actions { width: 100%; }
+    .order-card-actions .btn { flex: 1; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+{% set status_filter = request.args.get('status', '') %}
+<div class='container orders-page py-4'>
+  <header class='orders-heading'>
+    <div>
+      <h1>Pesanan Saya</h1>
+      <p>Pantau status dan detail belanjaanmu di sini.</p>
+    </div>
+    <a href='{{ url_for("katalog.index") }}' class='btn btn-outline-primary'>Lanjut Belanja</a>
+  </header>
+
+  <nav class='order-filters' aria-label='Filter status pesanan'>
+    <a class='order-filter {{ "active" if not status_filter else "" }}' href='{{ url_for("pesanan.riwayat") }}'>Semua</a>
+    <a class='order-filter {{ "active" if status_filter == "menunggu_pembayaran" else "" }}' href='{{ url_for("pesanan.riwayat", status="menunggu_pembayaran") }}'>Menunggu pembayaran</a>
+    <a class='order-filter {{ "active" if status_filter == "menunggu_verifikasi" else "" }}' href='{{ url_for("pesanan.riwayat", status="menunggu_verifikasi") }}'>Menunggu verifikasi</a>
+    <a class='order-filter {{ "active" if status_filter == "dibayar" else "" }}' href='{{ url_for("pesanan.riwayat", status="dibayar") }}'>Diproses</a>
+    <a class='order-filter {{ "active" if status_filter == "dikirim" else "" }}' href='{{ url_for("pesanan.riwayat", status="dikirim") }}'>Dikirim</a>
+    <a class='order-filter {{ "active" if status_filter == "selesai" else "" }}' href='{{ url_for("pesanan.riwayat", status="selesai") }}'>Selesai</a>
+    <a class='order-filter {{ "active" if status_filter == "ditolak" else "" }}' href='{{ url_for("pesanan.riwayat", status="ditolak") }}'>Perlu tindakan</a>
+    <a class='order-filter {{ "active" if status_filter == "dibatalkan" else "" }}' href='{{ url_for("pesanan.riwayat", status="dibatalkan") }}'>Dibatalkan</a>
+  </nav>
+
+  {% if pagination.items %}
+    {% for order in pagination.items %}
+    {% set badge_map = {
+      'menunggu_pembayaran': 'warning',
+      'menunggu_konfirmasi_cod': 'warning',
+      'menunggu_verifikasi': 'info',
+      'dibayar': 'primary',
+      'cod_dikonfirmasi': 'primary',
+      'ditolak': 'danger',
+      'dikirim': 'success',
+      'selesai': 'success',
+      'dibatalkan': 'secondary'
+    } %}
+    {% set status_label_map = {
+      'menunggu_pembayaran': 'Menunggu pembayaran',
+      'menunggu_konfirmasi_cod': 'Menunggu konfirmasi COD',
+      'menunggu_verifikasi': 'Menunggu verifikasi',
+      'dibayar': 'Sedang diproses',
+      'cod_dikonfirmasi': 'COD dikonfirmasi',
+      'ditolak': 'Pembayaran perlu diperbaiki',
+      'dikirim': 'Dalam pengiriman',
+      'selesai': 'Pesanan selesai',
+      'dibatalkan': 'Pesanan dibatalkan'
+    } %}
+    {% set first_item = order.items[0] if order.items else none %}
+    <article class='order-card'>
+      <div class='order-card-head'>
+        <div class='order-meta'>
+          <span class='order-number'>Pesanan #{{ order.id }}</span>
+          <span>{{ order.created_at.strftime('%d %b %Y · %H:%M') }}</span>
+          <span>{{ order.payment_method_label }}</span>
+        </div>
+        <span class='order-status status-{{ badge_map.get(order.display_status, "secondary") }}'>
+          {{ status_label_map.get(order.display_status, order.display_status.replace('_', ' ')|title) }}
+        </span>
+      </div>
+      <div class='order-line'>
+        <div class='order-thumb'>
+          {% if first_item and first_item.product %}
+            {{ product_image(first_item.product) }}
+          {% else %}
+            <div class='w-100 h-100 d-grid place-items-center text-muted'>?</div>
+          {% endif %}
+        </div>
+        <div class='order-item-info'>
+          {% if first_item %}
+          <a class='order-item-name' href='{{ url_for("pesanan.detail", order_id=order.id) }}'>{{ first_item.product_name }}</a>
+          <div class='order-item-variant'>
+            {% if first_item.size %}Ukuran {{ first_item.size }}{% endif %}
+            {% if first_item.product_type %} · {{ first_item.product_type }}{% endif %}
+            {% if first_item.product_color %} · {{ first_item.product_color }}{% endif %}
+            · {{ first_item.quantity }} barang
+          </div>
+          {% if first_item.product and first_item.product.owner %}
+          <div class='order-shop'>Toko: {{ first_item.product.owner.shop_name or first_item.product.owner.email.split('@')[0] }}</div>
+          {% endif %}
+          {% if order.items|length > 1 %}
+          <div class='order-item-more'>+ {{ order.items|length - 1 }} produk lainnya</div>
+          {% endif %}
+          {% else %}
+          <div class='order-item-name'>Detail produk tidak tersedia</div>
+          {% endif %}
+        </div>
+        <div class='order-total'>
+          <div class='order-total-label'>Total belanja</div>
+          <div class='order-total-price'>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</div>
+        </div>
+      </div>
+      <div class='order-card-foot'>
+        <span class='order-payment-label'>{{ order.courier_label }}{% if order.shipping_service %} · {{ order.shipping_service }}{% endif %}</span>
+        <div class='order-card-actions'>
+          {% if order.status == 'menunggu_pembayaran' and order.payment_method == 'midtrans' %}
+          <a href='{{ url_for("pesanan.bayar", order_id=order.id) }}' class='btn btn-sm btn-primary'>Bayar sekarang</a>
+          {% elif order.status == 'menunggu_pembayaran' and order.payment_method != 'cod' %}
+          <a href='{{ url_for("pesanan.upload_bukti", order_id=order.id) }}' class='btn btn-sm btn-outline-primary'>Upload bukti</a>
+          {% endif %}
+          <a href='{{ url_for("pesanan.detail", order_id=order.id) }}' class='btn btn-sm btn-outline-secondary'>Lihat detail</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+
+    {% if pagination.pages > 1 %}
+    <nav class='orders-pagination' aria-label='Halaman riwayat pesanan'>
+      <ul class='pagination mb-0'>
+        {% if pagination.has_prev %}
+        <li class='page-item'><a class='page-link' href='{{ url_for("pesanan.riwayat", page=pagination.prev_num, status=status_filter or none) }}'>Sebelumnya</a></li>
+        {% endif %}
+        <li class='page-item disabled'><span class='page-link'>{{ pagination.page }} / {{ pagination.pages }}</span></li>
+        {% if pagination.has_next %}
+        <li class='page-item'><a class='page-link' href='{{ url_for("pesanan.riwayat", page=pagination.next_num, status=status_filter or none) }}'>Berikutnya</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% else %}
+  <section class='orders-empty'>
+    <div class='orders-empty-icon' aria-hidden='true'>▤</div>
+    <h2 class='h5 fw-bold'>Belum ada pesanan</h2>
+    <p class='text-muted mb-3'>Produk yang kamu checkout akan muncul di sini.</p>
+    <a href='{{ url_for("katalog.index") }}' class='btn btn-primary'>Jelajahi katalog</a>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

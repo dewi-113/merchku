@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0df"/><stop offset="1" stop-color="#f7d2b5"/></linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaf2fa"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#ccd9e7"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="32" fill="url(#bg)"/>
+  <circle cx="526" cy="85" r="64" fill="#fff" opacity=".36"/>
+  <ellipse cx="320" cy="398" rx="158" ry="23" fill="#986b50" opacity=".2" filter="url(#shadow)"/>
+  <path d="m239 112 53-24 28 33 28-33 53 24 52 26 61 62-43 51-46-34v140c0 15-12 27-27 27H244c-15 0-27-12-27-27V217l-46 34-43-51 61-62z" fill="url(#cloth)" stroke="#a9bacb" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m292 88 28 33-32 42-37-51zm56 0-28 33 32 42 37-51z" fill="#315d82"/>
+  <path d="M320 121v263m-93-179h186" fill="none" stroke="#315d82" stroke-width="7"/>
+  <path d="M244 328h51m50 0h51" stroke="#315d82" stroke-width="8"/>
+  <path d="m183 153 55 55m219-55-55 55" stroke="#c5d2df" stroke-width="5"/>
+  <circle cx="320" cy="218" r="30" fill="#e77e4d"/>
+  <path d="M306 218h28m-14-14v28" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <text x="320" y="367" text-anchor="middle" fill="#315d82" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="3">VARSITY • MERCHKU</text>
+</svg>

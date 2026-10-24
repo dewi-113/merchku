@@ -1,6 +1,6 @@
 ﻿from functools import wraps
 
-from flask import abort, current_app, request
+from flask import abort, current_app, redirect, request, url_for
 from flask_login import current_user
 
 from app.core.utils import get_client_ip
@@ -12,8 +12,10 @@ def role_required(*roles):
         @wraps(f)
         def wrapper(*a, **kw):
             if not current_user.is_authenticated:
-                abort(403)
+                next_url = request.full_path if request.query_string else request.path
+                return redirect(url_for('auth.login', next=next_url))
             if current_user.role not in roles:
+
                 sec_log(
                     event='access_denied',
                     ip=get_client_ip(current_app.config.get('TRUSTED_PROXIES')),

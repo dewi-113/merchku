@@ -1,0 +1,7 @@
+{% macro product_image(product, class_name='') -%}
+  {% if product.image %}
+    <img class='{{ class_name }}' src='{{ url_for("core.produk_media", filename=product.image) }}' alt='{{ product.name }}' loading='lazy'>
+  {% else %}
+    <img class='{{ class_name }}' src='{{ url_for("core.produk_foto", product_id=product.id) }}' alt='{{ product.name }}' loading='lazy'>
+  {% endif %}
+{%- endmacro %}

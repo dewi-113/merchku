@@ -1,0 +1,66 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Keamanan Akun — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .security-page { max-width: 720px; padding-top: 30px; padding-bottom: 56px; }
+  .security-heading {
+    margin-bottom: 22px; padding: 24px 26px; border: 1px solid rgba(255,255,255,.85);
+    border-radius: 20px; background: linear-gradient(115deg, #fff, #eff7ff);
+    box-shadow: 0 12px 34px rgba(34,78,120,.08);
+  }
+  .security-breadcrumb {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    color: #5b7a99; font-size: .82rem; font-weight: 650;
+  }
+  .security-breadcrumb a { color: #2676c9; text-decoration: none; }
+  .security-heading h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -.035em; }
+  .security-card { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; box-shadow: 0 4px 14px rgba(31,41,55,.045); }
+  .security-card-header { padding: 20px 22px; border-bottom: 1px solid #edf0f2; }
+  .security-card-body { padding: 22px; }
+  .security-control { min-height: 48px; border-color: #d7dce1; border-radius: 9px; }
+  .security-control:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .security-submit { min-height: 46px; border-radius: 9px; font-weight: 700; }
+  .security-note { padding: 13px 15px; border-radius: 10px; background: #f1f7ff; color: #526172; font-size: .9rem; }
+  @media (max-width: 575px) {
+    .security-page { padding-top: 16px; }
+    .security-heading, .security-card-body, .security-card-header { padding: 17px; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container security-page'>
+  <header class='security-heading'>
+    <nav class='security-breadcrumb' aria-label='breadcrumb'>
+      <a href='{{ url_for("core.landing") }}'>Beranda</a><span aria-hidden='true'>›</span>
+      <a href='{{ url_for("profil.index") }}'>Profil</a><span aria-hidden='true'>›</span>
+      <span>Keamanan</span>
+    </nav>
+    <h1 class='mb-2'>Keamanan akun</h1>
+    <p class='text-muted mb-0'>Perbarui password secara terpisah untuk menjaga informasi akun tetap aman.</p>
+  </header>
+
+  <section class='security-card' aria-labelledby='change-password-title'>
+    <header class='security-card-header'>
+      <div class='text-uppercase text-secondary small fw-bold mb-1'>Verifikasi diperlukan</div>
+      <h2 class='h5 fw-bold mb-0' id='change-password-title'>Ganti password</h2>
+    </header>
+    <div class='security-card-body'>
+      <div class='security-note mb-4'>Masukkan password saat ini untuk mengonfirmasi perubahan. Gunakan password baru yang unik dan minimal 10 karakter.</div>
+      <form method='post' action='{{ url_for("profil.ganti_password") }}' autocomplete='off'>
+        {{ pw_form.hidden_tag() }}
+        {% for field in [pw_form.password_lama, pw_form.password_baru, pw_form.password_baru2] %}
+        <div class='mb-3'>
+          {{ field.label(class='form-label fw-semibold') }}
+          {{ field(class='form-control security-control', autocomplete='current-password' if field.short_name == 'password_lama' else 'new-password') }}
+          {% for error in field.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <div class='d-flex flex-wrap gap-2 pt-2'>
+          <a class='btn btn-light security-submit px-4' href='{{ url_for("profil.index") }}'>Batal</a>
+          {{ pw_form.submit(class='btn btn-primary security-submit px-4') }}
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

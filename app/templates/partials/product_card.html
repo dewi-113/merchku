@@ -1,0 +1,51 @@
+{% from 'partials/product_image.html' import product_image %}
+{# Kartu produk gaya marketplace (beranda, katalog, toko).
+   stats: hasil product_stats() → terjual & rating dari data pesanan/ulasan asli.
+   quick_add: tampilkan tombol + keranjang untuk pembeli (produk tanpa ukuran). #}
+{% macro product_card(p, stats=None, quick_add=False) -%}
+{% set s = (stats or {}).get(p.id) or {} %}
+{% set stock = p.total_stock %}
+<article class='product-card{{ " is-soldout" if stock <= 0 }}'>
+  <a class='pc-link' href='{{ url_for("katalog.detail", pid=p.id) }}'>
+    <div class='product-img-wrap'>
+      {{ product_image(p) }}
+      {% if s.get('sold', 0) >= 5 %}
+      <span class='pc-badge pc-badge-hot'>Terlaris</span>
+      {% endif %}
+      {% if p.discount_percent %}
+      <span class='pc-discount' aria-label='Diskon {{ p.discount_percent }} persen'><strong>{{ p.discount_percent }}%</strong>OFF</span>
+      {% endif %}
+      {% if stock <= 0 %}
+      <span class='pc-soldout'>Habis</span>
+      {% elif stock <= 5 %}
+      <span class='pc-low'>Sisa {{ stock }}</span>
+      {% endif %}
+    </div>
+    <div class='product-body'>
+      <h3 class='product-name'>{{ p.name }}</h3>
+      {% if p.use_sizes %}<div class='pc-tags'><span class='pc-tag'>S–XXL</span></div>{% endif %}
+      <div class='product-price'><small>Rp</small>{{ '{:,}'.format(p.price).replace(',', '.') }}{% if p.discount_percent %}<del>Rp{{ '{:,}'.format(p.original_price).replace(',', '.') }}</del>{% endif %}</div>
+      <div class='pc-meta'>
+        {%- if s.get('rating') %}<span class='pc-rating'><span aria-hidden='true'>★</span> {{ s.rating }}</span>{% endif -%}
+        {%- if s.get('sold', 0) > 0 %}<span>{{ s.sold_label }} terjual</span>{% endif -%}
+      </div>
+      {% if p.owner and p.owner.shop_name %}
+      <div class='product-shop'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 9h16l-1-5H5z'/><path d='M5 9v11h14V9'/><path d='M10 20v-6h4v6'/></svg>
+        <span>{{ p.owner.shop_name }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </a>
+  {% if quick_add and stock > 0 and not p.use_sizes %}
+  <form class='pc-quick-add' method='post' action='{{ url_for("keranjang.tambah") }}'>
+    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+    <input type='hidden' name='product_id' value='{{ p.id }}'>
+    <input type='hidden' name='quantity' value='1'>
+    <button type='submit' aria-label='Tambah {{ p.name }} ke keranjang' title='Tambah ke Keranjang'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H6'/><path d='M13 9v4M11 11h4'/></svg>
+    </button>
+  </form>
+  {% endif %}
+</article>
+{%- endmacro %}

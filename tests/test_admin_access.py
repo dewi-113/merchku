@@ -1,12 +1,11 @@
-from app import create_app, db
+from app import db
 from app.auth.models import User
 from app.auth.security import hash_password
+from tests.helpers import create_test_app
 
 
 def _make_app():
-    app = create_app('dev')
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['TESTING'] = True
+    app = create_test_app()
     with app.app_context():
         db.session.query(User).delete()
         db.session.commit()
@@ -36,6 +35,9 @@ def test_admin_can_access_admin_pages():
     app = _make_app()
     with app.test_client() as c:
         c.post('/auth/login', data={'email': 'adm@merchku.test', 'password': 'Admin12345678'})
-        assert c.get('/admin/').status_code == 200
+        dashboard = c.get('/admin/')
+        assert dashboard.status_code == 200
+        assert b'Menunggu Verifikasi' in dashboard.data
+        assert b'Pesanan Terbaru' in dashboard.data
         assert c.get('/admin/produk').status_code == 200
         assert c.get('/admin/produk/baru').status_code == 200

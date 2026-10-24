@@ -1,0 +1,109 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% from 'partials/product_card.html' import product_card %}
+{% block title %}{{ seller.shop_name or seller.email.split('@')[0] }} — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .shop-page { max-width: 1120px; }
+  .shop-hero {
+    position: relative; overflow: hidden; padding: 30px;
+    border: 1px solid #f0e1d8; border-radius: 18px;
+    background: linear-gradient(115deg, #fff7f2, #fff 60%, #fff1e9);
+  }
+  .shop-hero::after {
+    position: absolute; right: -42px; top: -68px; width: 220px; height: 220px;
+    border: 32px solid rgba(238,77,45,.07); border-radius: 50%; content: '';
+  }
+  .shop-avatar { width: 86px; height: 86px; object-fit: cover; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 12px #0001; }
+  .shop-avatar-placeholder { display: grid; place-items: center; background: #fff; color: #ee4d2d; font-size: 2rem; font-weight: 800; }
+  .shop-name { color: #222; font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 800; }
+  .shop-stats { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1e6e1; }
+  .shop-stat { color: #757575; font-size: .85rem; }
+  .shop-stat strong { color: #ee4d2d; font-size: 1rem; }
+  .shop-product-card { overflow: hidden; border: 1px solid #edf0f2; border-radius: 12px; transition: transform .16s ease, box-shadow .16s ease; }
+  .shop-product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px #1f29370f; }
+  .shop-product-image { height: 220px; background: #f5f6f8; }
+  .shop-product-image img { width: 100%; height: 100%; object-fit: cover; }
+  .shop-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .shop-actions .btn { min-height: 40px; border-radius: 8px; font-weight: 700; }
+  .shop-chat-button { color: #ee4d2d; border-color: #ee4d2d; }
+  .shop-follow-button { background: #ee4d2d; border: 1px solid #ee4d2d; color: #fff; min-width: 116px; }
+  .shop-follow-button:hover { background: #d73f22; color: #fff; }
+  .shop-follow-button.is-following { background: #fff; color: #555; border-color: #d0d5dd; }
+  @media (max-width: 575px) {
+    .shop-hero { padding: 20px; }
+    .shop-avatar { width: 68px; height: 68px; }
+    .shop-product-image { height: 170px; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container shop-page py-4'>
+  <nav aria-label='breadcrumb' class='small mb-3'>
+    <a href='{{ url_for("katalog.index") }}'>Katalog</a> / Toko
+  </nav>
+  <section class='shop-hero mb-4'>
+    <div class='d-flex flex-wrap align-items-center gap-3 position-relative' style='z-index:1'>
+      {% if seller.avatar %}
+      <img src='{{ url_for("core.avatar_media", filename=seller.avatar) }}'
+        alt='Foto profil toko' class='shop-avatar'>
+      {% else %}
+      <div class='shop-avatar shop-avatar-placeholder'>
+        {{ (seller.shop_name or seller.email)[0]|upper }}
+      </div>
+      {% endif %}
+      <div class='flex-grow-1'>
+        <h1 class='shop-name mb-1'>{{ seller.shop_name or seller.email.split('@')[0] }}</h1>
+        <div class='small text-muted'>Official store di Merchku</div>
+        {% if seller.shop_description %}
+        <div class='small text-muted mt-2' style='white-space:pre-wrap'>{{ seller.shop_description|e }}</div>
+        {% else %}
+        <div class='small text-muted mt-2'>Temukan merchandise pilihan dari toko ini.</div>
+        {% endif %}
+      </div>
+      <div class='shop-actions'>
+        {% if current_user.is_authenticated and current_user.role == 'customer' %}
+        <form method='post' action='{{ url_for("katalog.toggle_follow", seller_id=seller.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          {% if is_following %}
+          <button class='btn shop-follow-button is-following' type='submit'>✓ Mengikuti</button>
+          {% else %}
+          <button class='btn shop-follow-button' type='submit'>+ Ikuti</button>
+          {% endif %}
+        </form>
+        {% elif not current_user.is_authenticated %}
+        <a class='btn shop-follow-button' href='{{ url_for("auth.login", next=request.path) }}'>+ Ikuti</a>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.role == 'customer' and products %}
+        <form method='post' action='{{ url_for("chat.start", product_id=products[0].id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <button class='btn btn-outline-primary shop-chat-button' type='submit'>Chat Penjual</button>
+        </form>
+        {% elif not current_user.is_authenticated and products %}
+        <a class='btn btn-outline-primary shop-chat-button' href='{{ url_for("auth.login", next=request.path) }}'>Chat Penjual</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class='shop-stats position-relative' style='z-index:1'>
+      <div class='shop-stat'><strong>{{ followers|ringkas }}</strong> pengikut</div>
+      <div class='shop-stat'><strong>{{ products|length }}</strong> produk</div>
+      <div class='shop-stat'><strong>{{ review_average }}</strong> ★ penilaian toko</div>
+      <div class='shop-stat'><strong>{{ review_count }}</strong> ulasan</div>
+      <div class='shop-stat'>Bergabung {{ seller.created_at.strftime('%b %Y') if seller.created_at else 'di Merchku' }}</div>
+    </div>
+  </section>
+
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <h2 class='h4 fw-bold mb-0'>Produk toko</h2>
+    <span class='text-muted small'>{{ products|length }} produk</span>
+  </div>
+  {% if products %}
+  {% set stats = product_stats(products) %}
+  <div class='mk-grid'>
+    {% for product in products %}{{ product_card(product, stats, quick_add=current_user.is_authenticated and current_user.role == 'customer') }}{% endfor %}
+  </div>
+  {% else %}
+  <p class='text-muted'>Toko ini belum memiliki produk aktif.</p>
+  {% endif %}
+</div>
+{% endblock %}

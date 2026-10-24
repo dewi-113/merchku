@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0f2"/><stop offset="1" stop-color="#ffd5df"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="32" fill="url(#bg)"/>
+  <ellipse cx="318" cy="375" rx="180" ry="22" fill="#a66376" opacity=".2" filter="url(#shadow)"/>
+  <g transform="rotate(-12 250 235)">
+    <path d="M250 108c87 0 142 49 142 129s-55 129-142 129-142-49-142-129 55-129 142-129z" fill="#fff" stroke="#fff" stroke-width="17"/>
+    <path d="M250 123c77 0 126 43 126 114s-49 114-126 114-126-43-126-114 49-114 126-114z" fill="#ffca5c"/>
+    <path d="m250 165 18 43 47 4-36 31 11 46-40-25-40 25 11-46-36-31 47-4z" fill="#f57b67"/>
+    <circle cx="250" cy="237" r="23" fill="#fff2cd"/>
+  </g>
+  <g transform="rotate(13 413 254)">
+    <path d="M413 150c60 0 99 35 99 92s-39 92-99 92-99-35-99-92 39-92 99-92z" fill="#fff" stroke="#fff" stroke-width="16"/>
+    <path d="M413 165c50 0 83 29 83 77s-33 77-83 77-83-29-83-77 33-77 83-77z" fill="#53bca3"/>
+    <path d="m413 196 13 28 31 3-24 20 7 31-27-16-27 16 7-31-24-20 31-3z" fill="#fff"/>
+  </g>
+  <text x="320" y="424" text-anchor="middle" fill="#9b536c" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="4">CAMPUS STICKER PACK</text>
+</svg>

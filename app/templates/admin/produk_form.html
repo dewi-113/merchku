@@ -3,15 +3,30 @@
 <div class='container mt-4' style='max-width:720px'>
   <h3>{{ 'Edit' if product else 'Produk Baru' }}</h3>
   <form method='post' enctype='multipart/form-data'>
-    {{ form.csrf_token }}
+{{ form.csrf_token }}
+    {% if form.errors %}
+    <div class='alert alert-danger py-2'>
+      {% for field, errs in form.errors.items() %}
+        {% for e in errs %}<div>{{ e }}</div>{% endfor %}
+      {% endfor %}
+    </div>
+    {% endif %}
     <div class='mb-3'>{{ form.name.label(class='form-label') }}{{ form.name(class='form-control') }}</div>
+
     <div class='mb-3'>{{ form.description.label(class='form-label') }}{{ form.description(class='form-control', rows=4) }}</div>
+    <div class='row'>
+      <div class='col-md-6 mb-3'>{{ form.product_type.label(class='form-label') }}{{ form.product_type(class='form-control', placeholder='Contoh: kaos regular fit') }}</div>
+      <div class='col-md-6 mb-3'>{{ form.color.label(class='form-label') }}{{ form.color(class='form-control', placeholder='Contoh: navy') }}</div>
+    </div>
     <div class='row'>
       <div class='col-md-6 mb-3'>{{ form.category.label(class='form-label') }}{{ form.category(class='form-select') }}</div>
       <div class='col-md-6 mb-3'>{{ form.price.label(class='form-label') }}{{ form.price(class='form-control', min=100) }}</div>
+      <div class='col-md-6 mb-3'>{{ form.original_price.label(class='form-label') }}{{ form.original_price(class='form-control', min=100, placeholder='Kosongkan jika tidak diskon') }}<div class='form-text'>Isi lebih tinggi dari harga jual untuk menampilkan harga coret &amp; label diskon.</div></div>
+      <div class='col-md-6 mb-3'>{{ form.weight_gram.label(class='form-label') }}{{ form.weight_gram(class='form-control', min=1) }}</div>
     </div>
     <div class='form-check mb-2'>{{ form.use_sizes(class='form-check-input') }}{{ form.use_sizes.label(class='form-check-label') }}</div>
     <div class='form-check mb-3'>{{ form.is_active(class='form-check-input') }}{{ form.is_active.label(class='form-check-label') }}</div>
+    <div class='form-check mb-3'>{{ form.is_fragile(class='form-check-input') }}{{ form.is_fragile.label(class='form-check-label') }}</div>
     <div id='stock-tunggal' class='mb-3'>{{ form.stock.label(class='form-label') }}{{ form.stock(class='form-control', min=0) }}</div>
     <div id='stock-ukuran' class='row'>
       {% for s in ['S','M','L','XL','XXL'] %}
@@ -22,15 +37,11 @@
     <div class='mb-3'>
       {{ form.image.label(class='form-label') }}
       {{ form.image(class='form-control', accept='.jpg,.jpeg,.png,image/jpeg,image/png') }}
-      {% if product and product.image %}<img class='mt-2 d-block' style='max-height:120px' src='{{ url_for('static', filename='uploads/' + product.image) }}' alt=''> {% endif %}
+{% if product and product.image %}<img class='mt-2 d-block' style='max-height:120px' src='{{ url_for("core.produk_media", filename=product.image) }}' alt=''> {% endif %}
+
     </div>
     {{ form.submit(class='btn btn-success') }}
     <a class='btn btn-outline-secondary' href='{{ url_for("admin.produk_list") }}'>Batal</a>
   </form>
 </div>
-<script>
-  const cb = document.getElementById('use_sizes');
-  function toggleStock(){ document.getElementById('stock-ukuran').style.display = cb.checked ? 'row' : 'none'; document.getElementById('stock-tunggal').style.display = cb.checked ? 'none' : 'block'; }
-  if(cb){ cb.addEventListener('change', toggleStock); toggleStock(); }
-</script>
 {% endblock %}

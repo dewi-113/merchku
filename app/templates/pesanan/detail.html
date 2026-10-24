@@ -1,0 +1,262 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% block title %}Pesanan #{{ order.id }} — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .order-detail-page { max-width: 1060px; }
+  .order-detail-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .order-detail-heading h1 { margin: 0; color: #101828; font-size: 1.35rem; font-weight: 750; }
+  .order-detail-subtitle { color: #667085; font-size: .84rem; }
+  .order-detail-card { overflow: hidden; margin-bottom: 16px; border: 1px solid #eaecf0; border-radius: 12px; background: #fff; }
+  .order-detail-card-head { padding: 15px 18px; border-bottom: 1px solid #eaecf0; color: #101828; font-weight: 700; }
+  .order-detail-card-body { padding: 18px; }
+  .detail-status {
+    display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px;
+    border-radius: 999px; background: #fff7ed; color: #c2410c; font-size: .8rem; font-weight: 700;
+  }
+  .status-timeline { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 22px 18px; list-style: none; }
+  .status-step { position: relative; color: #98a2b3; text-align: center; font-size: .78rem; }
+  .status-step:not(:last-child)::after {
+    position: absolute; z-index: 0; top: 12px; left: calc(50% + 15px); width: calc(100% - 30px);
+    height: 2px; background: #eaecf0; content: '';
+  }
+  .status-step.is-done:not(:last-child)::after { background: #12b76a; }
+  .status-dot {
+    position: relative; z-index: 1; display: grid; width: 26px; height: 26px; margin: 0 auto 8px;
+    place-items: center; border: 2px solid #d0d5dd; border-radius: 50%; background: #fff; font-size: .7rem;
+  }
+  .status-step.is-done, .status-step.is-current { color: #344054; }
+  .status-step.is-done .status-dot { border-color: #12b76a; background: #12b76a; color: #fff; }
+  .status-step.is-current .status-dot { border-color: #ee4d2d; color: #ee4d2d; box-shadow: 0 0 0 4px #fff1eb; }
+  .delivery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .delivery-label { margin-bottom: 5px; color: #667085; font-size: .78rem; }
+  .delivery-value { color: #344054; font-size: .9rem; line-height: 1.55; }
+  .delivery-icon { margin-right: 6px; color: #ee4d2d; }
+  .detail-product { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-bottom: 1px solid #f2f4f7; }
+  .detail-product:last-child { border-bottom: 0; }
+  .detail-product-thumb { width: 76px; height: 76px; flex: 0 0 76px; overflow: hidden; border: 1px solid #eaecf0; border-radius: 9px; background: #f2f4f7; }
+  .detail-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .detail-product-main { min-width: 0; flex: 1; }
+  .detail-product-name { color: #101828; font-weight: 650; }
+  .detail-product-description, .detail-product-variant { margin-top: 4px; color: #667085; font-size: .82rem; }
+  .detail-product-price { min-width: 130px; color: #101828; font-size: .88rem; font-weight: 650; text-align: right; }
+  .summary-list { display: grid; gap: 11px; }
+  .summary-row { display: flex; justify-content: space-between; gap: 14px; color: #475467; font-size: .87rem; }
+  .summary-row.total { margin-top: 2px; padding-top: 13px; border-top: 1px solid #eaecf0; color: #101828; font-size: 1rem; font-weight: 750; }
+  .payment-action { padding: 15px 18px; border-top: 1px solid #eaecf0; background: #fcfcfd; }
+  .payment-action-buttons { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+  @media (max-width: 650px) {
+    .status-timeline { padding: 18px 8px; }
+    .status-step { font-size: .68rem; }
+    .delivery-grid { grid-template-columns: 1fr; }
+    .detail-product { flex-wrap: wrap; padding: 14px; }
+    .detail-product-thumb { width: 64px; height: 64px; flex-basis: 64px; }
+    .detail-product-price { width: 100%; padding-left: 78px; text-align: left; }
+    .order-detail-card-body { padding: 15px; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+{% set badge_map = {
+  'menunggu_pembayaran': 'warning',
+  'menunggu_konfirmasi_cod': 'warning',
+  'menunggu_verifikasi': 'info',
+  'dibayar': 'primary',
+  'cod_dikonfirmasi': 'primary',
+  'ditolak': 'danger',
+  'dikirim': 'success',
+  'selesai': 'success',
+  'dibatalkan': 'secondary'
+} %}
+{% set status_label_map = {
+  'menunggu_pembayaran': 'Menunggu pembayaran',
+  'menunggu_konfirmasi_cod': 'Menunggu konfirmasi COD',
+  'menunggu_verifikasi': 'Menunggu verifikasi',
+  'dibayar': 'Sedang diproses',
+  'cod_dikonfirmasi': 'COD dikonfirmasi',
+  'ditolak': 'Pembayaran perlu diperbaiki',
+  'dikirim': 'Dalam pengiriman',
+  'selesai': 'Pesanan selesai',
+  'dibatalkan': 'Pesanan dibatalkan'
+} %}
+{% set current_step = 0 if order.status == 'menunggu_pembayaran' else (1 if order.status in ('menunggu_verifikasi', 'dibayar') else (2 if order.status == 'dikirim' else 3)) %}
+<div class='container order-detail-page py-4'>
+  <header class='order-detail-heading'>
+    <a href='{{ url_for("pesanan.riwayat") }}' class='btn btn-outline-secondary btn-sm' aria-label='Kembali ke riwayat'>←</a>
+    <div>
+      <h1>Detail Pesanan #{{ order.id }}</h1>
+      <div class='order-detail-subtitle'>Dibuat {{ order.created_at.strftime('%d %b %Y · %H:%M') }}</div>
+    </div>
+  </header>
+
+  <section class='order-detail-card'>
+    <div class='order-detail-card-head d-flex flex-wrap align-items-center justify-content-between gap-2'>
+      <span>Status pesanan</span>
+      <span class='detail-status'>{{ status_label_map.get(order.display_status, order.display_status.replace('_', ' ')|title) }}</span>
+    </div>
+    {% if order.status in ('ditolak', 'dibatalkan') %}
+    <div class='order-detail-card-body'>
+      <div class='alert {{ "alert-warning" if order.status == "ditolak" else "alert-secondary" }} mb-0'>
+        {% if order.status == 'ditolak' %}<strong>Pembayaran perlu diperiksa.</strong> {% else %}<strong>Pesanan ini telah dibatalkan.</strong> {% endif %}
+        {{ order.admin_note or ('Periksa catatan pembayaran di bawah atau hubungi admin jika perlu bantuan.' if order.status == 'ditolak' else 'Kamu bisa memilih produk lain dari katalog kapan saja.') }}
+      </div>
+    </div>
+    {% else %}
+    <ol class='status-timeline' aria-label='Tahapan pesanan'>
+      {% set steps = ['Pesanan dibuat', 'Pembayaran dikonfirmasi', 'Pesanan dikirim', 'Pesanan selesai'] %}
+      {% for step in steps %}
+      <li class='status-step {{ "is-done" if loop.index0 < current_step else ("is-current" if loop.index0 == current_step else "") }}'>
+        <span class='status-dot'>{% if loop.index0 < current_step %}✓{% else %}{{ loop.index }}{% endif %}</span>
+        <span>{{ step }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+    {% if order.admin_note and order.status not in ('ditolak', 'dibatalkan') %}
+    <div class='px-3 pb-3'><div class='alert alert-info mb-0'><strong>Catatan admin:</strong> {{ order.admin_note }}</div></div>
+    {% endif %}
+  </section>
+
+  <div class='row g-3'>
+    <div class='col-lg-7'>
+      <section class='order-detail-card'>
+        <div class='order-detail-card-head'>Produk yang dibeli</div>
+        {% for item in order.items %}
+        <article class='detail-product'>
+          <div class='detail-product-thumb'>
+            {% if item.product %}
+            {{ product_image(item.product) }}
+            {% else %}
+            <div class='w-100 h-100 d-grid place-items-center text-muted'>?</div>
+            {% endif %}
+          </div>
+          <div class='detail-product-main'>
+            <div class='detail-product-name'>{{ item.product_name }}</div>
+            <div class='detail-product-description'>{{ item.product_description or 'Deskripsi produk tidak tersedia.' }}</div>
+            <div class='detail-product-variant'>
+              {% if item.size %}Ukuran {{ item.size }}{% else %}Satu ukuran{% endif %}
+              {% if item.product_type %} · {{ item.product_type }}{% endif %}
+              {% if item.product_color %} · {{ item.product_color }}{% endif %}
+              · {{ item.quantity }} barang
+            </div>
+            {% if item.product and item.product.owner %}
+            <a class='small' href='{{ url_for("katalog.toko_public", seller_id=item.product.owner.id) }}'>
+              {{ item.product.owner.shop_name or item.product.owner.email.split('@')[0] }}
+            </a>
+            {% endif %}
+          </div>
+          <div class='detail-product-price'>
+            Rp {{ '{:,}'.format(item.subtotal).replace(',', '.') }}
+            <div class='small text-muted fw-normal'>Rp {{ '{:,}'.format(item.unit_price).replace(',', '.') }} × {{ item.quantity }}</div>
+          </div>
+        </article>
+        {% endfor %}
+        <div class='order-detail-card-body'>
+          <div class='summary-list'>
+            <div class='summary-row'><span>Subtotal produk</span><span>Rp {{ '{:,}'.format(order.total_products).replace(',', '.') }}</span></div>
+            <div class='summary-row'><span>Ongkos kirim</span><span>Rp {{ '{:,}'.format(order.shipping_cost).replace(',', '.') }}</span></div>
+            <div class='summary-row'><span>Biaya layanan</span><span>Rp {{ '{:,}'.format(order.service_fee).replace(',', '.') }}</span></div>
+            {% if order.fragile_protection %}
+            <div class='summary-row'><span>Proteksi barang pecah belah</span><span>Rp {{ '{:,}'.format(order.fragile_fee).replace(',', '.') }}</span></div>
+            {% endif %}
+            <div class='summary-row'><span>Diskon ongkir</span><span>− Rp {{ '{:,}'.format(order.shipping_discount).replace(',', '.') }}</span></div>
+            <div class='summary-row total'><span>Total pembayaran</span><span>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class='col-lg-5'>
+      <section class='order-detail-card'>
+        <div class='order-detail-card-head'>Informasi pengiriman</div>
+        <div class='order-detail-card-body'>
+          <div class='delivery-grid'>
+            <div>
+              <div class='delivery-label'>Penerima</div>
+              <div class='delivery-value fw-semibold'>{{ order.recipient_name }}</div>
+              <div class='delivery-value text-muted'>{{ order.phone }}</div>
+            </div>
+            <div>
+              <div class='delivery-label'>Alamat ({{ order.address_label or 'rumah' }})</div>
+              <div class='delivery-value fw-semibold'>{{ order.address_label or 'Alamat' }} · {{ order.recipient_name }}</div>
+              <div class='delivery-value'>{{ order.address }}{% if order.district %}, {{ order.district }}{% endif %}, {{ order.city or '' }}, {{ order.province or '' }} {{ order.postal_code or '' }}</div>
+            </div>
+            <div>
+              <div class='delivery-label'>Kurir dan layanan</div>
+              <div class='delivery-value'><span class='delivery-icon'>➜</span>{{ order.courier_label }}{% if order.shipping_service %} · {{ order.shipping_service }}{% endif %}</div>
+              {% if order.shipping_duration %}<div class='delivery-value text-muted'>Estimasi {{ order.shipping_duration }}</div>{% elif order.shipping_cost == 0 and order.payment_method != 'cod' %}<div class='delivery-value text-muted'>Ongkir dikonfirmasi admin</div>{% endif %}
+            </div>
+            <div>
+              <div class='delivery-label'>Metode pembayaran</div>
+              <div class='delivery-value'>{{ order.payment_method_label }}</div>
+            </div>
+            {% if order.delivery_note %}
+            <div>
+              <div class='delivery-label'>Catatan kurir</div>
+              <div class='delivery-value'>{{ order.delivery_note }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      {% if order.status == 'menunggu_pembayaran' and order.payment_method != 'cod' %}
+      <section class='order-detail-card'>
+        <div class='order-detail-card-head'>Selesaikan pembayaran</div>
+        <div class='payment-action'>
+          {% if order.payment_method == 'midtrans' %}
+          <p class='small text-muted mb-0'>Selesaikan pembayaran online dengan total <strong>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</strong>.</p>
+          <div class='payment-action-buttons'>
+            <a href='{{ url_for("pesanan.bayar", order_id=order.id) }}' class='btn btn-primary'>Bayar dengan Midtrans</a>
+            <form method='post' action='{{ url_for("pesanan.batalkan", order_id=order.id) }}' data-confirm='Batalkan pesanan ini?'>
+              <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+              <button type='submit' class='btn btn-outline-danger'>Batalkan</button>
+            </form>
+          </div>
+          {% else %}
+          {% if order.payment_method == 'qris' %}
+          <div class='alert alert-warning small mb-0'>
+            <strong>QRIS belum terhubung untuk pembayaran sungguhan.</strong>
+            Kode QRIS merchant belum dikonfigurasi. Untuk demo, gunakan ID referensi di bawah sebagai penanda pesanan saja; kode ini tidak bisa dipindai atau dipakai untuk membayar.
+          </div>
+          <div class='mt-3 p-3 border rounded-3 bg-white'>
+            <div class='small text-muted'>ID referensi pembayaran (untuk admin)</div>
+            <div class='fs-5 fw-bold font-monospace'>MERCHKU-QRIS-{{ '%06d'|format(order.id) }}</div>
+            <div class='small text-muted mt-1'>Ini bukan payload atau kode QRIS merchant.</div>
+          </div>
+          {% else %}
+          <p class='small text-muted mb-0'>Ongkos kirim dan total akhir masih menunggu konfirmasi admin. Detail rekening resmi belum diatur di aplikasi; hubungi admin dan jangan transfer ke nomor contoh.</p>
+          {% endif %}
+          <div class='payment-action-buttons'>
+            <a href='{{ url_for("pesanan.upload_bukti", order_id=order.id) }}' class='btn btn-primary'>{{ 'Kirim bukti pembayaran' if order.payment_method == 'qris' else 'Upload bukti bayar' }}</a>
+            <form method='post' action='{{ url_for("pesanan.batalkan", order_id=order.id) }}' data-confirm='Batalkan pesanan ini?'>
+              <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+              <button type='submit' class='btn btn-outline-danger'>Batalkan pesanan</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% elif order.status == 'menunggu_pembayaran' and order.payment_method == 'cod' %}
+      <section class='order-detail-card'>
+        <div class='payment-action'>
+          <p class='small text-muted mb-0'><strong>COD dipilih.</strong> Admin akan mengonfirmasi layanan COD dan ongkir. Pembayaran dilakukan saat pesanan diterima.</p>
+          <form class='payment-action-buttons' method='post' action='{{ url_for("pesanan.batalkan", order_id=order.id) }}' data-confirm='Batalkan pesanan ini?'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button type='submit' class='btn btn-outline-danger'>Batalkan pesanan</button>
+          </form>
+        </div>
+      </section>
+      {% elif order.status == 'ditolak' and order.payment_method == 'midtrans' %}
+      <section class='order-detail-card'><div class='payment-action'>
+        <p class='small text-muted mb-0'>Pembayaran belum berhasil atau kedaluwarsa. Kamu bisa mencoba lagi.</p>
+        <div class='payment-action-buttons'><a href='{{ url_for("pesanan.bayar", order_id=order.id) }}' class='btn btn-primary'>Coba bayar lagi</a></div>
+      </div></section>
+      {% endif %}
+      {% if order.payment_proof and order.status != 'menunggu_pembayaran' and not (order.status == 'ditolak' and order.payment_method == 'midtrans') %}
+      <a href='{{ url_for("pesanan.serve_bukti", order_id=order.id) }}' class='btn btn-outline-secondary btn-sm mb-3'>Lihat bukti pembayaran</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

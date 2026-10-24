@@ -1,0 +1,8 @@
+# Dependency untuk development & CI (test, lint, security scan).
+# Install: pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+pytest>=8.3.0
+pytest-cov>=6.0.0
+ruff==0.17.1
+bandit==1.9.4

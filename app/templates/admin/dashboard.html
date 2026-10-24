@@ -5,10 +5,34 @@
   <div class='row g-3'>
     <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Pengguna</h5><p class='display-6'>{{ stats.users }}</p></div></div></div>
     <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Produk</h5><p class='display-6'>{{ stats.products }}</p></div></div></div>
+    <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Total Pesanan</h5><p class='display-6'>{{ stats.orders }}</p></div></div></div>
+    <div class='col-md-4'><div class='card border-warning'><div class='card-body'><h5 class='card-title'>Menunggu Verifikasi</h5><p class='display-6'>{{ stats.pending_verification }}</p><a href='{{ url_for("admin.pesanan_list", status="menunggu_verifikasi") }}'>Periksa pembayaran</a></div></div></div>
+    <div class='col-md-4'><div class='card border-success'><div class='card-body'><h5 class='card-title'>Omzet Terkonfirmasi</h5><p class='fs-4'>Rp {{ '{:,}'.format(stats.revenue).replace(',', '.') }}</p></div></div></div>
   </div>
   <div class='mt-3'>
     <a class='btn btn-primary' href='{{ url_for("admin.produk_list") }}'>Kelola Produk</a>
     <a class='btn btn-outline-primary' href='{{ url_for("admin.user_list") }}'>Kelola Pengguna</a>
+    <a class='btn btn-outline-info' href='{{ url_for("admin.laporan") }}'>Laporan Transaksi</a>
+  </div>
+  <h5 class='mt-4'>Pesanan Terbaru</h5>
+  <div class='table-responsive'>
+    <table class='table align-middle'>
+      <thead><tr><th>#</th><th>Customer</th><th>Tanggal</th><th>Total</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td>{{ order.id }}</td>
+          <td>{{ order.user.email if order.user else '-' }}</td>
+          <td>{{ order.created_at.strftime('%d %b %Y') }}</td>
+          <td>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</td>
+          <td>{{ order.display_status.replace('_', ' ') }}</td>
+          <td><a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.pesanan_detail", order_id=order.id) }}'>Detail</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan='6' class='text-center text-muted'>Belum ada pesanan.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

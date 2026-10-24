@@ -25,7 +25,7 @@ def get_client_ip(app_config_trusted=None):
     trusted = app_config_trusted or []
     try:
         remote = ipaddress.ip_address(request.remote_addr)
-    except Exception:
+    except Exception:  # nosec B110 - remote_addr selalu ada; fallback aman
         remote = ipaddress.ip_address('127.0.0.1')
     if request.headers:
         for cidr in trusted:

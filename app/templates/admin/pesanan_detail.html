@@ -1,0 +1,111 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex align-items-center gap-3 mb-3'>
+    <a href='{{ url_for("admin.pesanan_list") }}' class='btn btn-outline-secondary btn-sm'>← Semua Pesanan</a>
+    <h3 class='mb-0'>Pesanan #{{ order.id }}</h3>
+    {% set badge_map = {
+      'menunggu_pembayaran': 'warning',
+      'menunggu_konfirmasi_cod': 'warning',
+      'menunggu_verifikasi': 'info',
+      'dibayar': 'primary',
+      'cod_dikonfirmasi': 'primary',
+      'ditolak': 'danger',
+      'dikirim': 'success',
+      'selesai': 'success',
+      'dibatalkan': 'secondary'
+    } %}
+    <span class='badge bg-{{ badge_map.get(order.display_status, badge_map.get(order.status, "secondary")) }} fs-6'>{{ order.display_status.replace('_',' ') }}</span>
+  </div>
+
+  <div class='row'>
+    <div class='col-md-5'>
+      <div class='card mb-3'>
+        <div class='card-header'>Info Pengiriman</div>
+        <ul class='list-group list-group-flush'>
+          <li class='list-group-item'><strong>Customer:</strong> {{ order.user.email if order.user else '-' }}</li>
+          <li class='list-group-item'><strong>Penerima:</strong> {{ order.recipient_name }}</li>
+          <li class='list-group-item'><strong>Alamat ({{ order.address_label or 'rumah' }}):</strong> {{ order.address }}</li>
+          <li class='list-group-item'><strong>Kecamatan:</strong> {{ order.district or '-' }}</li>
+          <li class='list-group-item'><strong>Kota/Kabupaten:</strong> {{ order.city or '-' }}</li>
+          <li class='list-group-item'><strong>Provinsi:</strong> {{ order.province or '-' }} · <strong>Kode Pos:</strong> {{ order.postal_code or '-' }}</li>
+          <li class='list-group-item'><strong>HP:</strong> {{ order.phone }}</li>
+          <li class='list-group-item'><strong>Kurir:</strong> {{ order.courier_label }} (ongkir dikonfirmasi admin)</li>
+          <li class='list-group-item'><strong>Pembayaran:</strong> {{ order.payment_method_label }}</li>
+          {% if order.delivery_note %}<li class='list-group-item'><strong>Catatan kurir:</strong> {{ order.delivery_note }}</li>{% endif %}
+          <li class='list-group-item'><strong>Tanggal:</strong> {{ order.created_at.strftime('%d %b %Y %H:%M') }}</li>
+        </ul>
+      </div>
+
+      {% if order.admin_note %}
+      <div class='alert alert-secondary'><strong>Catatan sebelumnya:</strong> {{ order.admin_note }}</div>
+      {% endif %}
+
+      {% if order.payment_proof %}
+      <a href='{{ url_for("admin.pesanan_bukti", order_id=order.id) }}' class='btn btn-outline-info mb-3'>
+        Lihat Bukti Bayar
+      </a>
+      {% else %}
+      <p class='text-muted mb-3'>Belum ada bukti bayar.</p>
+      {% endif %}
+
+      {# Panel ubah status #}
+      {% set transitions = order.allowed_transitions %}
+      {% if transitions %}
+      <div class='card'>
+        <div class='card-header'>Ubah Status</div>
+        <div class='card-body'>
+          <form method='post' action='{{ url_for("admin.pesanan_ubah_status", order_id=order.id) }}'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <div class='mb-3'>
+              <label class='form-label'>Status Baru</label>
+              <select name='new_status' class='form-select' required>
+                {% for s in transitions %}
+                <option value='{{ s }}'>
+                  {% if order.payment_method == 'cod' and s == 'dibayar' %}Konfirmasi COD / siap dikirim
+                  {% else %}{{ s.replace('_',' ') }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class='mb-3'>
+              <label class='form-label'>Catatan Admin (opsional)</label>
+              <textarea name='admin_note' class='form-control' rows='2' maxlength='500'></textarea>
+            </div>
+            <button type='submit' class='btn btn-primary'>Konfirmasi Ubah Status</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class='col-md-7'>
+      <div class='card'>
+        <div class='card-header'>Item Pesanan</div>
+        <div class='card-body p-0'>
+          <table class='table table-sm mb-0'>
+            <thead><tr><th>Produk</th><th>Ukuran</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr></thead>
+            <tbody>
+              {% for item in order.items %}
+              <tr>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.size or '-' }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Rp {{ '{:,}'.format(item.unit_price).replace(',','.') }}</td>
+                <td>Rp {{ '{:,}'.format(item.subtotal).replace(',','.') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan='4' class='text-end fw-bold'>Total:</td>
+                <td class='fw-bold'>Rp {{ '{:,}'.format(order.total_price).replace(',','.') }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

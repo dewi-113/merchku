@@ -1,4 +1,6 @@
-﻿import os
+﻿import contextlib
+import os
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -8,30 +10,44 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     url_for,
 )
 from flask_login import current_user
+from sqlalchemy import func
 
 from app import db, limiter
-from app.admin.forms import ProductForm, RoleChangeForm
+from app.admin.forms import OrderNoteForm, ProductForm, RoleChangeForm
 from app.auth.decorators import role_required
 from app.auth.models import User
 from app.core.uploads import UploadRejected, reencode_and_save, validate_image_upload
 from app.core.utils import get_client_ip, log_access_denied
 from app.katalog.models import SIZES, Product, ProductSizeStock
+from app.pesanan.models import (
+    ORDER_STATUSES,
+    STOCK_RESERVED_STATUSES,
+    Order,
+    restore_reserved_stock,
+)
 from app.security_logger import sec_log
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
 def _log(event, **kw):
-    sec_log(
-        event=event,
-        ip=get_client_ip(current_app.config.get('TRUSTED_PROXIES')),
-        path=request.path,
-        method=request.method,
-        **kw,
-    )
+    """Helper log dengan konteks request/user.
+
+    Nilai default hanya dipakai bila pemanggil tidak menyediakannya sendiri,
+    sehingga pemanggil boleh meng-override (mis. `user_id`) tanpa error.
+    """
+    level = kw.pop('level', 'info')
+    kw.setdefault('ip', get_client_ip(current_app.config.get('TRUSTED_PROXIES')))
+    kw.setdefault('path', request.path)
+    kw.setdefault('method', request.method)
+    kw.setdefault('user_id', getattr(current_user, 'id', None))
+    kw.setdefault('email', getattr(current_user, 'email', None))
+    kw.setdefault('role', getattr(current_user, 'role', None))
+    sec_log(event=event, level=level, **kw)
 
 
 @bp.before_request
@@ -45,9 +61,25 @@ def dashboard():
     stats = {
         'users': User.query.count(),
         'products': Product.query.count(),
+        'orders': Order.query.count(),
+        'pending_verification': Order.query.filter_by(status='menunggu_verifikasi').count(),
+        'revenue': (
+            db.session.query(func.coalesce(func.sum(Order.total_price), 0))
+            .filter(
+                db.or_(
+                    db.and_(
+                        Order.payment_method != 'cod',
+                        Order.status.in_(['dibayar', 'dikirim', 'selesai']),
+                    ),
+                    db.and_(Order.payment_method == 'cod', Order.status == 'selesai'),
+                )
+            )
+            .scalar()
+        ),
     }
+    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
     _log('admin_viewed_dashboard')
-    return render_template('admin/dashboard.html', stats=stats)
+    return render_template('admin/dashboard.html', stats=stats, recent_orders=recent_orders)
 
 
 # ---------- Produk ----------
@@ -96,8 +128,13 @@ def produk_create():
             name=form.name.data.strip(),
             description=(form.description.data or '').strip(),
             category=form.category.data,
+            product_type=(form.product_type.data or '').strip() or None,
+            color=(form.color.data or '').strip() or None,
             price=form.price.data,
+            original_price=form.original_price.data or None,
+            weight_gram=form.weight_gram.data or 500,
             is_active=bool(form.is_active.data),
+            is_fragile=bool(form.is_fragile.data),
             use_sizes=bool(form.use_sizes.data),
             stock=0 if form.use_sizes.data else (form.stock.data or 0),
             image=image_name,
@@ -143,8 +180,13 @@ def produk_edit(pid):
         p.name = form.name.data.strip()
         p.description = (form.description.data or '').strip()
         p.category = form.category.data
+        p.product_type = (form.product_type.data or '').strip() or None
+        p.color = (form.color.data or '').strip() or None
         p.price = form.price.data
+        p.original_price = form.original_price.data or None
+        p.weight_gram = form.weight_gram.data or 500
         p.is_active = bool(form.is_active.data)
+        p.is_fragile = bool(form.is_fragile.data)
         new_use_sizes = bool(form.use_sizes.data)
         p.use_sizes = new_use_sizes
         if new_use_sizes:
@@ -164,10 +206,8 @@ def produk_edit(pid):
         if image_name:
             # hapus gambar lama
             if p.image:
-                try:
+                with contextlib.suppress(OSError):
                     os.remove(os.path.join(current_app.config['UPLOAD_PUBLIC'], p.image))
-                except OSError:
-                    pass
             p.image = image_name
             _log('file_upload_success', jenis='produk', nama_asli=form.image.data.filename, user_id=current_user.id)
         db.session.commit()
@@ -181,10 +221,8 @@ def produk_edit(pid):
 def produk_delete(pid):
     p = db.session.get(Product, pid) or abort(404)
     if p.image:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(os.path.join(current_app.config['UPLOAD_PUBLIC'], p.image))
-        except OSError:
-            pass
     db.session.delete(p)
     db.session.commit()
     _log('produk_deleted', produk_id=pid, user_id=current_user.id)
@@ -220,13 +258,19 @@ def user_status(uid):
 def user_role(uid):
     u = db.session.get(User, uid) or abort(404)
     form = RoleChangeForm()
+    if request.method == 'GET':
+        form.role.data = u.role
     if form.validate_on_submit():
         if form.confirm.data.strip().lower() != u.email.lower():
             log_access_denied('user_role_confirmation', u.id, reason='confirm_mismatch')
             flash('Konfirmasi tidak cocok.', 'danger')
             return render_template('admin/user_role.html', user=u, form=form), 403
+        new_role = form.role.data
+        if u.id == current_user.id and new_role != 'admin':
+            flash('Tidak bisa menurunkan role akun sendiri.', 'danger')
+            return render_template('admin/user_role.html', user=u, form=form), 403
         old = u.role
-        u.role = 'customer' if u.role == 'admin' else 'admin'
+        u.role = new_role
         db.session.commit()
         _log('user_role_changed', target_user_id=u.id, target_email=u.email,
              old_role=old, new_role=u.role, user_id=current_user.id)
@@ -247,3 +291,195 @@ def user_delete(uid):
     _log('user_deleted', target_user_id=uid, target_email=email, user_id=current_user.id)
     flash('Pengguna dihapus.', 'success')
     return redirect(url_for('admin.user_list'))
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Pesanan — approval, list, detail, lihat bukti bayar, ubah status
+# ═══════════════════════════════════════════════════════════════════
+
+@bp.route('/pesanan')
+def pesanan_list():
+    """Daftar semua pesanan, bisa filter per status."""
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '').strip()
+    q = Order.query.order_by(Order.created_at.desc())
+    if status_filter:
+        q = q.filter(Order.status == status_filter)
+
+    pagination = q.paginate(page=page, per_page=20, error_out=False)
+    return render_template('admin/pesanan_list.html', pagination=pagination,
+                           ORDER_STATUSES=ORDER_STATUSES, status_filter=status_filter)
+
+
+
+
+@bp.route('/pesanan/<int:order_id>')
+def pesanan_detail(order_id):
+    """Detail pesanan lengkap untuk admin."""
+    order = db.session.get(Order, order_id) or abort(404)
+    form = OrderNoteForm()
+    return render_template('admin/pesanan_detail.html', order=order, form=form,
+                           ORDER_STATUSES=ORDER_STATUSES)
+
+
+
+
+@bp.route('/pesanan/<int:order_id>/bukti')
+def pesanan_bukti(order_id):
+    """Admin lihat bukti bayar. Sajikan dari direktori privat."""
+    order = db.session.get(Order, order_id) or abort(404)
+    if not order.payment_proof:
+        abort(404)
+    private_dir = current_app.config['UPLOAD_PRIVATE']
+    fname = order.payment_proof
+    fpath = os.path.join(private_dir, fname)
+    if not os.path.isfile(fpath):
+        abort(404)
+    ext = os.path.splitext(fname)[1].lower()
+    mime = 'application/pdf' if ext == '.pdf' else 'image/jpeg'
+    _log('bukti_bayar_download', order_id=order_id, fname=fname)
+    response = send_from_directory(
+        private_dir, fname, mimetype=mime,
+        as_attachment=True,
+        download_name=f'bukti_bayar_{order_id}{ext}',
+    )
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+@bp.route('/pesanan/<int:order_id>/status', methods=['POST'])
+def pesanan_ubah_status(order_id):
+    """
+    Admin mengubah status pesanan (termasuk approve/reject bukti bayar).
+    Validasi: transisi harus ada di VALID_TRANSITIONS.
+    Catat ke log: bukti_bayar_approved / bukti_bayar_rejected / order_status_changed.
+    """
+    order = db.session.get(Order, order_id) or abort(404)
+    old_status = order.status
+    new_status = request.form.get('new_status', '').strip()
+    admin_note = request.form.get('admin_note', '').strip()
+
+    if not order.can_transition_to(new_status):
+        flash(f'Transisi {order.status} → {new_status} tidak valid.', 'danger')
+        return redirect(url_for('admin.pesanan_detail', order_id=order_id))
+
+    # Pesanan yang dibatalkan sebelum dibayar harus mengembalikan stok
+    # yang masih di-reserve, supaya stok tidak hilang dari inventaris.
+    if new_status == 'dibatalkan' and old_status in STOCK_RESERVED_STATUSES:
+        try:
+            restore_reserved_stock(order)
+        except Exception:
+            db.session.rollback()
+            _log('server_error', event='restore_stock_failed', order_id=order_id)
+            flash('Gagal mengembalikan stok pesanan. Coba lagi.', 'danger')
+            return redirect(url_for('admin.pesanan_detail', order_id=order_id))
+
+    order.status = new_status
+    if admin_note:
+        order.admin_note = admin_note
+
+    db.session.commit()
+
+    # Log spesifik untuk approve/reject bukti bayar
+
+    if old_status == 'menunggu_verifikasi' and new_status == 'dibayar':
+        _log('bukti_bayar_approved', order_id=order_id, user_id=current_user.id)
+    elif old_status == 'menunggu_verifikasi' and new_status == 'ditolak':
+        _log('bukti_bayar_rejected', order_id=order_id, user_id=current_user.id, note=admin_note)
+
+    _log('order_status_changed', order_id=order_id,
+         old_status=old_status, new_status=new_status,
+         actor='admin', admin_id=current_user.id)
+
+    flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
+    return redirect(url_for('admin.pesanan_detail', order_id=order_id))
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Laporan transaksi
+# ═══════════════════════════════════════════════════════════════════
+
+@bp.route('/laporan')
+def laporan():
+    """
+    Ringkasan transaksi seluruh toko.
+    Filter opsional: date_from, date_to (format YYYY-MM-DD).
+    Tampilkan: total pesanan, omzet, breakdown per status.
+    """
+    date_from_str = request.args.get('date_from', '').strip()
+    date_to_str = request.args.get('date_to', '').strip()
+
+
+    date_from = None
+    date_to = None
+    try:
+        if date_from_str:
+            date_from = datetime.strptime(date_from_str, '%Y-%m-%d')
+        if date_to_str:
+            date_to = datetime.strptime(date_to_str, '%Y-%m-%d')
+            # inklusif: sampai akhir hari
+            date_to = date_to.replace(hour=23, minute=59, second=59)
+    except ValueError:
+        flash('Format tanggal tidak valid. Gunakan YYYY-MM-DD.', 'danger')
+        date_from_str = date_to_str = ''
+
+    base_q = Order.query
+    if date_from:
+        base_q = base_q.filter(Order.created_at >= date_from)
+    if date_to:
+        base_q = base_q.filter(Order.created_at <= date_to)
+
+    # Total semua pesanan di periode
+    total_pesanan = base_q.count()
+
+    # Filter periode yang sama, dipakai ulang untuk agregasi SUM
+    periode_filters = []
+    if date_from:
+        periode_filters.append(Order.created_at >= date_from)
+    if date_to:
+        periode_filters.append(Order.created_at <= date_to)
+
+    def _total_filter(*extra):
+        return (
+            db.session.execute(
+                db.select(func.sum(Order.total_price))
+                .where(*extra, *periode_filters)
+            ).scalar()
+            or 0
+        )
+
+    # Omzet: hanya pesanan dengan status dibayar/dikirim/selesai
+    omzet = _total_filter(
+        db.or_(
+            db.and_(
+                Order.payment_method != 'cod',
+                Order.status.in_(['dibayar', 'dikirim', 'selesai']),
+            ),
+            db.and_(Order.payment_method == 'cod', Order.status == 'selesai'),
+        )
+    )
+
+    # Breakdown per status
+    status_counts = {}
+    for s in ORDER_STATUSES:
+        status_counts[s] = {
+            'count': base_q.filter(Order.status == s).count(),
+            'total': _total_filter(Order.status == s),
+        }
+
+
+    # Pesanan terbaru (10)
+    recent_orders = base_q.order_by(Order.created_at.desc()).limit(10).all()
+
+    _log('admin_viewed_laporan', date_from=date_from_str, date_to=date_to_str)
+
+    return render_template(
+        'admin/laporan.html',
+        total_pesanan=total_pesanan,
+        omzet=omzet,
+        status_counts=status_counts,
+        ORDER_STATUSES=ORDER_STATUSES,
+        recent_orders=recent_orders,
+        date_from=date_from_str,
+        date_to=date_to_str,
+    )

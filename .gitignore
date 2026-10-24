@@ -18,3 +18,8 @@ htmlcov/
 .mypy_cache/
 build/
 dist/
+
+# Lingkungan Python & editor lokal
+venv/
+.venv/
+.vscode/

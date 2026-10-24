@@ -5,6 +5,7 @@
   <p>Role saat ini: <strong>{{ user.role }}</strong></p>
   <form method='post'>
     {{ form.csrf_token }}
+    <div class='mb-3'>{{ form.role.label(class='form-label') }}{{ form.role(class='form-select') }}</div>
     <div class='mb-3'>{{ form.confirm.label(class='form-label') }}{{ form.confirm(class='form-control') }}</div>
     {{ form.submit(class='btn btn-warning') }}
     <a class='btn btn-outline-secondary' href='{{ url_for("admin.user_list") }}'>Batal</a>

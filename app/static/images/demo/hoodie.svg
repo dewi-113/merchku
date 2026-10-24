@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8eaff"/><stop offset="1" stop-color="#cbd2ff"/></linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#263b67"/><stop offset="1" stop-color="#101d3a"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="32" fill="url(#bg)"/>
+  <circle cx="110" cy="87" r="58" fill="#fff" opacity=".32"/>
+  <ellipse cx="322" cy="401" rx="154" ry="22" fill="#39456f" opacity=".24" filter="url(#shadow)"/>
+  <path d="m249 129 43-28 28 31 28-31 43 28 57 25 59 62-43 48-44-37v137c0 16-12 28-28 28H248c-16 0-28-12-28-28V227l-44 37-43-48 59-62z" fill="url(#cloth)" stroke="#182849" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M292 101c0-43 14-66 28-66s28 23 28 66l-28 31z" fill="#344a78" stroke="#182849" stroke-width="5"/>
+  <path d="M277 107c-19 14-29 35-29 57m144-57c19 14 29 35 29 57" fill="none" stroke="#6378a4" stroke-width="6"/>
+  <path d="M320 134v224" stroke="#7080a5" stroke-width="5"/>
+  <path d="M251 286h138l-15 42H266z" fill="#314873" stroke="#7282a5" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="319" cy="202" r="33" fill="#55c3ff"/>
+  <path d="m304 204 12 12 22-28" fill="none" stroke="#102345" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="320" y="376" text-anchor="middle" fill="#dbeaff" font-family="Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="3">CAMPUS • EST 2026</text>
+</svg>

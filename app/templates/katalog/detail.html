@@ -1,0 +1,422 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% from 'partials/product_card.html' import product_card %}
+{% block title %}{{ product.name }} — Merchku{% endblock %}
+
+{% block body_class %}{% if product.total_stock > 0 and (not current_user.is_authenticated or current_user.role == 'customer') %}has-action-bar{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .product-detail { max-width: 1120px; padding-top: 20px; padding-bottom: 48px; }
+  .product-breadcrumb { font-size: .9rem; margin-bottom: 20px; }
+  .product-breadcrumb a { color: var(--text-muted); text-decoration: none; }
+  .product-breadcrumb a:hover { color: var(--accent-dark); }
+  .product-panel, .review-panel {
+    background: rgba(255,255,255,.82);
+    border: 1px solid rgba(59,155,255,.12);
+    border-radius: 24px;
+    box-shadow: 0 12px 36px rgba(36,90,140,.08);
+  }
+  .product-image-wrap {
+    min-height: 420px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #f1f8ff, #e3f1ff);
+  }
+  .product-image-wrap img { width: 100%; height: 100%; max-height: 560px; object-fit: contain; }
+  .product-image-empty { color: #82acd0; font-size: 5rem; }
+  .product-info { padding: clamp(22px, 4vw, 42px); }
+  .product-category {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: var(--accent-dark);
+    background: #e9f4ff;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .product-title { margin: 16px 0 8px; font-weight: 800; font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.15; }
+  .product-price { color: #ee4d2d; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; }
+  .product-rating { color: #b77900; font-weight: 700; }
+  .product-summary-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0 16px; padding: 12px 14px; border-radius: 10px; background: #f8f8f8; }
+  .product-summary-label { color: #667085; font-size: .8rem; }
+  .product-stock-pill { display: inline-flex; align-items: center; gap: 6px; color: #16845b; font-size: .84rem; font-weight: 650; }
+  .product-stock-dot { width: 7px; height: 7px; border-radius: 50%; background: #12b76a; }
+  .stock-note { margin: 0; color: #16845b; font-size: .84rem; }
+  .product-attributes { margin-bottom: 14px; }
+  .product-attributes .badge { padding: 7px 10px; color: #475467 !important; font-weight: 500; }
+  .seller-card {
+    display: flex; align-items: center; gap: 14px; padding: 16px;
+    border: 1px solid #e7ebf0; border-radius: 12px; background: #fff;
+  }
+  .seller-avatar {
+    width: 58px; height: 58px; flex: 0 0 58px; object-fit: cover;
+    border: 1px solid #e7ebf0; border-radius: 50%;
+  }
+  .seller-avatar-placeholder {
+    display: grid; place-items: center; background: #fff4e8; color: #ee4d2d;
+    font-size: 1.35rem; font-weight: 800;
+  }
+  .seller-card-name { color: #222; font-weight: 750; }
+  .seller-card-stats { display: flex; flex-wrap: wrap; gap: 8px 16px; color: #757575; font-size: .76rem; }
+  .seller-card-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+  .seller-card-actions .btn { min-height: 38px; font-size: .82rem; font-weight: 650; }
+  .btn-follow { background: #ee4d2d; border: 1px solid #ee4d2d; color: #fff; }
+  .btn-follow:hover { background: #d73f22; border-color: #d73f22; color: #fff; }
+  .btn-follow.is-following { background: #fff; border-color: #d0d5dd; color: #555; }
+  .buy-box { padding: 18px; border: 1px solid #eaecf0; border-radius: 14px; background: #fff; }
+  .buy-field-label { display: block; margin-bottom: 10px; color: #344054; font-size: .9rem; font-weight: 700; }
+  .size-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+  .size-option { position: relative; display: block; cursor: pointer; }
+  .size-option-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .size-option-button {
+    display: flex; min-height: 58px; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 7px 4px; border: 1px solid #d0d5dd; border-radius: 9px;
+    background: #fff; color: #344054; text-align: center; transition: border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .size-option-button strong { font-size: .95rem; }
+  .size-option-button small { color: #667085; font-size: .66rem; line-height: 1.2; }
+  .size-option:hover .size-option-button { border-color: #ee4d2d; color: #d83b1e; }
+  .size-option-input:checked + .size-option-button { border: 2px solid #ee4d2d; background: #fff7f4; color: #d83b1e; }
+  .size-option-input:checked + .size-option-button small { color: #b54708; }
+  .size-option-input:focus-visible + .size-option-button { outline: 3px solid rgba(238,77,45,.25); outline-offset: 2px; }
+  .quantity-input { min-height: 48px; }
+  .quantity-control { display: flex; align-items: center; gap: 8px; }
+  .quantity-control button { width: 46px; height: 46px; font-size: 1.2rem; }
+  .quantity-input { width: 82px; text-align: center; font-weight: 700; }
+  .buy-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .buy-actions .btn { min-height: 50px; font-weight: 700; }
+  .product-description { line-height: 1.75; color: #42536a; white-space: pre-wrap; }
+  .size-guide-button { min-height: 42px; }
+  .review-panel { padding: clamp(18px, 3vw, 28px); }
+  .review-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #edf0f2; }
+  .review-summary { color: #ee4d2d; font-size: 1.7rem; font-weight: 800; }
+  .review-card {
+    padding: 18px; border: 1px solid #edf0f2; border-radius: 14px;
+    background: #fff; box-shadow: 0 3px 12px rgba(30,41,59,.035);
+  }
+  .review-card + .review-card { margin-top: 12px; }
+  .review-user { display: flex; align-items: center; gap: 11px; }
+  .review-avatar {
+    width: 42px; height: 42px; display: grid; place-items: center;
+    flex: 0 0 42px; border-radius: 50%; color: #456; background: #eef4fb;
+    font-weight: 750;
+  }
+  .review-user-name { color: #222; font-size: .9rem; font-weight: 700; }
+  .review-date { color: #98a2b3; font-size: .77rem; }
+  .review-stars { color: #ee4d2d; letter-spacing: 1px; }
+  .review-chat-bubble {
+    margin: 14px 0 0 52px; padding: 13px 15px; border-radius: 4px 14px 14px;
+    background: #f7f8fa; color: #344054; line-height: 1.65; white-space: pre-wrap;
+  }
+  .review-empty { padding: 30px 16px; border: 1px dashed #d9dee7; border-radius: 12px; color: #7b8492; text-align: center; }
+  .seller-reply-bubble {
+    margin: 12px 0 0 52px; padding: 13px 15px; border-radius: 4px 14px 14px;
+    background: #fff4ef; color: #65483f; line-height: 1.6; white-space: pre-wrap;
+  }
+  .seller-reply-label { color: #ee4d2d; font-size: .78rem; font-weight: 750; }
+  @media (max-width: 767px) {
+    .product-detail { padding-top: 8px; }
+    .product-image-wrap { min-height: 280px; max-height: 380px; }
+    .buy-actions { grid-template-columns: 1fr; }
+    .size-options { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+    .size-option-button { min-height: 54px; }
+    .buy-box { padding: 15px; }
+    .product-panel, .review-panel { border-radius: 18px; }
+    .seller-card { align-items: flex-start; flex-wrap: wrap; }
+    .seller-card-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); width: 100%; }
+    .seller-card-actions form { display: contents; }
+    .seller-card-actions .btn { width: 100%; padding-left: 6px; padding-right: 6px; white-space: nowrap; }
+    .review-chat-bubble, .seller-reply-bubble { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class='container product-detail'>
+  <nav class='product-breadcrumb' aria-label='breadcrumb'>
+    <a href='{{ url_for("katalog.index") }}'>Katalog</a>
+    <span class='mx-2'>/</span>
+    <span aria-current='page'>{{ product.name }}</span>
+  </nav>
+
+  <section class='product-panel p-3 p-md-4'>
+    <div class='row g-4 align-items-stretch'>
+      <div class='col-md-6'>
+        <div class='product-image-wrap'>
+          {{ product_image(product) }}
+        </div>
+      </div>
+      <div class='col-md-6'>
+        <div class='product-info'>
+          <span class='product-category'>{{ product.category.replace('_', ' ') }}</span>
+          <h1 class='product-title'>{{ product.name }}</h1>
+          <div class='d-flex flex-wrap align-items-center gap-3 mb-3'>
+            <span class='product-price'>Rp {{ '{:,}'.format(product.price).replace(',', '.') }}</span>
+            {% if product.discount_percent %}
+            <span class='product-price-old'>Rp {{ '{:,}'.format(product.original_price).replace(',', '.') }}</span>
+            <span class='product-discount-chip'>{{ product.discount_percent }}% OFF</span>
+            {% endif %}
+            <a class='product-rating text-decoration-none' href='#ulasan'>★ {{ avg }} <span class='text-muted fw-normal'>({{ reviews|length }} ulasan)</span></a>
+            {% set detail_stats = product_stats([product])[product.id] %}
+            {% if detail_stats.sold %}<span class='product-sold'>{{ detail_stats.sold_label }} terjual</span>{% endif %}
+          </div>
+          <div class='product-summary-row'>
+            <span class='product-summary-label'>Ketersediaan</span>
+            {% if product.total_stock > 0 %}
+            <span class='product-stock-pill'><span class='product-stock-dot'></span>Tersedia · {{ product.total_stock }} stok total</span>
+            {% else %}
+            <span class='text-danger fw-semibold small'>Stok sedang habis</span>
+            {% endif %}
+          </div>
+
+          {% if product.product_type or product.color %}
+          <div class='product-attributes d-flex flex-wrap gap-2'>
+            {% if product.product_type %}<span class='badge rounded-pill text-bg-light border'>Jenis: {{ product.product_type }}</span>{% endif %}
+            {% if product.color %}<span class='badge rounded-pill text-bg-light border'>Warna: {{ product.color }}</span>{% endif %}
+          </div>
+          {% endif %}
+
+          {% if product.use_sizes and size_stocks %}
+          <div class='mb-3'>
+            <button class='btn btn-sm btn-outline-info size-guide-button' type='button'
+              data-bs-toggle='collapse' data-bs-target='#sizeGuide' aria-expanded='false'
+              aria-controls='sizeGuide'>Panduan ukuran</button>
+            <div class='collapse mt-2' id='sizeGuide'>
+              <div class='table-responsive'>
+                <table class='table table-sm table-bordered text-center mb-0'>
+                  <thead class='table-light'><tr><th>Ukuran</th><th>Bahu</th><th>Dada (½)</th><th>Panjang</th><th>Lengan</th></tr></thead>
+                  <tbody>
+                    <tr><td>S</td><td>40</td><td>47</td><td>66</td><td>57</td></tr>
+                    <tr><td>M</td><td>43</td><td>50</td><td>69</td><td>59</td></tr>
+                    <tr><td>L</td><td>46</td><td>53</td><td>72</td><td>61</td></tr>
+                    <tr><td>XL</td><td>49</td><td>56</td><td>75</td><td>63</td></tr>
+                    <tr><td>XXL</td><td>52</td><td>59</td><td>78</td><td>65</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <small class='text-muted'>Ukuran dalam sentimeter. Bandingkan dengan pakaian yang pas dipakai.</small>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if product.description %}
+          <div class='product-description mb-4'>{{ product.description|e }}</div>
+          {% else %}
+          <p class='product-description mb-4 text-muted'>Belum ada deskripsi untuk produk ini.</p>
+          {% endif %}
+
+          {% if product.total_stock > 0 and current_user.is_authenticated and current_user.role == 'customer' %}
+          <div class='buy-box'>
+            <form method='post' action='{{ url_for("keranjang.tambah") }}'>
+              <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+              <input type='hidden' name='product_id' value='{{ product.id }}'>
+              {% if product.use_sizes %}
+              <fieldset class='border-0 p-0 m-0 mb-3'>
+                <legend class='buy-field-label'>Pilih ukuran</legend>
+                <div class='size-options' role='radiogroup' aria-label='Pilih ukuran yang tersedia'>
+                {% for s in size_stocks if s.stock > 0 %}
+                <label class='size-option'>
+                  <input class='size-option-input' type='radio' name='size' value='{{ s.size }}'
+                    data-stock='{{ s.stock }}' data-product-size required>
+                  <span class='size-option-button'>
+                    <strong>{{ s.size }}</strong>
+                    <small>{{ s.stock }} tersedia</small>
+                  </span>
+                </label>
+                {% endfor %}
+                </div>
+                <div class='small text-muted'>Pilih ukuran yang tersedia</div>
+              </fieldset>
+              {% endif %}
+              <label for='product-quantity' class='form-label fw-semibold'>Jumlah</label>
+              <div class='quantity-control mb-3'>
+                <button type='button' class='btn btn-outline-secondary' data-quantity-step='-1' aria-label='Kurangi jumlah'>−</button>
+                <input id='product-quantity' class='form-control quantity-input' type='number'
+                  name='quantity' value='1' min='1' max='{{ [product.total_stock, 99]|min }}'
+                  data-product-quantity data-total-stock='{{ product.total_stock }}' inputmode='numeric' required>
+                <button type='button' class='btn btn-outline-secondary' data-quantity-step='1' aria-label='Tambah jumlah'>+</button>
+                <span class='text-muted small' data-stock-hint>Maks. {{ [product.total_stock, 99]|min }}</span>
+              </div>
+              {% set can_chat = product.owner_id and product.owner_id != current_user.id %}
+              <div class='buy-actions mk-action-bar{{ " has-chat" if can_chat }}'>
+                {% if can_chat %}
+                <button type='submit' form='chatSellerForm' class='btn-bar-chat' aria-label='Chat penjual'>
+                  <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z'/></svg>
+                  <span>Chat</span>
+                </button>
+                {% endif %}
+                <button type='submit' class='btn btn-outline-primary btn-add-cart'>Tambah ke Keranjang</button>
+                <button type='submit' class='btn btn-primary btn-buy-now' name='buy_now' value='1'>Beli Sekarang</button>
+              </div>
+            </form>
+          </div>
+          {% elif not current_user.is_authenticated and product.total_stock > 0 %}
+          <div class='mk-action-bar'>
+            <a class='btn btn-primary btn-lg w-100' href='{{ url_for("auth.login", next=request.path) }}'>Masuk untuk membeli</a>
+          </div>
+          {% elif current_user.is_authenticated and current_user.role != 'customer' %}
+          <div class='alert alert-info mb-0'>Masuk sebagai pembeli untuk menambahkan produk ke keranjang.</div>
+          {% endif %}
+
+          {% if current_user.is_authenticated and current_user.role == 'customer' and product.owner_id and product.owner_id != current_user.id %}
+          <form method='post' action='{{ url_for("chat.start", product_id=product.id) }}' class='mt-3 chat-ask-form' id='chatSellerForm'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button type='submit' class='btn btn-outline-primary w-100'>Tanya Penjual</button>
+          </form>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+    {% if product.owner %}
+    <div class='seller-card mt-3'>
+      {% if product.owner.avatar %}
+      <img class='seller-avatar' src='{{ url_for("core.avatar_media", filename=product.owner.avatar) }}' alt='Avatar toko'>
+      {% else %}
+      <div class='seller-avatar seller-avatar-placeholder' aria-hidden='true'>
+        {{ (product.owner.shop_name or product.owner.email)[0]|upper }}
+      </div>
+      {% endif %}
+      <div class='flex-grow-1'>
+        <a class='seller-card-name text-decoration-none' href='{{ url_for("katalog.toko_public", seller_id=product.owner.id) }}'>
+          {{ product.owner.shop_name or product.owner.email.split('@')[0] }}
+        </a>
+        <div class='small text-muted'>Toko di Merchku</div>
+        {% if product.owner.shop_description %}
+        <div class='small text-muted mt-1'>{{ product.owner.shop_description|truncate(115)|e }}</div>
+        {% endif %}
+        <div class='seller-card-stats mt-2'>
+          <span><strong class='text-dark'>{{ (seller_stats.followers if seller_stats else 0)|ringkas }}</strong> pengikut</span>
+          <span><strong class='text-dark'>{{ seller_stats.product_count if seller_stats else 0 }}</strong> produk</span>
+          <span><strong class='text-dark'>{{ seller_stats.review_average if seller_stats else '0.0' }}</strong> ★ rating toko</span>
+          <span><strong class='text-dark'>{{ seller_stats.review_count if seller_stats else 0 }}</strong> ulasan</span>
+        </div>
+      </div>
+      <div class='seller-card-actions'>
+        {% if current_user.is_authenticated and current_user.role == 'customer' %}
+        <form method='post' action='{{ url_for("katalog.toggle_follow", seller_id=product.owner.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='next' value='{{ request.path }}'>
+          <button type='submit' class='btn btn-follow{{ " is-following" if seller_stats and seller_stats.is_following }}'>{{ '✓ Mengikuti' if seller_stats and seller_stats.is_following else '+ Ikuti' }}</button>
+        </form>
+        {% endif %}
+        <a class='btn btn-outline-secondary' href='{{ url_for("katalog.toko_public", seller_id=product.owner.id) }}'>Lihat Toko</a>
+        {% if current_user.is_authenticated and current_user.role == 'customer' and product.owner.role == 'seller' and product.owner.id != current_user.id %}
+        <form method='post' action='{{ url_for("chat.start", product_id=product.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <button type='submit' class='btn btn-outline-primary'>Chat Penjual</button>
+        </form>
+        {% elif not current_user.is_authenticated and product.owner.role == 'seller' %}
+        <a class='btn btn-outline-primary' href='{{ url_for("auth.login", next=request.path) }}'>Chat Penjual</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if recommendations %}
+  <section class='review-panel mt-4'>
+    <h2 class='h4 fw-bold mb-3'>Produk yang mungkin kamu suka</h2>
+    {% set rec_stats = product_stats(recommendations) %}
+    <div class='mk-grid mk-grid-rec'>
+      {% for suggested in recommendations %}{{ product_card(suggested, rec_stats) }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class='review-panel mt-4' id='ulasan'>
+    <div class='review-header'>
+      <div>
+        <h2 class='h4 fw-bold mb-1'>Ulasan Pembeli</h2>
+        <div class='small text-muted'>Cerita dan pengalaman pembeli produk ini</div>
+      </div>
+      <div class='text-end'>
+        <div class='review-summary'>{{ avg }} <span class='review-stars'>★</span></div>
+        <div class='small text-muted'>{{ reviews|length }} ulasan</div>
+      </div>
+    </div>
+    {% if current_user.is_authenticated and current_user.role == 'customer' %}
+      {% if existing_review %}
+      <div class='alert alert-light'>Kamu sudah memberi ulasan dengan rating {{ existing_review.rating }}.</div>
+      {% elif can_review %}
+      <form method='post' class='mb-4 p-3 rounded-3' style='background:#f7fbff'>
+        {{ form.csrf_token }}
+        <div class='mb-2'>{{ form.rating.label(class='form-label fw-semibold') }}
+          <div class='d-flex flex-wrap gap-3'>{% for r in form.rating %}<label class='form-check-label'>{{ r }} {{ r.label.text }}</label>{% endfor %}</div>
+        </div>
+        <div class='mb-3'>{{ form.comment.label(class='form-label fw-semibold') }}{{ form.comment(class='form-control', rows=3, placeholder='Ceritakan pengalamanmu...') }}</div>
+        {{ form.submit(class='btn btn-success') }}
+      </form>
+      {% else %}
+      <p class='text-muted'>Ulasan bisa diberikan setelah pesanan produk ini selesai.</p>
+      {% endif %}
+    {% elif current_user.is_authenticated and current_user.role in ('seller', 'admin') and product.owner_id == current_user.id %}
+    <p class='text-muted'>Kelola dan balas ulasan melalui halaman produk penjual.</p>
+    {% elif not current_user.is_authenticated %}
+    <p><a href='{{ url_for("auth.login", next=request.path) }}'>Masuk</a> untuk memberikan ulasan setelah pesanan selesai.</p>
+    {% endif %}
+
+    <div class='review-list mt-3'>
+    {% for r in reviews %}
+    <article class='review-card'>
+      <div class='d-flex flex-wrap justify-content-between align-items-start gap-2'>
+        <div class='review-user'>
+          {% if r.user.avatar %}
+          <img class='review-avatar' src='{{ url_for("core.avatar_media", filename=r.user.avatar) }}' alt=''>
+          {% else %}
+          <div class='review-avatar' aria-hidden='true'>{{ (r.user|nama_pengulas)[0]|upper }}</div>
+          {% endif %}
+          <div>
+            <div class='review-user-name'>{{ r.user|nama_pengulas }}</div>
+            <div class='review-date'>{{ r.created_at.strftime('%d %b %Y') }}</div>
+          </div>
+        </div>
+        <span class='badge rounded-pill text-bg-light border'>Pembeli terverifikasi</span>
+      </div>
+      <div class='review-stars mt-3' aria-label='Rating {{ r.rating }} dari 5'>
+        {% for i in range(1, 6) %}{{ '★' if i <= r.rating else '☆' }}{% endfor %}
+      </div>
+      {% if r.comment %}
+      <div class='review-chat-bubble'>{{ r.comment|e }}</div>
+      {% else %}
+      <div class='review-chat-bubble text-muted'>Pembeli memberikan rating tanpa komentar.</div>
+      {% endif %}
+      {% if r.seller_reply %}
+      <div class='seller-reply-bubble'>
+        <div class='d-flex justify-content-between gap-2 mb-1'>
+          <span class='seller-reply-label'>Balasan {{ product.owner.shop_name if product.owner and product.owner.shop_name else 'Penjual' }}</span>
+          <small class='review-date'>{{ r.replied_at.strftime('%d %b %Y') if r.replied_at }}</small>
+        </div>
+        <div>{{ r.seller_reply|e }}</div>
+      </div>
+      {% endif %}
+      {% if current_user.is_authenticated and product.owner_id == current_user.id %}
+      <form method='post' action='{{ url_for("seller.produk_ulasan_balas", pid=product.id, rid=r.id) }}' class='mt-2'>
+        <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+        <textarea name='seller_reply' class='form-control mb-2' rows='2' maxlength='2000' placeholder='Balas ulasan ini...'>{{ r.seller_reply or '' }}</textarea>
+        <button type='submit' class='btn btn-sm btn-outline-primary'>{{ 'Perbarui balasan' if r.seller_reply else 'Balas ulasan' }}</button>
+      </form>
+      {% endif %}
+    </article>
+    {% else %}
+    <div class='review-empty mt-3'>
+      <div class='fs-3 mb-2' aria-hidden='true'>☆</div>
+      <strong>Belum ada ulasan</strong>
+      <div class='small mt-1'>Jadilah pembeli pertama yang berbagi pengalaman untuk produk ini.</div>
+    </div>
+    {% endfor %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}

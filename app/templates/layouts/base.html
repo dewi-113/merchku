@@ -1,13 +1,918 @@
 <!doctype html>
 <html lang='id'>
-<head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Merchku</title>
-<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' rel='stylesheet'></head>
-<body>
-<nav class='navbar navbar-expand-lg bg-body-tertiary'><div class='container'><a class='navbar-brand' href='#'>Merchku</a></div></nav>
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
-<div class='container mt-2'>{% for c,m in messages %}<div class='alert alert-{{c}}'>{{m}}</div>{% endfor %}</div>
-{% endif %}{% endwith %}
-{% block content %}{% endblock %}
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content'>
+  <meta name='theme-color' content='#2563eb'>
+  <meta name='csrf-token' content='{{ csrf_token() }}'>
+  <title>{% block title %}Merchku{% endblock %}</title>
+  <link rel='icon' type='image/png' href='{{ url_for("core.logo") }}'>
+  <link rel='manifest' href='{{ url_for("static", filename="manifest.webmanifest") }}'>
+  <link rel='apple-touch-icon' href='{{ url_for("static", filename="icons/merchku-192.png") }}'>
+  <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.18/index.css' rel='stylesheet'>
+  <style>
+    /* ── CSS Variables ───────────────────────────────── */
+    :root {
+      --bg-primary:    #f6faff;
+      --bg-secondary:  #eaf4ff;
+      --text-primary:  #16233c;
+      --text-muted:    #5b7a99;
+      --accent:        #3b9bff;
+      --accent-light:  #7ec8ff;
+      --accent-dark:   #1a6dcc;
+      --glass-bg:      rgba(255,255,255,0.58);
+      --glass-border:  rgba(255,255,255,0.8);
+      --glass-shadow:  0 8px 32px rgba(59,155,255,0.12);
+      --nav-height:    68px;
+      --radius:        16px;
+      --transition:    all 0.3s cubic-bezier(0.4,0,0.2,1);
+
+      /* body background (crossfaded on theme change) */
+      --body-bg:
+        radial-gradient(1100px 540px at 8% -10%, rgba(151,207,255,0.65) 0%, rgba(151,207,255,0) 62%),
+        radial-gradient(950px 500px at 94% -6%, rgba(198,231,255,0.7) 0%, rgba(198,231,255,0) 58%),
+        radial-gradient(900px 700px at 50% 110%, rgba(219,240,255,0.8) 0%, rgba(219,240,255,0) 60%),
+        linear-gradient(180deg, #e2f0ff 0%, #eef7ff 40%, #fbfdff 72%, #ffffff 100%);
+    }
+
+
+    /* ── Base ────────────────────────────────────────── */
+    * { box-sizing: border-box; }
+    html { background: #ffffff; }
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--body-bg);
+      background-attachment: fixed;
+    }
+    main { flex: 1; }
+
+    /* ── Animated aurora background ──────────────────── */
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .page-bg i {
+      position: absolute;
+      display: block;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.5;
+      animation: auroraDrift 22s ease-in-out infinite alternate;
+    }
+    .page-bg i:nth-child(1) {
+      width: 460px; height: 460px;
+      background: radial-gradient(circle, #8fd0ff 0%, transparent 70%);
+      top: -140px; left: -120px;
+    }
+    .page-bg i:nth-child(2) {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, #b7e3ff 0%, transparent 70%);
+      top: 35%; right: -140px;
+      animation-delay: -7s;
+      animation-duration: 26s;
+    }
+    .page-bg i:nth-child(3) {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, #d6ecff 0%, transparent 70%);
+      bottom: -160px; left: 30%;
+      animation-delay: -14s;
+      animation-duration: 30s;
+    }
+    @keyframes auroraDrift {
+      0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+      50%  { transform: translate(50px, 35px) scale(1.15) rotate(20deg); }
+      100% { transform: translate(-40px, 60px) scale(1.05) rotate(-15deg); }
+    }
+
+    /* Reduce motion for the aurora if the user asked for it */
+    @media (prefers-reduced-motion: reduce) {
+      .page-bg i { animation: none; }
+    }
+
+    /* ── Liquid Glass Navbar ─────────────────────────── */
+    .glass-navbar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 1200px;
+      height: var(--nav-height);
+      background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.38));
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 26px;
+      box-shadow:
+        var(--glass-shadow),
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -1px 0 rgba(59,155,255,0.06);
+      backdrop-filter: blur(26px) saturate(200%);
+      -webkit-backdrop-filter: blur(26px) saturate(200%);
+      z-index: 1000;
+      transition: var(--transition);
+      overflow: hidden;
+    }
+    /* Specular sheen + liquid shimmer sweep */
+    .glass-navbar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .glass-navbar::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -60%;
+      width: 45%; height: 100%;
+      background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+      transform: skewX(-18deg);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .glass-navbar:hover::after {
+      opacity: 1;
+      animation: navShimmer 1.4s ease forwards;
+    }
+    @keyframes navShimmer {
+      from { left: -60%; }
+      to   { left: 120%; }
+    }
+    .glass-navbar:hover {
+      box-shadow:
+        0 14px 44px rgba(59,155,255,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        inset 0 -1px 0 rgba(59,155,255,0.1);
+    }
+    .glass-navbar .container {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .navbar-brand-logo {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+    .navbar-brand-logo:hover { color: var(--accent-dark); transform: scale(1.03); }
+    .brand-logo {
+      width: 38px; height: 38px;
+      object-fit: contain;
+      border-radius: 10px;
+      transition: var(--transition);
+    }
+    .navbar-brand-logo:hover .brand-logo { transform: rotate(-4deg) scale(1.05); }
+
+    /* ── Liquid Nav (sliding gooey indicator) ────────── */
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+      margin-left: 16px;
+      padding: 5px;
+      background: rgba(59,155,255,0.08);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 3px rgba(59,155,255,0.1);
+    }
+    .nav-liquid {
+      position: absolute;
+      top: 5px;
+      left: 0;
+      height: calc(100% - 10px);
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 55%, var(--accent-light) 100%);
+      box-shadow: 0 6px 16px rgba(59,155,255,0.45), inset 0 1px 0 rgba(255,255,255,0.45);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform, width;
+      transition: opacity 0.25s ease;
+    }
+    .nav-liquid::after {
+      content: '';
+      position: absolute;
+      inset: 2px 4px auto;
+      height: 40%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+    }
+    .nav-liquid.on { opacity: 1; }
+    .nav-links .nav-link-item {
+      position: relative;
+      z-index: 1;
+      padding: 7px 15px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 999px;
+      transition: color 0.25s ease, transform 0.25s ease;
+      white-space: nowrap;
+    }
+    .nav-links .nav-link-item:hover,
+    .nav-links .nav-link-item.active {
+      color: #ffffff;
+      text-shadow: 0 1px 6px rgba(11,60,120,0.35);
+      transform: translateY(-1px);
+    }
+    .nav-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      margin-left: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #ff6b9d, #ff3d71);
+      border-radius: 99px;
+      box-shadow: 0 2px 8px rgba(255,61,113,0.5);
+      animation: badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+      vertical-align: middle;
+    }
+    @keyframes badgePop {
+      from { transform: scale(0); }
+      to   { transform: scale(1); }
+    }
+
+    /* Dropdown nav */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: var(--glass-shadow);
+      padding: 6px;
+      min-width: 170px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 999;
+    }
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu,
+    .nav-dropdown.open .nav-dropdown-menu {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    .dd-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font: inherit;
+    }
+    /* Dropdown yang diposisikan rata kanan (avatar/admin) */
+    .nav-dropdown-menu.menu-right {
+      left: auto;
+      right: 0;
+      transform: translateY(-8px);
+    }
+    .nav-dropdown:hover .nav-dropdown-menu.menu-right,
+    .nav-dropdown:focus-within .nav-dropdown-menu.menu-right,
+    .nav-dropdown.open .nav-dropdown-menu.menu-right {
+      transform: translateY(0);
+    }
+    .nav-dropdown-menu a {
+      display: block;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 10px;
+      transition: var(--transition);
+    }
+    .nav-dropdown-menu a:hover {
+      background: rgba(59,155,255,0.1);
+      color: var(--accent);
+    }
+    .nav-dropdown-menu .divider {
+      height: 1px;
+      background: var(--glass-border);
+      margin: 4px 8px;
+    }
+
+    /* ── Nav Right Controls ──────────────────────────── */
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    /* Avatar & User dropdown */
+    .user-avatar-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px 5px 5px;
+      background: rgba(59,155,255,0.07);
+      border: 1px solid rgba(59,155,255,0.15);
+      border-radius: 99px;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .user-avatar-btn:hover {
+      background: rgba(59,155,255,0.14);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .avatar-sm {
+      width: 28px; height: 28px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid var(--accent-light);
+    }
+    .avatar-initial {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Auth buttons */
+    .btn-nav-login {
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(59,155,255,0.08);
+      border: 1px solid rgba(59,155,255,0.2);
+      border-radius: 12px;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    .btn-nav-login:hover {
+      background: rgba(59,155,255,0.15);
+      border-color: var(--accent);
+      color: var(--accent-dark);
+    }
+    .btn-nav-register {
+      padding: 7px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      border: none;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: var(--transition);
+      box-shadow: 0 4px 15px rgba(59,155,255,0.3);
+    }
+    .btn-nav-register:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59,155,255,0.45);
+      color: white;
+    }
+    .btn-nav-logout {
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #ef4444;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 12px;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    .btn-nav-logout:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: #fff;
+    }
+
+    /* Mobile hamburger */
+    .nav-hamburger {
+      width: 44px; height: 44px;
+      background: rgba(59,155,255,0.08);
+      border: 1px solid rgba(59,155,255,0.15);
+      border-radius: 10px;
+      cursor: pointer;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: var(--transition);
+    }
+    .nav-hamburger span {
+      width: 18px; height: 2px;
+      background: var(--text-primary);
+      border-radius: 99px;
+      transition: var(--transition);
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Mobile menu */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: calc(var(--nav-height) + 20px);
+      left: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: var(--glass-shadow);
+      padding: 12px;
+      z-index: 999;
+      flex-direction: column;
+      gap: 4px;
+      animation: slideDown 0.25s ease;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 12px;
+      transition: var(--transition);
+    }
+    .mobile-menu a:hover { background: rgba(59,155,255,0.1); color: var(--accent); }
+    .mobile-menu .divider { height: 1px; background: var(--glass-border); margin: 4px 0; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Content spacer for fixed navbar ────────────── */
+    .navbar-spacer { height: calc(var(--nav-height) + 24px); }
+
+    /* ── Flash messages ──────────────────────────────── */
+    .flash-container {
+      position: fixed;
+      top: calc(var(--nav-height) + 28px);
+      right: 20px;
+      z-index: 998;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 360px;
+    }
+    .flash-item {
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--glass-shadow);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      animation: fadeInRight 0.35s ease;
+    }
+    .flash-item.success { border-color: rgba(34,197,94,0.4); color: #15803d; }
+    .flash-item.danger  { border-color: rgba(239,68,68,0.4); color: #b91c1c; }
+    .flash-item.warning { border-color: rgba(245,158,11,0.4); color: #b45309; }
+    .flash-item.info    { border-color: rgba(59,155,255,0.4); color: var(--accent-dark); }
+    .flash-close {
+      background: none; border: none; cursor: pointer;
+      color: inherit; opacity: 0.6; font-size: 16px; line-height: 1;
+      padding: 0; flex-shrink: 0;
+    }
+    .flash-close:hover { opacity: 1; }
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .site-footer {
+      margin: 28px 0 22px;
+    }
+    .footer-card {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: calc(100% - 40px);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      box-shadow: var(--glass-shadow);
+      padding: 20px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .footer-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-light), transparent);
+      opacity: 0.7;
+    }
+    .footer-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 40px rgba(59,155,255,0.18);
+      border-color: rgba(59,155,255,0.35);
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-logo {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(59,155,255,0.25);
+      transition: var(--transition);
+    }
+    .footer-card:hover .footer-logo { transform: rotate(-4deg) scale(1.06); }
+    .footer-text { line-height: 1.35; }
+    .footer-text .f-name {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+    .footer-text .f-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .footer-text .f-copy {
+      display: block;
+      margin-top: 3px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .footer-top {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(59,155,255,0.25);
+      background: rgba(59,155,255,0.08);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+    .footer-top:hover {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 22px rgba(59,155,255,0.4);
+    }
+    @media (max-width: 640px) {
+      .footer-card { justify-content: center; text-align: center; }
+    }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+    }
+
+    /* Clean marketplace surfaces */
+    :root {
+      --bg-primary: #f5f6f8;
+      --bg-secondary: #eef1f5;
+      --text-primary: #1f2937;
+      --text-muted: #667085;
+      --glass-bg: #fff;
+      --glass-border: #e5e7eb;
+      --glass-shadow: 0 2px 8px rgba(31,41,55,.05);
+      --body-bg: #f5f6f8;
+      --nav-height: 64px;
+    }
+    body { background: var(--body-bg); }
+    .page-bg { display: none; }
+    .glass-navbar {
+      top: 0; left: 0; transform: none; width: 100%; max-width: none;
+      height: var(--nav-height); border: 0; border-bottom: 1px solid #e5e7eb;
+      border-radius: 0; background: #fff; box-shadow: 0 2px 6px rgba(16,24,40,.04);
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    .glass-navbar::before, .glass-navbar::after { display: none; }
+    .glass-navbar:hover { box-shadow: 0 2px 6px rgba(16,24,40,.04); }
+    .glass-navbar .container { max-width: 1320px; }
+    .navbar-brand-logo { color: #2563eb; }
+    .navbar-brand-logo:hover { transform: none; }
+    .nav-links {
+      margin-left: auto; padding: 0; gap: 2px; background: transparent;
+      border: 0; border-radius: 0; box-shadow: none;
+    }
+    .nav-liquid { display: none; }
+    .nav-links .nav-link-item { color: #475467; border-radius: 7px; }
+    .nav-links .nav-link-item:hover, .nav-links .nav-link-item.active {
+      color: #1d4ed8; background: #eff6ff; text-shadow: none; transform: none;
+    }
+    .nav-badge { background: #2563eb; box-shadow: none; animation: none; }
+    .nav-dropdown-menu, .mobile-menu {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      box-shadow: 0 12px 28px rgba(16,24,40,.12); backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .navbar-spacer { height: var(--nav-height); }
+    .mobile-menu { top: calc(var(--nav-height) + 8px); left: 12px; right: 12px; }
+    .mobile-menu .divider, .nav-dropdown-menu .divider { background: #e5e7eb; }
+    body.marketplace-theme .p-card,
+    body.marketplace-theme .filter-bar,
+    body.marketplace-theme .product-panel,
+    body.marketplace-theme .review-panel,
+    body.marketplace-theme .cart-card,
+    body.marketplace-theme .cart-summary {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(31,41,55,.04);
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    body.marketplace-theme .p-card:hover {
+      transform: translateY(-3px); border-color: #cbd5e1;
+      box-shadow: 0 8px 20px rgba(31,41,55,.08);
+    }
+    body.marketplace-theme .p-card::after { display: none; }
+    body.marketplace-theme .filter-bar .form-control,
+    body.marketplace-theme .filter-bar .form-select {
+      background: #fff; border: 1px solid #d0d5dd; border-radius: 8px;
+      box-shadow: none;
+    }
+    body.marketplace-theme .filter-bar .form-control:focus,
+    body.marketplace-theme .filter-bar .form-select:focus {
+      background: #fff; transform: none; box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
+    body.marketplace-theme .product-image-wrap {
+      border-radius: 9px; background: #f3f4f6;
+    }
+    body.marketplace-theme .buy-box { background: #f8fafc; border-radius: 9px; }
+    body.marketplace-theme .btn { border-radius: 8px; }
+    @media (max-width: 768px) {
+      .glass-navbar .container { padding-left: 14px; padding-right: 14px; }
+      .nav-controls { gap: 6px; }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+  {# Lapisan responsif bersama (desktop + tampilan aplikasi di HP), dimuat terakhir #}
+  <link href='{{ url_for("static", filename="css/app.css") }}?v=10' rel='stylesheet'>
+</head>
+<body class='marketplace-theme {% block body_class %}{% endblock %}'>
+
+{# ─── Animated aurora background ────────────────────────── #}
+<div class='page-bg' aria-hidden='true'><i></i><i></i><i></i></div>
+
+{# ─── Liquid Glass Navbar ──────────────────────────────── #}
+<nav class='glass-navbar' id='glassNav'>
+  <div class='container'>
+    {# Brand #}
+    <a class='navbar-brand-logo' href='{{ url_for("core.landing") }}' aria-label='Merchku beranda'>
+      <img class='brand-logo' src='{{ url_for("core.logo") }}' alt='Merchku'>
+      <span class='brand-text'>Merchku</span>
+    </a>
+
+    {# Pencarian (dipakai di desktop & HP) #}
+    <form class='nav-search' action='{{ url_for("katalog.index") }}' method='get' role='search'>
+      <svg class='nav-search-icon' viewBox='0 0 24 24' aria-hidden='true'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>
+      <input type='search' name='q' placeholder='Cari kaos, hoodie, totebag...' aria-label='Cari produk'
+        value='{{ request.args.get("q", "") if request.endpoint == "katalog.index" else "" }}'>
+      <button class='nav-search-btn' type='submit' aria-label='Cari'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>
+      </button>
+    </form>
+
+    {# Desktop Nav Links #}
+    <div class='nav-links' id='navLinks'>
+      <div class='nav-liquid' id='navLiquid'></div>
+      <a class='nav-link-item' href='{{ url_for("core.landing") }}' data-nav>Beranda</a>
+      <a class='nav-link-item' href='{{ url_for("katalog.index") }}' data-nav>Katalog</a>
+      {% if current_user.is_authenticated %}
+      <a class='nav-link-item' href='{{ url_for("keranjang.index") }}' data-nav>
+        Keranjang
+        {% if cart_count %}<span class='nav-badge'>{{ cart_count }}</span>{% endif %}
+      </a>
+      <a class='nav-link-item' href='{{ url_for("pesanan.riwayat") }}' data-nav>Pesanan</a>
+      {% if current_user.role in ('customer', 'seller') %}
+      <a class='nav-link-item' href='{{ url_for("chat.inbox") }}' data-nav>Pesan</a>
+      {% endif %}
+      {% if current_user.role in ('seller', 'admin') %}
+      <div class='nav-dropdown' data-dd>
+        <button type='button' class='nav-link-item dd-toggle' data-nav>Toko Saya ▾</button>
+        <div class='nav-dropdown-menu'>
+          <a href='{{ url_for("seller.dashboard") }}'>Dashboard Penjual</a>
+          <a href='{{ url_for("seller.produk_list") }}'>Produk Saya</a>
+          <a href='{{ url_for("seller.pesanan_list") }}'>Pesanan Masuk</a>
+          <a href='{{ url_for("seller.shop_profile") }}'>Profil Toko</a>
+        </div>
+      </div>
+      {% endif %}
+      {% if current_user.role == 'admin' %}
+      <div class='nav-dropdown' data-dd>
+        <button type='button' class='nav-link-item dd-toggle' data-nav>Admin ▾</button>
+        <div class='nav-dropdown-menu'>
+          <a href='{{ url_for("admin.dashboard") }}'>Dashboard</a>
+          <a href='{{ url_for("admin.produk_list") }}'>Produk</a>
+          <a href='{{ url_for("admin.user_list") }}'>Pengguna</a>
+          <a href='{{ url_for("admin.pesanan_list") }}'>Pesanan</a>
+          <div class='divider'></div>
+          <a href='{{ url_for("admin.laporan") }}'>Laporan</a>
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    {# Right Controls #}
+    <div class='nav-controls'>
+      {% if current_user.is_authenticated %}
+      <a class='user-avatar-btn' href='{{ url_for("profil.index") }}' aria-label='Buka profil saya'>
+          {% if current_user.avatar %}
+          <img src='{{ url_for("core.avatar_media", filename=current_user.avatar) }}'
+               class='avatar-sm' alt='Foto profil'>
+          {% else %}
+          <span class='avatar-initial' aria-hidden='true'>{{ current_user.email[0].upper() }}</span>
+          {% endif %}
+          <span class='d-none d-md-inline'>{{ current_user.email.split('@')[0] }}</span>
+          <span class='account-link-arrow' aria-hidden='true'>↗</span>
+      </a>
+      <a class='btn-nav-logout' href='{{ url_for("auth.logout") }}'>Keluar</a>
+      {% else %}
+      <a class='btn-nav-login' href='{{ url_for("auth.login") }}'>Masuk</a>
+      <a class='btn-nav-register' href='{{ url_for("auth.register") }}'>Daftar</a>
+      {% endif %}
+
+      {# Ikon chat (header HP) #}
+      {% if current_user.is_authenticated and current_user.role in ('customer', 'seller') %}
+      <a class='nav-icon-btn nav-chat-mobile' href='{{ url_for("chat.inbox") }}' aria-label='Pesan'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z'/></svg>
+      </a>
+      {% endif %}
+
+      {# Ikon keranjang (header HP) #}
+      <a class='nav-icon-btn nav-cart-mobile' href='{{ url_for("keranjang.index") }}' aria-label='Keranjang{% if cart_count %}, {{ cart_count }} item{% endif %}'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H6'/><circle cx='10' cy='20' r='1.2'/><circle cx='18' cy='20' r='1.2'/></svg>
+        {% if cart_count %}<span class='icon-badge'>{{ cart_count if cart_count < 100 else '99+' }}</span>{% endif %}
+      </a>
+
+      {# Hamburger #}
+      <button class='nav-hamburger' id='hamburger' type='button' aria-label='Menu' aria-controls='mobileMenu' aria-expanded='false'>
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+{# Mobile Menu #}
+<div class='mobile-menu' id='mobileMenu'>
+  <a href='{{ url_for("core.landing") }}'>Beranda</a>
+  <a href='{{ url_for("katalog.index") }}'>Katalog</a>
+  {% if current_user.is_authenticated %}
+  <a href='{{ url_for("keranjang.index") }}'>Keranjang{% if cart_count %} ({{ cart_count }}){% endif %}</a>
+  <a href='{{ url_for("pesanan.riwayat") }}'>Pesanan</a>
+  {% if current_user.role in ('customer', 'seller') %}
+  <a href='{{ url_for("chat.inbox") }}'>Pesan</a>
+  {% endif %}
+  {% if current_user.role in ('seller', 'admin') %}
+  <div class='divider'></div>
+  <a href='{{ url_for("seller.dashboard") }}'>Dashboard Penjual</a>
+  <a href='{{ url_for("seller.produk_list") }}'>Produk Saya</a>
+  <a href='{{ url_for("seller.pesanan_list") }}'>Pesanan Masuk</a>
+  <a href='{{ url_for("seller.shop_profile") }}'>Profil Toko</a>
+  {% endif %}
+  {% if current_user.role == 'admin' %}
+  <div class='divider'></div>
+  <a href='{{ url_for("admin.dashboard") }}'>Dashboard Admin</a>
+  <a href='{{ url_for("admin.produk_list") }}'>Produk</a>
+  <a href='{{ url_for("admin.pesanan_list") }}'>Pesanan Admin</a>
+  <a href='{{ url_for("admin.laporan") }}'>Laporan</a>
+  {% endif %}
+  <div class='divider'></div>
+  <a href='{{ url_for("profil.index") }}'>Profil Saya</a>
+  <a href='{{ url_for("auth.logout") }}' style='color:#ef4444'>Keluar</a>
+  {% else %}
+  <div class='divider'></div>
+  <a href='{{ url_for("auth.login") }}'>Masuk</a>
+  <a href='{{ url_for("auth.register") }}'>Daftar Sekarang</a>
+  {% endif %}
+</div>
+
+{# Navbar spacer #}
+<div class='navbar-spacer'></div>
+
+{# ─── Flash messages ───────────────────────────────────── #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class='flash-container' id='flashContainer'>
+  {% for category, message in messages %}
+  <div class='flash-item {{ category }}'>
+    <span>{{ message }}</span>
+    <button class='flash-close' type='button' data-dismiss-flash aria-label='Tutup notifikasi'>✕</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+{# ─── Konten utama ─────────────────────────────────────── #}
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+{# ─── Footer ───────────────────────────────────────────── #}
+<footer class='site-footer'>
+  <div class='footer-card'>
+    <div class='footer-brand'>
+      <img class='footer-logo' src='{{ url_for("core.logo") }}' alt='Merchku'>
+      <div class='footer-text'>
+        <span class='f-name'>merchku</span>
+        <span class='f-sub'>Kampus &amp; komunitas merchandise</span>
+        <span class='f-copy'>&copy; 2026 merchku - PBLRKS321</span>
+      </div>
+    </div>
+
+    <button class='footer-top' id='footerTop' type='button' title='Kembali ke atas' aria-label='Kembali ke atas'>↑</button>
+  </div>
+</footer>
+
+{# ─── Bottom navigation (hanya tampil di HP/tablet) ───────── #}
+{% set ep = request.endpoint or '' %}
+<nav class='bottom-nav' aria-label='Navigasi utama'>
+  <a class='bn-item {{ "active" if ep == "core.landing" }}' href='{{ url_for("core.landing") }}' {% if ep == "core.landing" %}aria-current='page'{% endif %}>
+    <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 10.5 12 3l9 7.5'/><path d='M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5'/></svg>
+    <span>Beranda</span>
+  </a>
+  <a class='bn-item {{ "active" if ep.startswith("katalog.") }}' href='{{ url_for("katalog.index") }}' {% if ep.startswith("katalog.") %}aria-current='page'{% endif %}>
+    <svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='9'/><path d='m15.5 8.5-2 5-5 2 2-5z'/></svg>
+    <span>Jelajah</span>
+  </a>
+  <a class='bn-item {{ "active" if ep.startswith("keranjang.") or ep == "pesanan.checkout" }}' href='{{ url_for("keranjang.index") }}'>
+    <span class='bn-icon'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H6'/><circle cx='10' cy='20' r='1.2'/><circle cx='18' cy='20' r='1.2'/></svg>
+      {% if cart_count %}<span class='icon-badge'>{{ cart_count if cart_count < 100 else '99+' }}</span>{% endif %}
+    </span>
+    <span>Keranjang</span>
+  </a>
+  {% set akun_active = ep.startswith("profil.") or ep.startswith("auth.") or ep.startswith("pesanan.") and ep != "pesanan.checkout" or ep.startswith("chat.") or ep.startswith("seller.") or ep.startswith("admin.") %}
+  <a class='bn-item {{ "active" if akun_active }}' href='{{ url_for("profil.index") if current_user.is_authenticated else url_for("auth.login") }}'>
+    {% if current_user.is_authenticated and current_user.avatar %}
+    <img class='bn-avatar' src='{{ url_for("core.avatar_media", filename=current_user.avatar) }}' alt=''>
+    {% else %}
+    <svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='8' r='4'/><path d='M4 21c0-4 3.6-7 8-7s8 3 8 7'/></svg>
+    {% endif %}
+    <span>{{ 'Akun' if current_user.is_authenticated else 'Masuk' }}</span>
+  </a>
+</nav>
+
+{# ─── Widget Customer Service (Merchy) ─────────────────── #}
+{% if not ep.startswith('cs.') and not ep.startswith('chat.') %}
+{% from 'partials/cs_chat.html' import cs_chat %}
+<button class='cs-fab' type='button' data-cs-open aria-controls='csPanel' aria-expanded='false'>
+  <span class='cs-fab-avatar'>{% include 'partials/cs_avatar.html' %}</span>
+  <span class='cs-fab-label'>Tanya CS</span>
+</button>
+<section class='cs-panel' id='csPanel' data-cs-panel hidden aria-label='Chat Customer Service'>
+  {{ cs_chat('widget') }}
+</section>
+{% endif %}
+
 <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'></script>
-</body></html>
+<script src='{{ url_for("static", filename="js/app.js") }}?v=8' defer></script>
+<script src='{{ url_for("static", filename="js/cs-chat.js") }}' defer></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

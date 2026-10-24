@@ -1,13 +1,572 @@
 {% extends 'layouts/base.html' %}
+{% block title %}Masuk — Merchku{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Login Page ───────────────────────────────────── */
+  .login-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Animated background blobs */
+  .login-page::before,
+  .login-page::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.4;
+    pointer-events: none;
+    animation: float 8s ease-in-out infinite alternate;
+  }
+  .login-page::before {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #7ec8ff, transparent);
+    top: -100px; left: -80px;
+  }
+  .login-page::after {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, #a5d8ff, transparent);
+    bottom: -80px; right: -60px;
+    animation-delay: -4s;
+  }
+  @keyframes float {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(30px, 20px) scale(1.08); }
+  }
+
+  /* ── Stable sign-in card ─────────────────────────── */
+  .login-card {
+    width: 100%;
+    max-width: 780px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    backdrop-filter: blur(26px) saturate(200%);
+    -webkit-backdrop-filter: blur(26px) saturate(200%);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.7);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .login-card:hover {
+    border-color: rgba(59,155,255,0.5);
+    box-shadow:
+      var(--glass-shadow),
+      0 0 0 1px rgba(59,155,255,0.28),
+      0 28px 70px rgba(59,155,255,0.28);
+  }
+
+  .login-main {
+    flex: 0 1 430px;
+    min-width: 0;
+    padding: 40px 36px;
+  }
+
+  /* Promo panel stays beside the form without moving its controls. */
+  .login-aside {
+    flex: 0 0 350px;
+    width: 350px;
+    opacity: 1;
+    padding: 40px 34px;
+    overflow: hidden;
+    color: #fff;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(255,255,255,0.28) 0%, transparent 45%),
+      linear-gradient(155deg, var(--accent) 0%, var(--accent-dark) 55%, #0d4ea8 100%);
+    transition: none;
+    position: relative;
+  }
+  .login-aside::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.16) 25%, transparent 55%);
+    animation: asideSpin 9s linear infinite;
+  }
+  @keyframes asideSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .login-card:hover .login-aside {
+    flex-basis: 350px;
+    width: 350px;
+    opacity: 1;
+    padding: 40px 34px;
+  }
+  .aside-inner {
+    position: relative;
+    z-index: 1;
+    width: 300px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+  .aside-art {
+    width: 66px; height: 66px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+    animation: asideFloat 3.5s ease-in-out infinite alternate;
+  }
+  @keyframes asideFloat {
+    from { transform: translateY(0) rotate(-3deg); }
+    to   { transform: translateY(-10px) rotate(3deg); }
+  }
+  .aside-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 6px 0 0;
+    line-height: 1.25;
+  }
+  .aside-list {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .aside-list li {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.92);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .aside-list li::before {
+    content: '✓';
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .aside-cta {
+    margin-top: 12px;
+    display: inline-block;
+    padding: 11px 18px;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 14px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .aside-cta:hover {
+    background: #fff;
+    color: var(--accent-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  }
+
+  /* ── Card Header ──────────────────────────────────── */
+  .login-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .login-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 16px;
+    box-shadow: 0 8px 24px rgba(59,155,255,0.35);
+    animation: iconPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+  }
+  @keyframes iconPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  .login-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+  }
+  .login-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── Form Fields ──────────────────────────────────── */
+  .form-group {
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .form-label-custom {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: color 0.25s ease;
+  }
+  .form-group:focus-within .form-label-custom {
+    color: var(--accent);
+  }
+
+  .input-wrapper {
+    position: relative;
+  }
+  .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 2;
+  }
+  .form-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 58px 12px 42px;
+    background: rgba(255,255,255,0.5);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 14px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+    min-width: 48px;
+    min-height: 40px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--accent-dark);
+    font: 600 0.75rem 'Inter', sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .password-toggle:hover { background: rgba(59,155,255,0.1); }
+  .password-toggle:focus-visible {
+    outline: 2px solid var(--accent-dark);
+    outline-offset: 1px;
+  }
+  .form-input::placeholder { color: var(--text-muted); opacity: 0.7; }
+  .form-input:focus {
+    border-color: var(--accent);
+    background: rgba(59,155,255,0.04);
+    box-shadow: 0 0 0 3px rgba(59,155,255,0.15), inset 0 1px 3px rgba(0,0,0,0.04);
+    transform: translateY(-1px);
+  }
+  .form-input:focus + .input-glow {
+    opacity: 1;
+  }
+  .input-glow {
+    position: absolute;
+    inset: -1px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+    filter: blur(8px);
+  }
+
+  /* Remember me */
+  .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-bottom: 24px;
+  }
+  .custom-checkbox {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: var(--transition);
+    appearance: none;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .custom-checkbox:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .custom-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .remember-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  /* ── Submit Button (hover effects) ────────────────── */
+  .btn-login {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 45%, var(--accent-dark) 100%);
+    background-size: 180% 100%;
+    background-position: 0% 0;
+    border: none;
+    border-radius: 16px;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, background-position 0.3s ease;
+    box-shadow: 0 8px 22px rgba(59,155,255,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* shine sweep */
+  .btn-login::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -110%;
+    width: 60%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    z-index: -1;
+  }
+  .btn-login:hover {
+    background-position: 100% 0;
+    box-shadow:
+      0 16px 36px rgba(59,155,255,0.55),
+      0 0 0 4px rgba(59,155,255,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.45);
+  }
+  .btn-login:hover::before { left: 150%; }
+  .btn-login:active {
+    box-shadow: 0 5px 14px rgba(59,155,255,0.35);
+  }
+  .btn-login:focus-visible {
+    outline: 3px solid var(--accent-dark);
+    outline-offset: 3px;
+  }
+  /* click ripple */
+  .btn-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    animation: rippleGrow 0.6s ease-out forwards;
+    z-index: -1;
+  }
+  @keyframes rippleGrow {
+    to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  }
+
+  /* ── Divider ──────────────────────────────────────── */
+  .form-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+  .form-divider::before,
+  .form-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+  }
+
+  /* ── Register link ────────────────────────────────── */
+  .register-link {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+  .register-link a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+  }
+  .register-link a:hover {
+    color: var(--accent-dark);
+    text-decoration: underline;
+  }
+
+  /* Entry animation (backwards fill so hover transform still works) */
+  .login-card {
+    animation: cardEntrance 0.4s ease backwards;
+  }
+  @keyframes cardEntrance {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Hint pill */
+  .expand-hint {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: rgba(59,155,255,0.1);
+    border: 1px dashed rgba(59,155,255,0.4);
+    border-radius: 99px;
+    padding: 6px 16px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+  }
+
+  /* Keep the form stationary so its controls remain easy to tap. */
+  @media (max-width: 860px) {
+    .login-card { max-width: 430px; }
+    .login-aside { display: none; }
+    .login-main { padding: 34px 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .login-card { animation: none; }
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class='container mt-4' style='max-width:420px'>
-  <h3>Login</h3>
-  <form method='post'>
-    {{ form.csrf_token }}
-    <div class='mb-3'>{{ form.email.label(class='form-label') }}{{ form.email(class='form-control') }}</div>
-    <div class='mb-3'>{{ form.password.label(class='form-label') }}{{ form.password(class='form-control') }}</div>
-    <div class='form-check mb-3'>{{ form.remember(class='form-check-input') }}{{ form.remember.label(class='form-check-label') }}</div>
-    {{ form.submit(class='btn btn-primary') }}
-  </form>
-</div>
+<section class='login-page'>
+  <div style='display:flex;flex-direction:column;align-items:center;width:100%'>
+
+  <div class='login-card' id='loginCard'>
+
+    {# Promo panel remains beside the form on wide screens. #}
+    <aside class='login-aside'>
+      <div class='aside-inner'>
+        <div class='aside-art'><img src='{{ url_for("core.logo") }}' alt='Merchku' style='width:100%;height:100%;object-fit:cover;border-radius:22px'></div>
+        <h3 class='aside-title'>Semua merch kampus favoritmu ada di sini</h3>
+        <ul class='aside-list'>
+          <li>Almet, kaos, hoodie & jaket</li>
+          <li>Harga mahasiswa, kualitas oke</li>
+          <li>Pantau pesanan real-time</li>
+        </ul>
+        <a class='aside-cta' href='{{ url_for("auth.register") }}'>
+          Daftar Gratis 1 menit
+        </a>
+      </div>
+    </aside>
+
+    <div class='login-main'>
+      <div class='login-header'>
+        <div class='login-icon'><img src='{{ url_for("core.logo") }}' alt='Merchku' style='width:100%;height:100%;object-fit:cover;border-radius:20px'></div>
+        <h1 class='login-title'>Selamat datang!</h1>
+        <p class='login-subtitle'>Masuk ke akun Merchku-mu</p>
+      </div>
+
+      <form method='post' novalidate>
+        {{ form.csrf_token }}
+        {% if next_url %}<input type='hidden' name='next' value='{{ next_url }}'>{% endif %}
+
+        {# Email #}
+        <div class='form-group'>
+          <label class='form-label-custom' for='email'>Email</label>
+          <div class='input-wrapper'>
+            <span class='input-icon'>@</span>
+            {{ form.email(
+              class='form-input',
+              id='email',
+              placeholder='kamu@email.com',
+              autocomplete='email',
+              inputmode='email',
+              autocapitalize='none',
+              spellcheck='false'
+            ) }}
+            <div class='input-glow'></div>
+          </div>
+          {% if form.email.errors %}
+          <p style='color:#ef4444;font-size:0.78rem;margin-top:4px'>{{ form.email.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Password #}
+        <div class='form-group'>
+          <label class='form-label-custom' for='password'>Password</label>
+          <div class='input-wrapper'>
+            <span class='input-icon'>#</span>
+            {{ form.password(
+              class='form-input',
+              id='password',
+              placeholder='••••••••',
+              autocomplete='current-password'
+            ) }}
+            <button class='password-toggle' type='button' data-password-toggle='password' aria-label='Tampilkan password' aria-pressed='false'>Lihat</button>
+            <div class='input-glow'></div>
+          </div>
+          {% if form.password.errors %}
+          <p style='color:#ef4444;font-size:0.78rem;margin-top:4px'>{{ form.password.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Remember me #}
+        <div class='remember-row'>
+          {{ form.remember(class='custom-checkbox', id='remember') }}
+          <label class='remember-label' for='remember'>Ingat saya</label>
+        </div>
+
+        {# Submit #}
+        {{ form.submit(class='btn-login', id='btnLogin') }}
+      </form>
+
+      <div class='form-divider'>atau</div>
+
+      <p class='register-link'>
+        Belum punya akun?
+        <a href='{{ url_for("auth.register") }}'>Daftar sekarang</a>
+      </p>
+    </div>
+  </div>
+
+  </div>
+</section>
+
 {% endblock %}
