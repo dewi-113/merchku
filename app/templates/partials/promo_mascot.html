@@ -1,0 +1,61 @@
+{# Maskot promosi "Kak Merchy" — ilustrasi SVG buatan sendiri (bebas hak cipta).
+   Animasi (melambai, megafon, gelombang suara) diatur di app.css. #}
+<svg class='mascot' viewBox='0 0 260 300' role='img' aria-label='Kak Merchy mempromosikan diskon Merchku'>
+  <ellipse cx='130' cy='292' rx='68' ry='7' fill='rgba(0,0,0,.18)'/>
+
+  {# Kaki & sepatu #}
+  <rect x='105' y='224' width='21' height='62' rx='10' fill='#1e293b'/>
+  <rect x='134' y='224' width='21' height='62' rx='10' fill='#1e293b'/>
+  <ellipse cx='113' cy='288' rx='17' ry='7' fill='#f8fafc'/>
+  <ellipse cx='147' cy='288' rx='17' ry='7' fill='#f8fafc'/>
+
+  {# Lengan kiri + megafon #}
+  <g class='mascot-arm-left'>
+    <path d='M100 154 L68 112' stroke='#ffffff' stroke-width='20' stroke-linecap='round'/>
+    <path d='M58 98 L68 88 L38 46 L18 66 Z' fill='#ff7a45'/>
+    <path d='M38 46 L18 66' stroke='#c2410c' stroke-width='6' stroke-linecap='round'/>
+    <path d='M50 86 L34 64' stroke='#ffd1bd' stroke-width='3' stroke-linecap='round'/>
+    <circle cx='64' cy='104' r='10' fill='#f5c7a1'/>
+    <path class='mascot-wave w1' d='M14 50 q-6 -12 6 -22' stroke='#fde68a' stroke-width='4' fill='none' stroke-linecap='round'/>
+    <path class='mascot-wave w2' d='M4 56 q-10 -20 10 -36' stroke='#fde68a' stroke-width='4' fill='none' stroke-linecap='round'/>
+    <path class='mascot-wave w3' d='M-6 62 q-14 -28 14 -50' stroke='#fde68a' stroke-width='4' fill='none' stroke-linecap='round'/>
+  </g>
+
+  {# Badan: hoodie Merchku #}
+  <path d='M90 152 Q130 132 170 152 L176 234 Q130 245 84 234 Z' fill='#ffffff'/>
+  <path d='M108 144 Q130 162 152 144' stroke='#dbe3ee' stroke-width='8' fill='none' stroke-linecap='round'/>
+  <path d='M122 154 v16 M138 154 v16' stroke='#cbd5e1' stroke-width='2.5' stroke-linecap='round'/>
+  <rect x='115' y='176' width='30' height='24' rx='6' fill='#2563eb'/>
+  <text x='130' y='193' font-family='Inter, Arial, sans-serif' font-size='15' font-weight='800' fill='#ffffff' text-anchor='middle'>M</text>
+  <path d='M106 208 h48 l-6 18 h-36 z' fill='#e7edf5'/>
+
+  {# Lengan kanan melambai #}
+  <g class='mascot-arm-right'>
+    <path d='M160 154 L198 114' stroke='#ffffff' stroke-width='20' stroke-linecap='round'/>
+    <circle cx='202' cy='108' r='11' fill='#f5c7a1'/>
+    <path d='M196 98 v-8 M202 96 v-10 M208 98 v-8' stroke='#f5c7a1' stroke-width='5' stroke-linecap='round'/>
+  </g>
+
+  {# Kepala #}
+  <rect x='122' y='124' width='16' height='16' rx='6' fill='#e9b48d'/>
+  <circle cx='98' cy='104' r='6' fill='#eab38c'/>
+  <circle cx='162' cy='104' r='6' fill='#eab38c'/>
+  <circle cx='130' cy='100' r='32' fill='#f5c7a1'/>
+  <path d='M99 96 Q99 84 108 80 L152 80 Q161 84 161 96 Q150 86 130 86 Q110 86 99 96 Z' fill='#1f2937'/>
+  <path d='M97 88 Q98 58 130 57 Q162 58 163 88 Z' fill='#2563eb'/>
+  <path d='M150 85 Q178 81 186 90 Q166 95 150 92 Z' fill='#1d4ed8'/>
+  <circle cx='130' cy='58' r='4' fill='#1d4ed8'/>
+  <ellipse cx='118' cy='102' rx='3.6' ry='4.6' fill='#1f2937'/>
+  <ellipse cx='142' cy='102' rx='3.6' ry='4.6' fill='#1f2937'/>
+  <circle cx='119.2' cy='100.4' r='1.2' fill='#ffffff'/>
+  <circle cx='143.2' cy='100.4' r='1.2' fill='#ffffff'/>
+  <ellipse cx='111' cy='113' rx='6' ry='3.5' fill='#fb7185' opacity='.45'/>
+  <ellipse cx='149' cy='113' rx='6' ry='3.5' fill='#fb7185' opacity='.45'/>
+  <path d='M119 114 Q130 129 141 114 Z' fill='#9f1239'/>
+  <path d='M124 120 Q130 125 136 120' stroke='#fb7185' stroke-width='3' fill='none' stroke-linecap='round'/>
+
+  {# Kilau #}
+  <path class='mascot-spark s1' d='M222 40 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z' fill='#fff7ae'/>
+  <path class='mascot-spark s2' d='M232 170 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z' fill='#ffffff'/>
+  <path class='mascot-spark s3' d='M40 200 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2 z' fill='#fff7ae'/>
+</svg>

@@ -1,23 +1,31 @@
 [tool.ruff]
 line-length = 88
-target-version = 'py312'
+target-version = "py312"
 
 [tool.ruff.lint]
-select = ['E','F','I','N','UP','B','A','C4','RET','SIM','RUF']
+select = ["E","F","I","N","UP","B","A","C4","RET","SIM","RUF"]
 ignore = [
-  'E501',   # panjang baris diatur line-length
-  'N815',   # nama field WTForms varian ukuran (stock_S, stock_M, ...) memang mixedCase
-  'N818',   # UploadRejected sengaja tanpa sufiks Error
-  'E701',   # satu baris di handler error
+  "E501",   # panjang baris diatur line-length
+  "N815",   # nama field WTForms varian ukuran (stock_S, stock_M, ...) memang mixedCase
+  "N818",   # UploadRejected sengaja tanpa sufiks Error
+  "E701",   # satu baris di handler error
+  "RUF012", # ClassVar annotation — tidak dipakai di SQLAlchemy model
+  "SIM102", # nested if — sengaja untuk kejelasan
+  "RET505", # else setelah return — sengaja untuk kejelasan
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ['app']
+known-first-party = ["app"]
 
 [tool.bandit]
-targets = ['app']
-exclude_dirs = ['tests','migrations']
+targets = ["app"]
+exclude_dirs = ["tests", "migrations"]
+skips = [
+  "B101",  # assert diperbolehkan di test
+  "B110",  # try-except-pass sengaja di beberapa tempat (logging tidak boleh crash)
+  "B311",  # random dipakai untuk UUID bukan kriptografi
+]
 
 [tool.pytest.ini_options]
-addopts = '-q --cov=app --cov-report=term-missing'
-testpaths = ['tests']
+addopts = "-q --cov=app --cov-report=term-missing"
+testpaths = ["tests"]

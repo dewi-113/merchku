@@ -1,0 +1,17 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Pesan — Merchku{% endblock %}
+{% block body_class %}page-chat page-chat-inbox{% endblock %}
+{% block content %}
+<div class='container chat-app-wrap'>
+  <div class='chat-app'>
+    {% include 'chat/_sidebar.html' %}
+    <section class='chat-welcome' aria-label='Ruang chat'>
+      <span class='chat-welcome-icon' aria-hidden='true'>
+        <svg viewBox='0 0 24 24'><path d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z'/></svg>
+      </span>
+      <h2>Selamat datang di Chat Merchku</h2>
+      <p>Pilih percakapan di sebelah kiri, atau tanya Merchy kapan saja.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}

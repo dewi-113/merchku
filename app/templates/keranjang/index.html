@@ -1,0 +1,197 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% block title %}Keranjang Belanja — Merchku{% endblock %}
+{% block body_class %}{% if items %}has-action-bar{% endif %}{% endblock %}
+{% block extra_head %}
+<style>
+  .cart-page { max-width: 1120px; padding-top: 28px; padding-bottom: 56px; }
+  .cart-heading {
+    position: relative; overflow: hidden; margin-bottom: 22px; padding: 24px 28px;
+    border: 1px solid rgba(255,255,255,.84); border-radius: 20px;
+    background: linear-gradient(115deg, rgba(255,255,255,.97), rgba(239,247,255,.94));
+    box-shadow: 0 12px 34px rgba(34,78,120,.08);
+  }
+  .cart-heading::after {
+    position: absolute; content: ''; width: 190px; height: 190px; right: -45px; top: -112px;
+    border-radius: 50%; background: rgba(59,155,255,.11); pointer-events: none;
+  }
+  .cart-kicker {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 11px;
+    color: #2676c9; font-size: .78rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase;
+  }
+  .cart-kicker::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #36a46c; }
+  .cart-title { font-size: clamp(1.55rem, 3vw, 2rem); font-weight: 800; letter-spacing: -.035em; }
+  .cart-heading-copy { max-width: 620px; color: #687b91; line-height: 1.55; }
+  .cart-continue {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0 17px; border: 1px solid #d9e7f5; border-radius: 12px;
+    background: rgba(255,255,255,.86); color: #286da9; font-weight: 700; text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  .cart-continue:hover { background: #fff; border-color: #9cc9f1; color: #175c9b; transform: translateY(-1px); }
+  .cart-list, .cart-summary, .cart-empty {
+    border: 1px solid rgba(218,230,241,.9); border-radius: 18px;
+    background: rgba(255,255,255,.94); box-shadow: 0 8px 24px rgba(34,78,120,.065);
+  }
+  .cart-list { overflow: hidden; }
+  .cart-list-heading {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 17px 20px; border-bottom: 1px solid #edf1f5;
+  }
+  .cart-list-heading h2 { margin: 0; font-size: 1rem; font-weight: 750; }
+  .cart-count { color: #66788b; font-size: .85rem; font-weight: 650; }
+  .cart-item { padding: 20px; }
+  .cart-item + .cart-item { border-top: 1px solid #edf1f5; }
+  .cart-image, .cart-placeholder {
+    width: 104px; height: 104px; border-radius: 14px; background: #edf6ff;
+  }
+  .cart-image { object-fit: cover; }
+  .cart-placeholder { display: grid; place-items: center; color: #82acd0; }
+  .cart-item-name { color: #1d2b3c; font-size: 1rem; font-weight: 750; line-height: 1.4; text-decoration: none; }
+  .cart-item-name:hover { color: #2676c9; }
+  .cart-variant {
+    display: inline-flex; margin-top: 8px; padding: 5px 9px; border-radius: 7px;
+    background: #f2f6fa; color: #66788b; font-size: .78rem; font-weight: 650;
+  }
+  .cart-unit-price { margin-top: 10px; color: #526172; font-size: .9rem; font-weight: 650; }
+  .cart-quantity-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cart-stepper {
+    display: inline-flex; align-items: center; height: 40px; overflow: hidden;
+    border: 1px solid #d8e1ea; border-radius: 10px; background: #fff;
+  }
+  .cart-stepper button {
+    width: 38px; height: 38px; border: 0; background: #f7faff; color: #31506d;
+    font-size: 1.1rem; cursor: pointer;
+  }
+  .cart-stepper button:hover { background: #eaf4ff; }
+  .cart-quantity {
+    width: 42px; height: 38px; padding: 0; border: 0; border-radius: 0;
+    text-align: center; font-weight: 700; box-shadow: none !important;
+  }
+  .cart-update, .cart-remove { min-height: 40px; border-radius: 10px; font-size: .84rem; font-weight: 700; }
+  .cart-subtotal { color: #33485c; font-size: .9rem; }
+  .cart-subtotal strong { color: #17283b; font-size: 1rem; }
+  .cart-summary { position: sticky; top: 96px; padding: 21px; }
+  .cart-summary-title { margin-bottom: 15px; font-size: 1.05rem; font-weight: 800; }
+  .cart-summary-total { padding: 15px 0; border-top: 1px solid #edf1f5; border-bottom: 1px solid #edf1f5; }
+  .cart-total { color: #1b6fba; font-size: 1.45rem; font-weight: 850; letter-spacing: -.025em; }
+  .cart-checkout { min-height: 49px; border: 0; border-radius: 12px; font-weight: 750; box-shadow: 0 8px 18px rgba(38,118,201,.2); }
+  .cart-checkout:hover { box-shadow: 0 10px 22px rgba(38,118,201,.27); }
+  .cart-summary-note { display: flex; align-items: flex-start; gap: 8px; color: #718196; font-size: .8rem; line-height: 1.5; }
+  .cart-empty { padding: 58px 24px; text-align: center; }
+  .cart-empty-icon {
+    display: grid; place-items: center; width: 78px; height: 78px; margin: 0 auto 18px;
+    border-radius: 24px; background: #edf6ff; color: #3889d2;
+  }
+  .cart-empty-icon svg { width: 36px; height: 36px; }
+  .cart-empty h2 { font-size: 1.25rem; font-weight: 800; }
+  .cart-empty p { max-width: 390px; margin: 8px auto 20px; color: #718196; line-height: 1.55; }
+  .cart-empty-action { min-height: 46px; padding-inline: 22px; border-radius: 11px; font-weight: 750; }
+  @media (max-width: 767px) {
+    .cart-page { padding-top: 15px; }
+    .cart-heading { padding: 19px; }
+    .cart-heading-layout { align-items: flex-start !important; }
+    .cart-continue { min-height: 40px; padding-inline: 12px; font-size: .86rem; }
+    .cart-item { padding: 15px; }
+    .cart-image, .cart-placeholder { width: 76px; height: 76px; }
+    .cart-item-actions { padding-top: 5px; }
+    .cart-summary { position: static; padding: 18px; }
+  }
+  @media (max-width: 420px) {
+    .cart-item .row { --bs-gutter-x: .65rem; }
+    .cart-quantity-form { gap: 6px; }
+    .cart-update { padding-inline: 10px; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container cart-page'>
+  <header class='cart-heading'>
+    <div class='d-flex flex-wrap align-items-center justify-content-between gap-3 cart-heading-layout'>
+      <div>
+        <div class='cart-kicker'>Belanja kamu</div>
+        <h1 class='cart-title mb-2'>Keranjang Belanja</h1>
+        <p class='cart-heading-copy mb-0'>Cek pilihanmu, sesuaikan jumlahnya, lalu lanjutkan ke checkout.</p>
+      </div>
+      <a href='{{ url_for("katalog.index") }}' class='cart-continue'>← <span class='ms-2'>Lanjut belanja</span></a>
+    </div>
+  </header>
+
+  {% if items %}
+  <div class='row g-3 align-items-start'>
+    <section class='col-lg-8' aria-label='Item keranjang'>
+      <div class='cart-list'>
+        <header class='cart-list-heading'>
+          <h2>Produk pilihan</h2>
+          <span class='cart-count'>{{ items|length }} produk</span>
+        </header>
+        {% for item in items %}
+        {% if item.product %}
+        <article class='cart-item'>
+          <div class='row g-3 align-items-center'>
+            <div class='col-auto'>
+              {{ product_image(item.product, 'cart-image') }}
+            </div>
+            <div class='col'>
+              <a class='cart-item-name' href='{{ url_for("katalog.detail", pid=item.product.id) }}'>{{ item.product.name }}</a>
+              <div><span class='cart-variant'>{{ 'Ukuran ' ~ item.size if item.size else 'Satu ukuran' }}</span></div>
+              <div class='cart-unit-price'>Rp {{ '{:,}'.format(item.product.price).replace(',', '.') }}{% if item.product.discount_percent %} <del class='cart-old-price'>Rp {{ '{:,}'.format(item.product.original_price).replace(',', '.') }}</del>{% endif %} <span class='text-muted fw-normal'>/ item</span></div>
+            </div>
+            <div class='col-12 col-md-auto cart-item-actions'>
+              <div class='d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-3'>
+                <div class='d-flex align-items-center gap-2'>
+                  <form method='post' action='{{ url_for("keranjang.ubah", item_id=item.id) }}' class='cart-quantity-form'>
+                    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+                    <label class='visually-hidden' for='quantity-{{ item.id }}'>Jumlah {{ item.product.name }}</label>
+                    <div class='cart-stepper' aria-label='Jumlah produk'>
+                      <button type='button' data-cart-step='-1' aria-label='Kurangi jumlah'>−</button>
+                      <input id='quantity-{{ item.id }}' type='number' name='quantity' value='{{ item.quantity }}' min='1' max='99' class='form-control cart-quantity' inputmode='numeric' required>
+                      <button type='button' data-cart-step='1' aria-label='Tambah jumlah'>+</button>
+                    </div>
+                    <button type='submit' class='btn btn-outline-secondary cart-update'>Simpan</button>
+                  </form>
+                  <form method='post' action='{{ url_for("keranjang.hapus", item_id=item.id) }}' data-confirm='Hapus item ini dari keranjang?'>
+                    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+                    <button type='submit' class='btn btn-link text-danger cart-remove px-1'>Hapus</button>
+                  </form>
+                </div>
+                <div class='cart-subtotal text-md-end'>
+                  <span class='text-muted'>Subtotal</span><br>
+                  <strong>Rp {{ '{:,}'.format(item.product.price * item.quantity).replace(',', '.') }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    <aside class='col-lg-4'>
+      <div class='cart-summary mk-action-bar'>
+        <h2 class='cart-summary-title'>Ringkasan belanja</h2>
+        <div class='cart-summary-total d-flex justify-content-between align-items-center gap-3 mb-3'>
+          <span class='text-muted'>Total sementara</span>
+          <span class='cart-total'>Rp {{ '{:,}'.format(total).replace(',', '.') }}</span>
+        </div>
+        <p class='cart-summary-note mb-3'><span aria-hidden='true'>ⓘ</span><span>Ongkos kirim dan biaya lainnya akan dihitung di tahap checkout.</span></p>
+        <a href='{{ url_for("pesanan.checkout") }}' class='btn btn-primary btn-lg w-100 cart-checkout'>Lanjut ke checkout <span aria-hidden='true'>→</span></a>
+        <div class='text-center small text-muted mt-3'>Belanja aman dan praktis di Merchku</div>
+      </div>
+    </aside>
+  </div>
+  {% else %}
+  <section class='cart-empty'>
+    <div class='cart-empty-icon' aria-hidden='true'>
+      <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>
+        <path d='M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H6'></path>
+        <circle cx='10' cy='20' r='1'></circle><circle cx='18' cy='20' r='1'></circle>
+      </svg>
+    </div>
+    <h2>Belum ada produk di keranjang</h2>
+    <p>Temukan merchandise favoritmu dan tambahkan ke keranjang. Pilihanmu akan tersimpan di sini.</p>
+    <a href='{{ url_for("katalog.index") }}' class='btn btn-primary cart-empty-action'>Jelajahi katalog</a>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

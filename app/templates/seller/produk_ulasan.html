@@ -1,0 +1,45 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Ulasan Produk — Merchku{% endblock %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex justify-content-between align-items-center flex-wrap gap-2'>
+    <div>
+      <h3 class='mb-1'>Ulasan: {{ product.name }}</h3>
+      <p class='text-muted mb-0'>Rata-rata {{ avg }} bintang • {{ reviews|length }} ulasan</p>
+    </div>
+    <a class='btn btn-outline-secondary' href='{{ url_for("seller.produk_list") }}'>Kembali ke Produk</a>
+  </div>
+  <hr>
+  {% for r in reviews %}
+    <div class='card mb-3'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start flex-wrap gap-2'>
+          <div>
+            <strong>{{ r.user.email.split('@')[0] }}</strong>
+            <span class='text-warning'>{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</span>
+            <small class='text-muted'>• {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at }}</small>
+          </div>
+        </div>
+        <p class='mt-2 mb-2'>{{ (r.comment or '(tanpa komentar)')|e }}</p>
+        {% if r.seller_reply %}
+        <div class='p-2 mb-2' style='background:rgba(59,155,255,0.08);border-left:3px solid var(--accent);border-radius:6px'>
+          <strong>Balasan Anda</strong>
+          <small class='text-muted'>{{ r.replied_at.strftime('%Y-%m-%d %H:%M') if r.replied_at }}</small>
+          <div>{{ r.seller_reply|e }}</div>
+        </div>
+        {% endif %}
+        <form method='post' action='{{ url_for("seller.produk_ulasan_balas", pid=product.id, rid=r.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <textarea name='seller_reply' class='form-control form-control-sm' rows='2'
+                    maxlength='2000' placeholder='Tulis balasan...'>{{ r.seller_reply or '' }}</textarea>
+          <button type='submit' class='btn btn-sm btn-primary mt-2'>
+            {{ 'Perbarui Balasan' if r.seller_reply else 'Balas' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <p class='text-muted'>Belum ada ulasan untuk produk ini.</p>
+  {% endfor %}
+</div>
+{% endblock %}

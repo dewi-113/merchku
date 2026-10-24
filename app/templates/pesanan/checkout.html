@@ -1,0 +1,244 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_image.html' import product_image %}
+{% block title %}Checkout — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .checkout-page { max-width: 1120px; padding-top: 22px; padding-bottom: 48px; }
+  .checkout-heading { margin-bottom: 20px; }
+  .checkout-heading h1 { font-size: clamp(1.55rem, 3vw, 2rem); font-weight: 800; }
+  .checkout-steps {
+    display: flex; align-items: center; gap: 12px; color: #667085;
+    font-size: .86rem; margin: 0 0 22px; padding: 0; list-style: none;
+  }
+  .checkout-steps .active { color: #2563eb; font-weight: 700; }
+  .checkout-layout { align-items: flex-start; }
+  .checkout-section, .checkout-summary {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(31,41,55,.04);
+  }
+  .checkout-section { padding: 20px; margin-bottom: 14px; }
+  .section-title { font-weight: 750; font-size: 1.05rem; margin: 0; }
+  .section-subtitle { color: #667085; font-size: .86rem; margin: 5px 0 0; }
+  .address-summary {
+    background: #f8fafc; border: 1px solid #edf0f2; border-radius: 9px;
+    padding: 15px; line-height: 1.65;
+  }
+  .address-summary-name { font-weight: 750; }
+  .address-summary-text { color: #475467; overflow-wrap: anywhere; }
+  .address-edit { font-weight: 650; text-decoration: none; white-space: nowrap; }
+  .checkout-control { min-height: 46px; border-color: #d7dce1; border-radius: 8px; }
+  .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+  .choice-card {
+    display: flex; align-items: flex-start; gap: 10px; min-height: 72px;
+    padding: 13px; border: 1px solid #e1e5ea; border-radius: 9px;
+    background: #fff; cursor: pointer; transition: border-color .15s ease, background .15s ease;
+  }
+  .choice-card:hover { border-color: #93b4f8; background: #f8fbff; }
+  .choice-card input { margin-top: 4px; accent-color: #2563eb; flex: 0 0 auto; }
+  .choice-card:has(input:checked) { border-color: #2563eb; background: #f3f7ff; box-shadow: 0 0 0 1px #2563eb; }
+  .choice-name { display: block; font-weight: 700; }
+  .choice-note { display: block; margin-top: 3px; color: #667085; font-size: .78rem; line-height: 1.4; }
+  .checkout-summary { padding: 20px; position: sticky; top: 92px; }
+  .checkout-product { display: grid; grid-template-columns: 56px 1fr auto; gap: 11px; align-items: center; padding: 13px 0; border-bottom: 1px solid #edf0f2; }
+  .checkout-product img, .checkout-product-placeholder { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: #f1f5f9; }
+  .checkout-product-placeholder { display: grid; place-items: center; color: #94a3b8; font-size: 1.4rem; }
+  .checkout-total { font-size: 1.15rem; color: #2563eb; font-weight: 800; }
+  .checkout-submit { min-height: 48px; font-weight: 750; border-radius: 8px; }
+  .checkout-note { border-radius: 8px; padding: 12px 14px; background: #fff8e8; color: #805b10; font-size: .83rem; }
+  .checkout-protection { padding: 14px; border: 1px solid #f4d58d; border-radius: 9px; background: #fffaf0; }
+  .checkout-product-meta { color: #667085; font-size: .78rem; line-height: 1.45; }
+  .checkout-product-shop { font-size: .78rem; }
+  .checkout-breakdown { font-size: .9rem; }
+  .shipping-choice-grid { display: grid; gap: 10px; margin-top: 16px; }
+  @media (max-width: 767px) {
+    .checkout-page { padding-top: 14px; }
+    .checkout-section, .checkout-summary { padding: 16px; }
+    .checkout-summary { position: static; }
+    .choice-grid { grid-template-columns: 1fr 1fr; }
+    .checkout-steps { gap: 7px; font-size: .76rem; }
+  }
+  @media (max-width: 420px) { .choice-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container checkout-page'>
+  <header class='checkout-heading'>
+    <div class='small text-muted mb-2'><a href='{{ url_for("keranjang.index") }}' class='text-decoration-none'>Keranjang</a> / Checkout</div>
+    <h1 class='mb-1'>Checkout</h1>
+    <p class='text-muted mb-0'>Pastikan alamat, pengiriman, dan pesananmu sudah benar.</p>
+  </header>
+  <ol class='checkout-steps' aria-label='Tahapan belanja'>
+    <li>1. Keranjang</li><li aria-hidden='true'>›</li><li class='active'>2. Checkout</li><li aria-hidden='true'>›</li><li>3. Selesai</li>
+  </ol>
+
+  <form method='post' data-checkout-form
+    data-subtotal='{{ total|int }}' data-service-fee='{{ service_fee|int }}'
+    data-shipping-discount-cap='{{ shipping_discount_cap|int }}' data-fragile-fee='{{ fragile_fee|int }}'
+    data-contains-fragile='{{ "1" if contains_fragile else "0" }}'>
+    {{ form.hidden_tag() }}
+    <div class='row g-3 checkout-layout'>
+      <div class='col-lg-7'>
+        <section class='checkout-section'>
+          <div class='d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3'>
+            <div>
+              <h2 class='section-title'>Alamat pengiriman</h2>
+              <p class='section-subtitle'>Alamat tersimpan dari profil akunmu.</p>
+            </div>
+            <a class='address-edit' href='{{ url_for("profil.index") }}'>Ubah alamat</a>
+          </div>
+          <div class='address-summary'>
+            <div class='address-summary-name'>
+              {{ current_user.recipient_name }}
+              <span class='text-muted fw-normal mx-1'>|</span>
+              <span class='fw-normal'>{{ current_user.phone }}</span>
+              <span class='badge rounded-pill text-bg-light border ms-1'>{{ current_user.address_label|title }}</span>
+            </div>
+            <div class='address-summary-text mt-1'>
+              {{ current_user.address }}<br>
+              {{ current_user.district }}, {{ current_user.city }}, {{ current_user.province }} {{ current_user.postal_code }}
+            </div>
+            {% if current_user.delivery_note %}
+            <div class='small text-muted mt-2'>Catatan kurir: {{ current_user.delivery_note }}</div>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class='checkout-section'>
+          <h2 class='section-title'>Pengiriman</h2>
+          <p class='section-subtitle'>
+            {% if shipping_configured %}Pilih kurir, layanan, estimasi tiba, dan tarif dalam satu opsi.{% else %}Tarif masih dikonfirmasi manual. Admin dapat mengatur Biteship di file .env.{% endif %}
+          </p>
+          {% if rates_error %}<div class='alert alert-danger mt-3 mb-0'>{{ rates_error }}</div>{% endif %}
+          {% if shipping_configured and not shipping_rates and not rates_error %}
+          <div class='alert alert-warning mt-3 mb-0'>Tidak ada layanan kurir yang tersedia untuk alamat ini.</div>
+          {% endif %}
+          <div class='shipping-choice-grid'>
+            {% for value, label in form.courier.choices %}
+            {% set rate = shipping_rate_map.get(value) %}
+            <label class='choice-card'>
+              <input type='radio' name='courier' value='{{ value }}' data-shipping-choice
+                data-shipping-price='{{ rate.price if rate else "" }}'
+                {{ 'checked' if form.courier.data == value else '' }} required>
+              <span>
+                {% if rate %}
+                <span class='choice-name'>{{ rate.courier|upper }} · {{ rate.service }}</span>
+                <span class='choice-note'>Estimasi tiba: {{ rate.duration or 'mengikuti jadwal kurir' }}</span>
+                <span class='choice-note fw-semibold'>Rp {{ '{:,}'.format(rate.price).replace(',', '.') }}</span>
+                {% else %}
+                <span class='choice-name'>{{ label }}</span>
+                <span class='choice-note'>Ongkir dikonfirmasi admin</span>
+                {% endif %}
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+          {% if shipping_configured and not shipping_rates %}
+          <button type='submit' name='refresh_rates' value='1' class='btn btn-outline-primary mt-3'>Coba hitung ongkir lagi</button>
+          {% endif %}
+          {% for error in form.courier.errors %}<div class='text-danger small mt-2'>{{ error }}</div>{% endfor %}
+          {% if contains_fragile %}
+          <div class='checkout-protection mt-3'>
+            <div class='form-check'>
+              {{ form.fragile_protection(class='form-check-input', id='fragile-protection', **{'data-fragile-protection': '1'}) }}
+              <label class='form-check-label fw-semibold' for='fragile-protection'>Perlindungan kemasan barang rawan pecah</label>
+            </div>
+            <div class='small text-muted mt-1'>
+              Keranjangmu berisi barang yang ditandai mudah pecah.
+              {% if fragile_fee %}Biaya perlindungan Rp {{ '{:,}'.format(fragile_fee).replace(',', '.') }} jika dipilih.{% else %}Tidak ada biaya tambahan untuk perlindungan.{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class='checkout-section'>
+          <h2 class='section-title'>Metode pembayaran</h2>
+          <p class='section-subtitle'>Pilih metode yang akan kamu gunakan.</p>
+          <div class='choice-grid'>
+            {% for value, label in form.payment_method.choices %}
+            <label class='choice-card'>
+              <input type='radio' name='payment_method' value='{{ value }}' {{ 'checked' if form.payment_method.data == value else '' }} required>
+              <span>
+                <span class='choice-name'>{{ label }}</span>
+                <span class='choice-note'>
+                  {% if value == 'cod' %}Admin akan mengonfirmasi layanan COD{% elif value == 'midtrans' %}Pembayaran diproses aman oleh Midtrans{% else %}Pembayaran dikonfirmasi admin{% endif %}
+                </span>
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+          {% for error in form.payment_method.errors %}<div class='text-danger small mt-2'>{{ error }}</div>{% endfor %}
+          {% if not midtrans_ready %}
+          <div class='checkout-note mt-3'>
+            Pembayaran Midtrans aktif setelah MIDTRANS_SERVER_KEY dan tarif Biteship tersedia. {% if not config.get('MIDTRANS_SERVER_KEY') %}Kunci Midtrans belum diatur di .env.{% elif not shipping_configured %}Biteship belum diatur, sehingga ongkir belum bisa dimasukkan ke total pembayaran.{% elif rates_error %}Tarif pengiriman gagal dimuat; coba lagi nanti.{% else %}Belum ada tarif kurir yang tersedia untuk alamat ini.{% endif %}
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <aside class='col-lg-5'>
+        <section class='checkout-summary'>
+          <h2 class='h5 fw-bold mb-1'>Ringkasan belanja</h2>
+          <p class='small text-muted mb-0'>{{ items|length }} jenis produk</p>
+          {% for item in items %}
+          {% if item.product %}
+          <div class='checkout-product'>
+            {{ product_image(item.product) }}
+            <div>
+              <div class='fw-semibold'>{{ item.product.name }}</div>
+              <div class='checkout-product-meta'>
+                {% if item.product.product_type %}{{ item.product.product_type }}{% endif %}
+                {% if item.product.color %} · {{ item.product.color }}{% endif %}
+                {% if item.size %} · Ukuran {{ item.size }}{% endif %}
+                · {{ item.quantity }} buah
+              </div>
+              {% if item.product.description %}
+              <div class='checkout-product-meta'>{{ item.product.description|truncate(90) }}</div>
+              {% endif %}
+              {% if item.product.owner %}
+              <a class='checkout-product-shop' href='{{ url_for("katalog.toko_public", seller_id=item.product.owner.id) }}'>
+                {{ item.product.owner.shop_name or item.product.owner.email.split('@')[0] }}
+              </a>
+              {% endif %}
+            </div>
+            <strong>Rp {{ '{:,}'.format(item.product.price * item.quantity).replace(',', '.') }}</strong>
+          </div>
+          {% endif %}
+          {% endfor %}
+          <div class='checkout-breakdown d-flex justify-content-between mt-3'>
+            <span class='text-muted'>Subtotal pesanan</span>
+            <strong>Rp {{ '{:,}'.format(total).replace(',', '.') }}</strong>
+          </div>
+          <div class='checkout-breakdown d-flex justify-content-between mt-2'>
+            <span class='text-muted'>Subtotal pengiriman</span>
+            <span id='checkout-shipping-value' class='fw-semibold'>{% if shipping_configured and selected_preview_rate %}Rp {{ '{:,}'.format(shipping_total).replace(',', '.') }}{% else %}Dikonfirmasi admin{% endif %}</span>
+          </div>
+          <div class='checkout-breakdown d-flex justify-content-between mt-2'>
+            <span class='text-muted'>Biaya layanan</span>
+            <span>Rp {{ '{:,}'.format(service_fee).replace(',', '.') }}</span>
+          </div>
+          {% if contains_fragile %}
+          <div class='checkout-breakdown d-flex justify-content-between mt-2'>
+            <span class='text-muted'>Perlindungan barang pecah belah</span>
+            <span id='checkout-fragile-value'>{% if form.fragile_protection.data %}Rp {{ '{:,}'.format(fragile_fee).replace(',', '.') }}{% else %}Tidak dipilih{% endif %}</span>
+          </div>
+          {% endif %}
+          <div class='checkout-breakdown d-flex justify-content-between mt-2'>
+            <span class='text-muted'>Diskon pengiriman</span>
+            <span id='checkout-discount-value'>- Rp {{ '{:,}'.format(shipping_discount).replace(',', '.') }}</span>
+          </div>
+          <hr class='my-3'>
+          <div class='d-flex justify-content-between align-items-center mb-2'>
+            <span class='fw-bold'>Total pembayaran</span>
+            <span id='checkout-total-value' class='checkout-total'>Rp {{ '{:,}'.format(checkout_total).replace(',', '.') }}</span>
+          </div>
+          <p class='small text-muted'>{% if shipping_configured %}Total termasuk ongkir Biteship.{% else %}Total akhir dikonfirmasi setelah ongkir dihitung.{% endif %}</p>
+          <div class='d-grid gap-2'>
+            <button type='submit' class='btn btn-primary btn-lg checkout-submit' {% if shipping_configured and not shipping_rates %}disabled{% endif %}>Buat Pesanan</button>
+            <a href='{{ url_for("keranjang.index") }}' class='btn btn-outline-secondary'>Kembali ke Keranjang</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </form>
+</div>
+{% endblock %}

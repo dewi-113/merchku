@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e9f4ff"/><stop offset="1" stop-color="#c5dcf5"/></linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3d83ba"/><stop offset="1" stop-color="#174c7b"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="11"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="32" fill="url(#bg)"/>
+  <circle cx="510" cy="90" r="65" fill="#fff" opacity=".33"/>
+  <ellipse cx="323" cy="359" rx="175" ry="24" fill="#3f6381" opacity=".24" filter="url(#shadow)"/>
+  <path d="M155 273c0-102 72-174 166-174s166 72 166 174H155z" fill="url(#cloth)" stroke="#173f65" stroke-width="7"/>
+  <path d="M155 273h332c33 0 55 16 59 38-73 43-158 62-255 55-71-5-127-23-169-52 2-24 13-41 33-41z" fill="#255f91" stroke="#173f65" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M321 101v172m-165 0h331" fill="none" stroke="#70a4cf" stroke-width="5" opacity=".9"/>
+  <path d="M255 188c20-23 44-35 66-35s46 12 66 35l-11 48H266z" fill="#f2bf5c"/>
+  <path d="M275 212h92m-70 15h48" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <text x="320" y="333" text-anchor="middle" fill="#dceeff" font-family="Arial,sans-serif" font-size="16" font-weight="700" letter-spacing="3">CAMPUS CLUB</text>
+</svg>

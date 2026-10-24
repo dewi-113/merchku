@@ -1,0 +1,40 @@
+{# Isi ruang chat Customer Service; dipakai widget mengambang & halaman /bantuan.
+   Logika ada di static/js/cs-chat.js. #}
+{% macro cs_chat(mode='widget') -%}
+<div class='cs-room cs-room-{{ mode }}' data-cs-root data-cs-url='{{ url_for("cs.tanya") }}'>
+  <header class='cs-head'>
+    {% if mode == 'page' %}
+    <a class='cs-head-btn' href='{{ url_for("core.landing") }}' aria-label='Kembali'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M15 5l-7 7 7 7'/></svg>
+    </a>
+    {% endif %}
+    <span class='cs-avatar'>{% include 'partials/cs_avatar.html' %}<i class='cs-online' aria-hidden='true'></i></span>
+    <span class='cs-head-text'>
+      <strong>Merchy · CS Merchku</strong>
+      <small>Online 24 jam · balas otomatis</small>
+    </span>
+    {% if mode == 'widget' %}
+    <a class='cs-head-btn' href='{{ url_for("cs.index") }}' aria-label='Buka layar penuh' title='Layar penuh'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/></svg>
+    </a>
+    <button class='cs-head-btn' type='button' data-cs-close aria-label='Tutup chat'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 6l12 12M18 6L6 18'/></svg>
+    </button>
+    {% else %}
+    <button class='cs-head-btn' type='button' data-cs-reset aria-label='Mulai percakapan baru' title='Percakapan baru'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 12a8 8 0 1 0 3-6.2M4 4v5h5'/></svg>
+    </button>
+    {% endif %}
+  </header>
+  <div class='cs-messages' data-cs-messages aria-live='polite'></div>
+  <div class='cs-suggestions' data-cs-suggestions></div>
+  <form class='cs-composer' data-cs-form>
+    <label class='visually-hidden' for='cs-input-{{ mode }}'>Tulis pertanyaan</label>
+    <input id='cs-input-{{ mode }}' type='text' name='message' maxlength='500' autocomplete='off'
+      placeholder='Tanya soal produk, pesanan, ongkir...' required>
+    <button type='submit' aria-label='Kirim'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 12l16-8-6 16-2-7z'/></svg>
+    </button>
+  </form>
+</div>
+{%- endmacro %}

@@ -7,38 +7,104 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  lint:
+    name: Lint & Security
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install tools
+        run: pip install -r requirements-dev.txt
+
+      - name: ruff check
+        run: ruff check .
+
+      - name: bandit security scan
+        run: bandit -r app -x tests,migrations -ll
+
+  test-sqlite:
+    name: pytest (SQLite)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests (SQLite)
+        env:
+          FLASK_ENV: dev
+          ENV: dev
+          SQLALCHEMY_DATABASE_URI: "sqlite:///test.db"
+          SECRET_KEY: "ci-secret-not-for-prod"
+          METRICS_TOKEN: "ci-metrics-token"
+          LOG_DIR: "/tmp/logs"
+          UPLOAD_PUBLIC: "/tmp/uploads/public"
+          UPLOAD_PRIVATE: "/tmp/uploads/private"
+        run: pytest -q --cov=app --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+        continue-on-error: true
+
+  test-mysql:
+    name: pytest (MySQL 8)
+    runs-on: ubuntu-latest
+    needs: lint
     services:
       mysql:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: merchku
+          MYSQL_DATABASE: merchku_test
           MYSQL_USER: merchku
           MYSQL_PASSWORD: merchku
-        ports: ['3306:3306']
+        ports:
+          - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
-    strategy:
-      matrix:
-        python-version: ['3.12']
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.12
-      - run: pip install -r requirements.txt
-      - run: pip install ruff bandit pytest pytest-cov
-      - run: ruff check .
-      - run: bandit -r app
-      - name: Test SQLite
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Wait for MySQL
         run: |
-          export FLASK_ENV=dev
-          export SQLALCHEMY_DATABASE_URI=sqlite:///test.db
-          pytest -q
-      - name: Test MySQL
-        run: |
-          export FLASK_ENV=dev
-          export SQLALCHEMY_DATABASE_URI=mysql+pymysql://merchku:merchku@127.0.0.1:3306/merchku
-          pytest -q
+          for i in $(seq 1 30); do
+            mysqladmin ping -h 127.0.0.1 -u root -proot --silent && break || sleep 2
+          done
+
+      - name: Run tests (MySQL)
+        env:
+          FLASK_ENV: dev
+          ENV: dev
+          SQLALCHEMY_DATABASE_URI: "mysql+pymysql://merchku:merchku@127.0.0.1:3306/merchku_test"
+          SECRET_KEY: "ci-secret-not-for-prod"
+          METRICS_TOKEN: "ci-metrics-token"
+          LOG_DIR: "/tmp/logs"
+          UPLOAD_PUBLIC: "/tmp/uploads/public"
+          UPLOAD_PRIVATE: "/tmp/uploads/private"
+        run: pytest -q

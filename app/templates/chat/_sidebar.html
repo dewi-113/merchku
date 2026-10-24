@@ -1,0 +1,44 @@
+{# Daftar percakapan (kolom kiri ruang chat) #}
+<aside class='chat-sidebar' aria-label='Daftar percakapan'>
+  <div class='chat-sidebar-head'>
+    <h1>Chat</h1>
+    <label class='chat-search'>
+      <svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>
+      <input type='search' placeholder='Cari nama' aria-label='Cari percakapan' data-chat-search>
+    </label>
+  </div>
+  <nav class='chat-list'>
+    <a class='chat-item chat-item-cs' href='{{ url_for("cs.index") }}'>
+      <span class='chat-item-avatar cs'>{% include 'partials/cs_avatar.html' %}</span>
+      <span class='chat-item-main'>
+        <span class='chat-item-top'><strong>Merchy · CS Merchku</strong><span class='chat-pill'>AI</span></span>
+        <span class='chat-item-preview'>Tanya produk, pesanan, ongkir — 24 jam</span>
+      </span>
+    </a>
+    {% for t in threads %}
+    {% set other = t.seller if current_user.id == t.customer_id else t.customer %}
+    {% set other_name = other.shop_name or other.recipient_name or other.email.split('@')[0] %}
+    {% set latest = t.messages[-1] if t.messages else none %}
+    <a class='chat-item {{ "active" if thread is defined and thread and thread.id == t.id }}'
+       href='{{ url_for("chat.thread_detail", thread_id=t.id) }}' data-chat-name='{{ other_name|lower }}'>
+      {% if other.avatar %}
+      <img class='chat-item-avatar' src='{{ url_for("core.avatar_media", filename=other.avatar) }}' alt=''>
+      {% else %}
+      <span class='chat-item-avatar' aria-hidden='true'>{{ other_name[0]|upper }}</span>
+      {% endif %}
+      <span class='chat-item-main'>
+        <span class='chat-item-top'>
+          <strong>{{ other_name }}</strong>
+          {% if latest %}<time>{{ latest.created_at|chat_time }}</time>{% endif %}
+        </span>
+        <span class='chat-item-preview'>
+          {% if latest %}{% if latest.sender_id == current_user.id %}<span class='chat-you'>Kamu:</span> {% endif %}{{ latest.body }}{% else %}Mulai percakapan{% endif %}
+        </span>
+      </span>
+    </a>
+    {% endfor %}
+    {% if not threads %}
+    <p class='chat-list-empty'>Belum ada percakapan dengan penjual. Mulai dari tombol <strong>Chat Penjual</strong> di halaman produk.</p>
+    {% endif %}
+  </nav>
+</aside>

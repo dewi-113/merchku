@@ -1,0 +1,25 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/cs_chat.html' import cs_chat %}
+{% block title %}Bantuan — Merchku{% endblock %}
+{% block body_class %}page-cs{% endblock %}
+
+{% block content %}
+<div class='container cs-page'>
+  <div class='cs-page-grid'>
+    <aside class='cs-page-info'>
+      <span class='cs-page-badge'>Customer Service</span>
+      <h1>Ada yang bisa Merchy bantu?</h1>
+      <p>Tanya apa saja soal belanja di Merchku — cari produk, cek status pesanan, ongkir, cara bayar, sampai panduan ukuran. Dijawab otomatis 24 jam.</p>
+      <ul class='cs-page-topics'>
+        <li>🔎 Cari produk &amp; cek stok</li>
+        <li>📦 Status pesananmu</li>
+        <li>🚚 Kurir &amp; ongkir</li>
+        <li>💳 Metode pembayaran</li>
+        <li>📏 Panduan ukuran</li>
+      </ul>
+      <p class='cs-page-note'>Butuh bicara langsung dengan penjual? Gunakan tombol <strong>Chat Penjual</strong> di halaman produk.</p>
+    </aside>
+    {{ cs_chat('page') }}
+  </div>
+</div>
+{% endblock %}

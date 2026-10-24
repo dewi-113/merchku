@@ -19,7 +19,7 @@
             <button class='btn btn-sm btn-outline-secondary' type='submit'>Aktif/Nonaktif</button>
           </form>
           <a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.user_role", uid=u.id) }}'>Ubah Role</a>
-          <form class='d-inline' method='post' action='{{ url_for("admin.user_delete", uid=u.id) }}' onsubmit='return confirm("Hapus pengguna ini?")'>
+          <form class='d-inline' method='post' action='{{ url_for("admin.user_delete", uid=u.id) }}' data-confirm='Hapus pengguna ini?'>
             <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
             <button class='btn btn-sm btn-outline-danger' type='submit'>Hapus</button>
           </form>

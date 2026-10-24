@@ -1,0 +1,250 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Profil Saya — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .profile-page { max-width: 1120px; padding-top: 30px; padding-bottom: 56px; }
+  .profile-heading {
+    position: relative; overflow: hidden; margin-bottom: 24px; padding: 25px 28px;
+    border: 1px solid rgba(255,255,255,.8); border-radius: 20px;
+    background: linear-gradient(115deg, rgba(255,255,255,.96), rgba(239,247,255,.91));
+    box-shadow: 0 12px 34px rgba(34,78,120,.08);
+  }
+  .profile-heading::after {
+    position: absolute; content: ''; width: 190px; height: 190px; right: -42px; top: -98px;
+    border-radius: 50%; background: rgba(59,155,255,.1); pointer-events: none;
+  }
+  .profile-breadcrumb {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 13px;
+    padding: 6px 11px; border-radius: 999px; background: #eef6ff;
+    color: #5b7a99; font-size: .8rem; font-weight: 650;
+  }
+  .profile-breadcrumb a { color: #2676c9; text-decoration: none; }
+  .profile-heading h1 { font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -.035em; }
+  .profile-heading p { max-width: 600px; line-height: 1.6; }
+  .profile-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(31, 41, 55, .045);
+  }
+  .profile-card-header { padding: 19px 22px; border-bottom: 1px solid #edf0f2; }
+  .profile-card-body { padding: 22px; }
+  .profile-account { overflow: hidden; padding: 0; }
+  .profile-account-banner {
+    min-height: 104px; padding: 18px;
+    background:
+      radial-gradient(circle at 90% 20%, rgba(255,255,255,.22), transparent 28%),
+      linear-gradient(125deg, #ee4d2d, #ff7a45);
+  }
+  .profile-account-content { padding: 0 22px 22px; }
+  .profile-account-top { display: flex; align-items: flex-end; gap: 14px; margin-top: -38px; }
+  .profile-avatar {
+    width: 82px; height: 82px; flex: 0 0 82px; object-fit: cover; border-radius: 50%;
+    background: #fff; display: inline-flex; align-items: center;
+    justify-content: center; color: #ee4d2d; font-size: 1.8rem; font-weight: 750;
+    border: 4px solid #fff; box-shadow: 0 3px 12px rgba(16,24,40,.14);
+  }
+  .profile-avatar-form { position: relative; flex: 0 0 auto; margin: 0; }
+  .profile-avatar-picker { position: relative; display: block; cursor: pointer; border-radius: 50%; }
+  .profile-avatar-picker:focus-within, .profile-avatar-form input:focus-visible + * { outline: none; }
+  .profile-avatar-form:focus-within .profile-avatar { box-shadow: 0 0 0 3px rgba(238,77,45,.35); }
+  .profile-avatar-plus {
+    position: absolute; right: 0; bottom: 2px; width: 28px; height: 28px;
+    display: grid; place-items: center; border-radius: 50%;
+    background: #ee4d2d; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(16,24,40,.22);
+    transition: transform .15s ease;
+  }
+  .profile-avatar-plus svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; }
+  .profile-avatar-picker:hover .profile-avatar-plus { transform: scale(1.08); }
+  .profile-avatar-spinner {
+    position: absolute; inset: 4px; display: none; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.6); border-top-color: #ee4d2d;
+    background: rgba(255,255,255,.35); animation: avatarSpin .8s linear infinite;
+  }
+  .profile-avatar-form.is-uploading .profile-avatar-spinner { display: block; }
+  .profile-avatar-form.is-uploading .profile-avatar-plus { display: none; }
+  @keyframes avatarSpin { to { transform: rotate(360deg); } }
+  .profile-account-name { min-width: 0; padding-bottom: 4px; }
+  .profile-account-name h2 { overflow-wrap: anywhere; }
+  .profile-account-email { color: #667085; font-size: .86rem; overflow-wrap: anywhere; }
+  .profile-account-details { margin-top: 15px; }
+  .profile-account-nav { display: grid; gap: 8px; margin-top: 18px; }
+  .profile-shortcut { display: flex; align-items: center; justify-content: space-between; min-height: 44px; border-radius: 9px; font-weight: 650; text-decoration: none; }
+  .profile-shortcut span:last-child { color: #98a2b3; font-size: 1.15rem; }
+  .profile-control { min-height: 46px; border-color: #d7dce1; border-radius: 8px; }
+  .profile-control:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .profile-card textarea.profile-control { min-height: 96px; }
+  .profile-primary { min-height: 46px; font-weight: 700; border-radius: 8px; }
+  .profile-section-title { font-weight: 750; margin: 0; font-size: 1.05rem; }
+  .profile-info {
+    border-radius: 9px; padding: 13px 15px;
+    background: #f8fafc; color: #526172; font-size: .9rem;
+  }
+  .profile-card[id] { scroll-margin-top: 86px; }
+  .profile-section-kicker { margin-bottom: 3px; color: #98a2b3; font-size: .74rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  .profile-save-note { color: #667085; font-size: .84rem; }
+  @media (max-width: 767px) {
+    .profile-page { padding-top: 14px; }
+    .profile-heading { padding: 19px; }
+    .profile-card-body, .profile-card-header { padding: 16px; }
+    .profile-account-content { padding: 0 16px 17px; }
+    .profile-account-banner { min-height: 88px; }
+    .profile-account-top { gap: 10px; }
+    .profile-avatar { width: 72px; height: 72px; flex-basis: 72px; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container profile-page'>
+  <header class='profile-heading'>
+    <nav class='profile-breadcrumb' aria-label='breadcrumb'>
+      <a href='{{ url_for("core.landing") }}'>Beranda</a><span aria-hidden='true'>›</span><span>Akun saya</span>
+    </nav>
+    <h1 class='mb-2'>Profil &amp; alamat</h1>
+    <p class='text-muted mb-0'>Kelola informasi akun dan alamat pengiriman untuk checkout yang lebih praktis.</p>
+  </header>
+
+  <div class='row g-3 align-items-start'>
+    <aside class='col-lg-4'>
+      <section class='profile-card profile-account'>
+        <div class='profile-account-banner' aria-hidden='true'></div>
+        <div class='profile-account-content'>
+          <div class='profile-account-top'>
+            <form class='profile-avatar-form' method='post' action='{{ url_for("profil.upload_avatar") }}' enctype='multipart/form-data' data-avatar-form>
+              {{ av_form.hidden_tag() }}
+              <label class='profile-avatar-picker' for='{{ av_form.avatar.id }}' title='{{ "Ganti" if current_user.avatar else "Tambah" }} foto profil'>
+                {% if current_user.avatar %}
+                <img src='{{ url_for("core.avatar_media", filename=current_user.avatar) }}' class='profile-avatar' alt='Foto profil' data-avatar-preview>
+                {% else %}
+                <span class='profile-avatar' aria-hidden='true' data-avatar-preview>{{ current_user.email[0].upper() }}</span>
+                {% endif %}
+                <span class='profile-avatar-plus' aria-hidden='true'>
+                  <svg viewBox='0 0 24 24'><path d='M12 5v14M5 12h14'/></svg>
+                </span>
+                <span class='profile-avatar-spinner' aria-hidden='true'></span>
+                <span class='visually-hidden'>{{ "Ganti" if current_user.avatar else "Tambah" }} foto profil dari galeri atau kamera</span>
+              </label>
+              {{ av_form.avatar(class='visually-hidden', accept='image/*') }}
+            </form>
+            <div class='profile-account-name'>
+              <h2 class='h5 fw-bold mb-1'>{{ current_user.recipient_name or current_user.email.split('@')[0] }}</h2>
+              <div class='profile-account-email'>{{ current_user.email }}</div>
+            </div>
+          </div>
+          {% for error in av_form.avatar.errors %}<div class='text-danger small mt-2'>{{ error }}</div>{% endfor %}
+          <div class='profile-account-details'>
+            <span class='badge rounded-pill text-bg-{{ "danger" if current_user.role == "admin" else "primary" }}'>
+              {{ 'Pembeli' if current_user.role == 'customer' else ('Penjual' if current_user.role == 'seller' else 'Admin') }}
+            </span>
+            {% if current_user.last_login_at %}
+            <p class='small text-muted mt-3 mb-0'>Login terakhir {{ current_user.last_login_at.strftime('%d %b %Y %H:%M') }}</p>
+            {% endif %}
+          </div>
+          <nav class='profile-account-nav' aria-label='Menu profil'>
+            <a class='btn btn-outline-primary profile-shortcut' href='{{ url_for("pesanan.riwayat") }}'>
+              <span>Pesanan Saya</span><span aria-hidden='true'>›</span>
+            </a>
+            {% if current_user.role in ('customer', 'seller') %}
+            <a class='btn btn-light profile-shortcut' href='{{ url_for("chat.inbox") }}'>
+              <span>Pesan</span><span aria-hidden='true'>›</span>
+            </a>
+            {% endif %}
+            {% if current_user.role in ('seller', 'admin') %}
+            <a class='btn btn-light profile-shortcut' href='{{ url_for("seller.dashboard") }}'>
+              <span>Kelola Toko</span><span aria-hidden='true'>›</span>
+            </a>
+            {% endif %}
+            {% if current_user.role == 'admin' %}
+            <a class='btn btn-light profile-shortcut' href='{{ url_for("admin.dashboard") }}'>
+              <span>Dashboard Admin</span><span aria-hidden='true'>›</span>
+            </a>
+            {% endif %}
+            <a class='btn btn-light profile-shortcut' href='#shipping-address'>
+              <span>Alamat Pengiriman</span><span aria-hidden='true'>›</span>
+            </a>
+            <a class='btn btn-light profile-shortcut' href='{{ url_for("profil.keamanan") }}'>
+              <span>Keamanan Akun</span><span aria-hidden='true'>›</span>
+            </a>
+            <a class='btn btn-outline-danger profile-shortcut profile-logout' href='{{ url_for("auth.logout") }}'>
+              <span>Keluar</span><span aria-hidden='true'>›</span>
+            </a>
+          </nav>
+        </div>
+      </section>
+    </aside>
+
+    <div class='col-lg-8'>
+      <section class='profile-card mb-3' id='shipping-address'>
+        <header class='profile-card-header d-flex flex-wrap align-items-center justify-content-between gap-2'>
+          <div>
+            <div class='profile-section-kicker'>Data penerima</div>
+            <h2 class='profile-section-title'>Alamat pengiriman</h2>
+            <p class='small text-muted mb-0 mt-1'>Simpan data penerima di sini agar checkout lebih cepat.</p>
+          </div>
+          {% if current_user.has_shipping_details %}
+          <span class='badge rounded-pill text-bg-success'>Siap untuk checkout</span>
+          {% else %}
+          <span class='badge rounded-pill text-bg-warning'>Lengkapi data</span>
+          {% endif %}
+        </header>
+        <div class='profile-card-body'>
+          <form method='post' action='{{ url_for("profil.simpan_alamat") }}'>
+            {{ address_form.hidden_tag() }}
+            <div class='row g-3'>
+              <div class='col-md-7'>
+                {{ address_form.recipient_name.label(class='form-label fw-semibold') }}
+                {{ address_form.recipient_name(class='form-control profile-control', placeholder='Nama lengkap penerima', autocomplete='name') }}
+                {% for error in address_form.recipient_name.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-5'>
+                {{ address_form.phone.label(class='form-label fw-semibold') }}
+                {{ address_form.phone(class='form-control profile-control', placeholder='08xxxxxxxxxx', autocomplete='tel', inputmode='tel') }}
+                {% for error in address_form.phone.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-12'>
+                {{ address_form.address.label(class='form-label fw-semibold') }}
+                {{ address_form.address(class='form-control profile-control', rows=3, placeholder='Nama jalan, nomor rumah, RT/RW, kelurahan/desa, dan patokan') }}
+                {% for error in address_form.address.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-6'>
+                {{ address_form.district.label(class='form-label fw-semibold') }}
+                {{ address_form.district(class='form-control profile-control', placeholder='Contoh: Coblong') }}
+                {% for error in address_form.district.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-6'>
+                {{ address_form.city.label(class='form-label fw-semibold') }}
+                {{ address_form.city(class='form-control profile-control', placeholder='Contoh: Bandung') }}
+                {% for error in address_form.city.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-7'>
+                {{ address_form.province.label(class='form-label fw-semibold') }}
+                {{ address_form.province(class='form-control profile-control', placeholder='Contoh: Jawa Barat') }}
+                {% for error in address_form.province.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-5'>
+                {{ address_form.postal_code.label(class='form-label fw-semibold') }}
+                {{ address_form.postal_code(class='form-control profile-control', placeholder='40123', inputmode='numeric', autocomplete='postal-code') }}
+                {% for error in address_form.postal_code.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-md-5'>
+                {{ address_form.address_label.label(class='form-label fw-semibold') }}
+                {{ address_form.address_label(class='form-select profile-control') }}
+                {% for error in address_form.address_label.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-12'>
+                {{ address_form.delivery_note.label(class='form-label fw-semibold') }}
+                {{ address_form.delivery_note(class='form-control profile-control', placeholder='Contoh: titip ke satpam (opsional)') }}
+                {% for error in address_form.delivery_note.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+              </div>
+              <div class='col-12 d-flex flex-wrap align-items-center gap-3'>
+                {{ address_form.submit(class='btn btn-primary profile-primary px-4') }}
+                <span class='profile-save-note'>Alamat tersimpan untuk checkout berikutnya.</span>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

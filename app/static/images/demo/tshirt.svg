@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5f4ff"/><stop offset="1" stop-color="#c5e2ff"/></linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#d8e8f5"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="32" fill="url(#bg)"/>
+  <circle cx="520" cy="75" r="76" fill="#fff" opacity=".32"/>
+  <ellipse cx="324" cy="397" rx="150" ry="24" fill="#4e7ca4" opacity=".23" filter="url(#shadow)"/>
+  <path d="m244 103 55-25c10 23 32 35 55 35s45-12 55-35l55 25 92 57-45 70-52-31v173c0 15-12 27-27 27H276c-15 0-27-12-27-27V199l-52 31-45-70z" fill="url(#shirt)" stroke="#b6cada" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M299 78c6 23 27 36 55 36s49-13 55-36" fill="none" stroke="#becfdd" stroke-width="7"/>
+  <path d="m187 160 62 39m204-39-62 39" fill="none" stroke="#c2d3e0" stroke-width="5"/>
+  <rect x="290" y="213" width="130" height="78" rx="12" fill="#2582c6" opacity=".92"/>
+  <path d="M311 259h88M326 240h58" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".92"/>
+  <text x="320" y="351" text-anchor="middle" fill="#57718a" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="4">MERCHKU • CLASSIC</text>
+</svg>

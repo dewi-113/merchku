@@ -1,7 +1,7 @@
 from email_validator import EmailNotValidError, validate_email
 from flask import current_app
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, PasswordField, StringField, SubmitField
+from wtforms import BooleanField, PasswordField, RadioField, StringField, SubmitField
 from wtforms.validators import DataRequired, EqualTo, Length, ValidationError
 
 
@@ -23,19 +23,37 @@ def email_field(message=None):
     return _validate
 
 
+def normalize_email(value):
+    return value.strip().lower() if isinstance(value, str) else value
+
+
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), email_field()])
+    email = StringField(
+        'Email',
+        filters=[normalize_email],
+        validators=[DataRequired(), email_field()],
+    )
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Ingat saya')
     submit = SubmitField('Masuk')
 
 
 class RegisterForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), email_field(), Length(max=255)])
+    email = StringField(
+        'Email',
+        filters=[normalize_email],
+        validators=[DataRequired(), email_field(), Length(max=255)],
+    )
     password = PasswordField(
         'Password',
         validators=[DataRequired(), Length(min=10)],
         render_kw={'minlength': 10},
     )
     password2 = PasswordField('Konfirmasi', validators=[DataRequired(), EqualTo('password')])
+    role = RadioField(
+        'Daftar sebagai',
+        choices=[('customer', 'Pembeli'), ('seller', 'Penjual')],
+        default='customer',
+        validators=[DataRequired()],
+    )
     submit = SubmitField('Daftar')

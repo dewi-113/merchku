@@ -1,4 +1,5 @@
-﻿import os
+import mimetypes
+import os
 
 from flask import Flask, request
 from flask_limiter import Limiter
@@ -12,7 +13,9 @@ from app.core.errors import register_error_handlers
 from app.core.middleware import register_security_headers
 from app.core.utils import get_client_ip
 from app.security_logger import setup_security_logger
-from config import config_map
+from config import DevConfig, config_map
+
+mimetypes.add_type('application/manifest+json', '.webmanifest')
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -21,16 +24,23 @@ csrf = CSRFProtect()
 limiter = Limiter(key_func=get_remote_address)
 login_manager.login_view = 'auth.login'
 
+
 @login_manager.user_loader
 def load_user(user_id):
     from app.auth.models import User
+
     try:
         return db.session.get(User, int(user_id))
     except Exception:
         return None
+
+
 def create_app(config_name=None):
     app = Flask(__name__, instance_relative_config=True)
-    cfg = config_map.get(config_name or os.getenv('ENV') or os.getenv('FLASK_ENV') or 'dev','dev')
+    cfg = config_map.get(
+        config_name or os.getenv('ENV') or os.getenv('FLASK_ENV') or 'dev',
+        DevConfig,
+    )
     app.config.from_object(cfg)
     if not app.config.get('SECRET_KEY'):
         # di dev saja: pakai secret acak sementara (tidak di-hardcode)
@@ -39,6 +49,7 @@ def create_app(config_name=None):
         app.config['SECRET_KEY'] = secrets.token_hex(32)
     os.makedirs(app.config['LOG_DIR'], exist_ok=True)
     os.makedirs(app.config['UPLOAD_PUBLIC'], exist_ok=True)
+    os.makedirs(app.config['PRODUCT_PHOTOS_DIR'], exist_ok=True)
     os.makedirs(app.config['UPLOAD_PRIVATE'], exist_ok=True)
     os.makedirs('instance', exist_ok=True)
 
@@ -46,7 +57,34 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    # Batas default rate limit diambil dari config (RATE_LIMIT_DEFAULT),
+    # mis. "200 per minute". Dipasang sebelum init_app agar berlaku global.
+    default_limit = app.config.get('RATE_LIMIT_DEFAULT')
+    if default_limit:
+        app.config['RATELIMIT_DEFAULT'] = default_limit
     limiter.init_app(app)
+
+    @app.context_processor
+    def _inject_cart_count():
+        from flask_login import current_user
+
+        if not current_user.is_authenticated:
+            return {'cart_count': 0}
+        from app.keranjang.models import CartItem
+
+        total = (
+            db.session.query(db.func.coalesce(db.func.sum(CartItem.quantity), 0))
+            .filter(CartItem.user_id == current_user.id)
+            .scalar()
+        )
+        return {'cart_count': int(total or 0)}
+
+    from app.katalog.follow_model import follower_counts
+    from app.katalog.stats import product_stats, reviewer_name, sold_label
+    app.add_template_global(product_stats)
+    app.add_template_global(follower_counts)
+    app.add_template_filter(sold_label, 'ringkas')
+    app.add_template_filter(reviewer_name, 'nama_pengulas')
 
     setup_security_logger(app)
     register_security_headers(app)
@@ -57,8 +95,20 @@ def create_app(config_name=None):
     from app.core.routes import bp as core_bp
     app.register_blueprint(core_bp)
 
-    from app.cli import create_admin
+    from app.cli import (
+        create_admin,
+        seed_demo,
+        seed_promo,
+        seed_sosial,
+        seed_toko,
+        sesuaikan_produk,
+    )
     app.cli.add_command(create_admin)
+    app.cli.add_command(seed_demo)
+    app.cli.add_command(seed_toko)
+    app.cli.add_command(seed_promo)
+    app.cli.add_command(sesuaikan_produk)
+    app.cli.add_command(seed_sosial)
 
     @app.before_request
     def _https_forwarded():

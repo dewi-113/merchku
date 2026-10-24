@@ -19,7 +19,7 @@
         <td>{{ 'aktif' if p.is_active else 'nonaktif' }}</td>
         <td class='text-end'>
           <a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.produk_edit", pid=p.id) }}'>Edit</a>
-          <form class='d-inline' method='post' action='{{ url_for("admin.produk_delete", pid=p.id) }}' onsubmit='return confirm("Hapus produk ini?")'>
+          <form class='d-inline' method='post' action='{{ url_for("admin.produk_delete", pid=p.id) }}' data-confirm='Hapus produk ini?'>
             <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
             <button class='btn btn-sm btn-outline-danger' type='submit'>Hapus</button>
           </form>

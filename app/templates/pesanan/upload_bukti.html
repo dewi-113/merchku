@@ -1,0 +1,75 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Pembayaran Pesanan #{{ order.id }} — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .payment-reference { padding: 18px; border: 1px solid #fed7aa; border-radius: 12px; background: #fff7ed; }
+  .payment-reference-code { color: #9a3412; font-size: 1.1rem; font-weight: 750; letter-spacing: .02em; overflow-wrap: anywhere; }
+  .qris-demo-placeholder {
+    display: grid; width: 140px; height: 140px; margin: 0 auto 14px; place-items: center;
+    border: 2px dashed #fdba74; border-radius: 12px; background:
+      linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%),
+      linear-gradient(45deg, #fff 25%, #ffedd5 25%, #ffedd5 75%, #fff 75%);
+    background-position: 0 0, 9px 9px;
+    background-size: 18px 18px;
+    color: #9a3412; font-weight: 800;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex align-items-center gap-3 mb-3'>
+    <a href='{{ url_for("pesanan.detail", order_id=order.id) }}' class='btn btn-outline-secondary btn-sm'>← Kembali</a>
+    <h3 class='mb-0'>Pembayaran — Pesanan #{{ order.id }}</h3>
+  </div>
+
+  <div class='row'>
+    <div class='col-md-5'>
+      <div class='card mb-3'>
+        <div class='card-header'>Info Pesanan</div>
+        <ul class='list-group list-group-flush'>
+          <li class='list-group-item'><strong>Total:</strong> Rp {{ '{:,}'.format(order.total_price).replace(',','.') }}</li>
+          <li class='list-group-item'><strong>Status:</strong> {{ order.display_status.replace('_',' ') }}</li>
+          <li class='list-group-item'><strong>Metode:</strong> {{ order.payment_method_label }}</li>
+        </ul>
+      </div>
+      {% if order.payment_method == 'qris' %}
+      <section class='payment-reference mb-3'>
+        <div class='qris-demo-placeholder' role='img' aria-label='QRIS belum dikonfigurasi, bukan kode yang dapat dipindai'>QR DEMO</div>
+        <div class='text-center fw-bold mb-2'>QRIS belum aktif</div>
+        <p class='small mb-3'>Kode QR merchant belum disediakan. Tampilan ini hanya untuk demonstrasi dan tidak menerima pembayaran.</p>
+        <div class='small text-muted'>ID referensi (untuk admin)</div>
+        <div class='payment-reference-code font-monospace'>MERCHKU-QRIS-{{ '%06d'|format(order.id) }}</div>
+        <p class='small text-muted mb-0 mt-2'>ID ini bukan kode QRIS atau kode pembayaran bank.</p>
+      </section>
+      {% endif %}
+    </div>
+    <div class='col-md-7'>
+      <div class='card'>
+        <div class='card-header'>{{ 'Kirim Bukti Pembayaran Demo' if order.payment_method == 'qris' else 'Unggah Bukti Pembayaran' }}</div>
+        <div class='card-body'>
+          {% if order.payment_method == 'qris' %}
+          <div class='alert alert-warning small'>
+            Jangan melakukan pembayaran sungguhan dengan informasi demo. Bukti yang dikirim tetap perlu diverifikasi admin dan status pesanan tidak berubah otomatis.
+          </div>
+          {% endif %}
+          <p class='text-muted small'>Format: JPG, PNG, atau PDF. Ukuran maks 2 MB.</p>
+          {% if order.payment_proof %}
+          <div class='alert alert-info mb-3'>
+            Kamu sudah pernah upload bukti bayar. Upload baru akan menggantikan yang lama.
+          </div>
+          {% endif %}
+          <form method='post' enctype='multipart/form-data'>
+            {{ form.hidden_tag() }}
+            <div class='mb-3'>
+              {{ form.bukti.label(class='form-label') }}
+              {{ form.bukti(class='form-control') }}
+              {% for e in form.bukti.errors %}<div class='text-danger small'>{{ e }}</div>{% endfor %}
+            </div>
+            <button type='submit' class='btn btn-primary'>Upload Bukti Bayar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

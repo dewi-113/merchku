@@ -1,12 +1,11 @@
-﻿from app import create_app, db
+from app import db
 from app.auth.models import User
 from app.auth.security import hash_password
+from tests.helpers import create_test_app
 
 
 def test_register_and_login():
-    app = create_app('dev')
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
+    app = create_test_app()
     with app.app_context():
         db.session.query(User).delete()
         db.session.commit()
@@ -30,9 +29,7 @@ def test_register_and_login():
 
 
 def test_login_wrong_password_generic_message():
-    app = create_app('dev')
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
+    app = create_test_app()
     with app.app_context():
         db.session.query(User).delete()
         db.session.commit()
@@ -47,3 +44,39 @@ def test_login_wrong_password_generic_message():
         unknown = c.post('/auth/login', data={'email': 'nobody@merchku.test', 'password': 'wrongpassword'})
         assert b'Email atau password salah' in known.data
         assert b'Email atau password salah' in unknown.data
+
+
+def test_login_normalizes_pasted_email():
+    app = create_test_app()
+    with app.app_context():
+        db.session.query(User).delete()
+        db.session.commit()
+        db.session.add(User(
+            email='known@merchku.test',
+            password_hash=hash_password('Password12345'),
+            role='customer',
+            is_active=True,
+        ))
+        db.session.commit()
+
+    with app.test_client() as c:
+        response = c.post(
+            '/auth/login',
+            data={'email': '  KNOWN@MERCHKU.TEST ', 'password': 'Password12345'},
+        )
+        assert response.status_code == 302
+        assert not response.headers['Location'].endswith('/auth/login')
+
+
+def test_auth_pages_have_password_visibility_controls():
+    app = create_test_app()
+
+    with app.test_client() as c:
+        login = c.get('/auth/login')
+        register = c.get('/auth/register')
+
+    assert login.status_code == 200
+    assert b"data-password-toggle='password'" in login.data
+    assert register.status_code == 200
+    assert b"data-password-toggle='password'" in register.data
+    assert b"data-password-toggle='password2'" in register.data

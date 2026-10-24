@@ -1,0 +1,102 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <h3>Laporan Transaksi</h3>
+    <a href='{{ url_for("admin.pesanan_list") }}' class='btn btn-outline-secondary btn-sm'>← Semua Pesanan</a>
+  </div>
+
+  {# Filter periode #}
+  <form class='row g-2 mb-4' method='get'>
+    <div class='col-md-3'>
+      <label class='form-label'>Dari Tanggal</label>
+      <input type='date' class='form-control' name='date_from' value='{{ date_from }}'>
+    </div>
+    <div class='col-md-3'>
+      <label class='form-label'>Sampai Tanggal</label>
+      <input type='date' class='form-control' name='date_to' value='{{ date_to }}'>
+    </div>
+    <div class='col-md-2 d-flex align-items-end'>
+      <button class='btn btn-primary w-100'>Filter</button>
+    </div>
+    {% if date_from or date_to %}
+    <div class='col-md-2 d-flex align-items-end'>
+      <a href='{{ url_for("admin.laporan") }}' class='btn btn-outline-secondary w-100'>Reset</a>
+    </div>
+    {% endif %}
+  </form>
+
+  {# Ringkasan utama #}
+  <div class='row g-3 mb-4'>
+    <div class='col-md-4'>
+      <div class='card text-center border-primary'>
+        <div class='card-body'>
+          <h6 class='card-subtitle text-muted mb-1'>Total Pesanan</h6>
+          <h2 class='card-title mb-0'>{{ total_pesanan }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-4'>
+      <div class='card text-center border-success'>
+        <div class='card-body'>
+          <h6 class='card-subtitle text-muted mb-1'>Omzet (dibayar + dikirim + selesai)</h6>
+          <h2 class='card-title mb-0 text-success'>Rp {{ '{:,}'.format(omzet).replace(',','.') }}</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Breakdown per status #}
+  <h5>Breakdown per Status</h5>
+  <div class='table-responsive mb-4'>
+    <table class='table table-sm table-bordered'>
+      <thead class='table-light'>
+        <tr><th>Status</th><th>Jumlah Pesanan</th><th>Total Nilai</th></tr>
+      </thead>
+      <tbody>
+        {% for s in ORDER_STATUSES %}
+        {% set info = status_counts.get(s, {'count': 0, 'total': 0}) %}
+        <tr>
+          <td>{{ s.replace('_',' ') }}</td>
+          <td>{{ info.count }}</td>
+          <td>Rp {{ '{:,}'.format(info.total).replace(',','.') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pesanan terbaru #}
+  <h5>Pesanan Terbaru (10)</h5>
+  <div class='table-responsive'>
+    <table class='table table-sm'>
+      <thead class='table-light'>
+        <tr><th>#</th><th>Customer</th><th>Tanggal</th><th>Total</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for order in recent_orders %}
+        {% set badge_map = {
+          'menunggu_pembayaran': 'warning',
+          'menunggu_verifikasi': 'info',
+          'dibayar': 'primary',
+          'ditolak': 'danger',
+          'dikirim': 'success',
+          'selesai': 'success',
+          'dibatalkan': 'secondary'
+        } %}
+        <tr>
+          <td>{{ order.id }}</td>
+          <td>{{ order.user.email if order.user else '-' }}</td>
+          <td>{{ order.created_at.strftime('%d %b %Y %H:%M') }}</td>
+          <td>Rp {{ '{:,}'.format(order.total_price).replace(',','.') }}</td>
+          <td><span class='badge bg-{{ badge_map.get(order.display_status, badge_map.get(order.status, "secondary")) }}'>{{ order.display_status.replace('_',' ') }}</span></td>
+          <td><a href='{{ url_for("admin.pesanan_detail", order_id=order.id) }}' class='btn btn-sm btn-outline-primary'>Detail</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan='6' class='text-center text-muted'>Tidak ada pesanan.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

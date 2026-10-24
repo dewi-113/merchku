@@ -1,0 +1,144 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_card.html' import product_card %}
+{% block title %}Katalog — Merchku{% endblock %}
+{% block body_class %}page-katalog{% endblock %}
+
+{% block content %}
+{% set current_sort = params.get('sort') or 'terbaru' %}
+{% set current_cat = params.get('cat') or '' %}
+{% set cat_labels = {'almet': 'Almamater', 'kaos': 'Kaos', 'hoodie': 'Hoodie', 'jaket': 'Jaket', 'stiker': 'Stiker', 'lanyard': 'Lanyard', 'tote_bag': 'Tote Bag', 'lainnya': 'Lainnya'} %}
+{# Parameter dasar untuk link chip/tab tanpa page, cat, dan sort #}
+{% set base_params = dict(pagination_params) %}
+{% set _ = base_params.pop('cat', None) %}
+{% set _ = base_params.pop('sort', None) %}
+{% set sort_params = dict(pagination_params) %}
+{% set _ = sort_params.pop('sort', None) %}
+{% set has_filter = params.get('q') or current_cat or params.get('minp') or params.get('maxp') %}
+{% set stats = product_stats(pagination.items) %}
+
+<div class='container katalog-page'>
+  <div class='katalog-layout'>
+
+    {# ── Sidebar filter (desktop) ─────────────────────────── #}
+    <aside class='katalog-aside' aria-label='Filter produk'>
+      <div class='aside-block'>
+        <h2 class='aside-title'>Kategori</h2>
+        <nav class='aside-cats'>
+          <a class='{{ "active" if not current_cat }}' href='{{ url_for("katalog.index", sort=current_sort, **base_params) }}'>Semua produk</a>
+          {% for c in categories %}
+          <a class='{{ "active" if current_cat == c }}' href='{{ url_for("katalog.index", cat=c, sort=current_sort, **base_params) }}'>{{ cat_labels.get(c, c) }}</a>
+          {% endfor %}
+        </nav>
+      </div>
+      <div class='aside-block'>
+        <h2 class='aside-title'>Promo</h2>
+        <nav class='aside-cats'>
+          <a class='{{ "active" if current_sort == "diskon" }}' href='{{ url_for("katalog.index", sort="diskon", **base_params) }}'>🏷️ Lagi diskon</a>
+          <a class='{{ "active" if current_sort == "terlaris" }}' href='{{ url_for("katalog.index", sort="terlaris", **base_params) }}'>🔥 Terlaris</a>
+        </nav>
+      </div>
+      <form class='aside-block price-form' method='get'>
+        <h2 class='aside-title'>Batas harga</h2>
+        {% if params.get('q') %}<input type='hidden' name='q' value='{{ params.get("q") }}'>{% endif %}
+        {% if current_cat %}<input type='hidden' name='cat' value='{{ current_cat }}'>{% endif %}
+        <input type='hidden' name='sort' value='{{ current_sort }}'>
+        <div class='price-inputs'>
+          <input class='form-control' type='number' name='minp' min='0' inputmode='numeric' placeholder='Rp MIN' aria-label='Harga minimum' value='{{ params.get("minp","") }}'>
+          <span aria-hidden='true'>–</span>
+          <input class='form-control' type='number' name='maxp' min='0' inputmode='numeric' placeholder='Rp MAKS' aria-label='Harga maksimum' value='{{ params.get("maxp","") }}'>
+        </div>
+        <button class='btn-filter' type='submit'>Terapkan</button>
+      </form>
+      {% if has_filter %}
+      <a class='aside-reset' href='{{ url_for("katalog.index") }}'>Hapus semua filter</a>
+      {% endif %}
+    </aside>
+
+    {# ── Hasil ────────────────────────────────────────────── #}
+    <section class='katalog-main' aria-label='Hasil produk'>
+      {% if params.get('q') %}
+      <p class='search-note'>Hasil pencarian untuk “<strong>{{ params.get('q') }}</strong>”</p>
+      {% endif %}
+
+      {# Tab urutan (menempel di bawah header saat di HP) #}
+      <div class='sort-bar'>
+        <span class='sort-label'>Urutkan</span>
+        <nav class='sort-tabs' aria-label='Urutkan produk'>
+          {% for value, label in [('populer', 'Populer'), ('terbaru', 'Terbaru'), ('terlaris', 'Terlaris')] %}
+          <a class='sort-tab {{ "active" if current_sort == value }}' href='{{ url_for("katalog.index", sort=value, **sort_params) }}'>{{ label }}</a>
+          {% endfor %}
+          {% set next_price = 'termahal' if current_sort == 'termurah' else 'termurah' %}
+          <a class='sort-tab sort-price {{ "active" if current_sort in ("termurah", "termahal") }}' href='{{ url_for("katalog.index", sort=next_price, **sort_params) }}'>
+            Harga <span aria-hidden='true'>{{ '↑' if current_sort == 'termurah' else ('↓' if current_sort == 'termahal' else '↕') }}</span>
+          </a>
+        </nav>
+        <details class='filter-toggle'>
+          <summary class='sort-tab'>
+            <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 5h16l-6 8v5l-4 2v-7z'/></svg> Filter
+          </summary>
+          <form class='filter-sheet' method='get'>
+            {% if params.get('q') %}<input type='hidden' name='q' value='{{ params.get("q") }}'>{% endif %}
+            {% if current_cat %}<input type='hidden' name='cat' value='{{ current_cat }}'>{% endif %}
+            <input type='hidden' name='sort' value='{{ current_sort }}'>
+            <label class='aside-title'>Batas harga (Rp)</label>
+            <div class='price-inputs'>
+              <input class='form-control' type='number' name='minp' min='0' inputmode='numeric' placeholder='Minimum' aria-label='Harga minimum' value='{{ params.get("minp","") }}'>
+              <span aria-hidden='true'>–</span>
+              <input class='form-control' type='number' name='maxp' min='0' inputmode='numeric' placeholder='Maksimum' aria-label='Harga maksimum' value='{{ params.get("maxp","") }}'>
+            </div>
+            <div class='filter-sheet-actions'>
+              <a class='btn btn-light' href='{{ url_for("katalog.index") }}'>Reset</a>
+              <button class='btn btn-primary' type='submit'>Terapkan</button>
+            </div>
+          </form>
+        </details>
+      </div>
+
+      {# Chip kategori (HP) #}
+      <nav class='cat-chips' aria-label='Filter kategori'>
+        <a class='cat-chip cat-chip-promo {{ "active" if current_sort == "diskon" }}' href='{{ url_for("katalog.index", sort="diskon", **base_params) }}'>🏷️ Lagi diskon</a>
+        {% set is_topi = (params.get('q') or '')|lower == 'topi' %}
+        {% set semua_params = dict(base_params) %}
+        {% if is_topi %}{% set _ = semua_params.pop('q', None) %}{% endif %}
+        <a class='cat-chip {{ "active" if not current_cat and not is_topi }}' href='{{ url_for("katalog.index", sort=current_sort, **semua_params) }}'>Semua</a>
+        {% for c in ['kaos', 'jaket', 'almet'] %}
+        <a class='cat-chip {{ "active" if current_cat == c }}' href='{{ url_for("katalog.index", cat=c, sort=current_sort, **base_params) }}'>{{ cat_labels.get(c, c) }}</a>
+        {% endfor %}
+        <a class='cat-chip {{ "active" if is_topi }}' href='{{ url_for("katalog.index", q="topi", sort=current_sort) }}'>Topi</a>
+      </nav>
+
+      <div class='katalog-result-meta'>
+        <span>{{ pagination.total }} produk{% if current_cat %} di {{ cat_labels.get(current_cat, current_cat) }}{% endif %}</span>
+        {% if has_filter %}<a class='mk-see-all' href='{{ url_for("katalog.index") }}'>Reset filter</a>{% endif %}
+      </div>
+
+      {% if pagination.items %}
+      <div class='mk-grid product-grid'>
+        {% for p in pagination.items %}
+        {{ product_card(p, stats, quick_add=current_user.is_authenticated and current_user.role == 'customer') }}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class='empty-state'>
+        <div class='es-icon'>
+          <svg width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='#7ea6e0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>
+        </div>
+        <h4>Produk tidak ditemukan</h4>
+        <p>Coba ubah kata kunci atau filter pencarianmu.</p>
+        <a class='btn btn-outline-primary' href='{{ url_for("katalog.index") }}'>Lihat semua produk</a>
+      </div>
+      {% endif %}
+
+      {% if pagination.pages and pagination.pages > 1 %}
+      <nav class='mt-4 d-flex justify-content-center' aria-label='Halaman'>
+        <ul class='pagination'>
+          {% if pagination.has_prev %}<li class='page-item'><a class='page-link' href='{{ url_for("katalog.index", page=pagination.prev_num, **pagination_params) }}' aria-label='Sebelumnya'>&larr;</a></li>{% endif %}
+          <li class='page-item disabled'><span class='page-link'>{{ pagination.page }} / {{ pagination.pages }}</span></li>
+          {% if pagination.has_next %}<li class='page-item'><a class='page-link' href='{{ url_for("katalog.index", page=pagination.next_num, **pagination_params) }}' aria-label='Berikutnya'>&rarr;</a></li>{% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

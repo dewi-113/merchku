@@ -1,0 +1,73 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Detail Pesanan #{{ order.id }} — Merchku{% endblock %}
+{% block content %}
+<div class='container mt-4'>
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <h3>Detail Pesanan #{{ order.id }}</h3>
+    <a class='btn btn-outline-secondary' href='{{ url_for("seller.pesanan_list") }}'>Kembali</a>
+  </div>
+
+  <div class='card mb-3'>
+    <div class='card-body'>
+      <div class='row'>
+        <div class='col-md-6'>
+          <p class='mb-1'><strong>Status:</strong> <span class='badge bg-secondary'>{{ order.display_status.replace('_',' ') }}</span></p>
+          <p class='mb-1'><strong>Tanggal:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '-' }}</p>
+          <p class='mb-1'><strong>Penerima:</strong> {{ order.recipient_name }}</p>
+          <p class='mb-1'><strong>Alamat ({{ order.address_label or 'rumah' }}):</strong> {{ order.address }}</p>
+          <p class='mb-1'><strong>Kecamatan:</strong> {{ order.district or '-' }}</p>
+          <p class='mb-1'><strong>Kota/Kabupaten:</strong> {{ order.city or '-' }} · {{ order.province or '-' }} {{ order.postal_code or '' }}</p>
+          <p class='mb-0'><strong>Telepon:</strong> {{ order.phone }}</p>
+          <p class='mb-1'><strong>Kurir:</strong> {{ order.courier_label }} (ongkir dikonfirmasi admin)</p>
+          <p class='mb-1'><strong>Metode pembayaran:</strong> {{ order.payment_method_label }}</p>
+          {% if order.delivery_note %}<p class='mb-0'><strong>Catatan kurir:</strong> {{ order.delivery_note }}</p>{% endif %}
+        </div>
+      </div>
+      {% if order.payment_proof %}
+      <a class='btn btn-sm btn-outline-info mt-2' target='_blank' href='{{ url_for("pesanan.serve_bukti", order_id=order.id) }}'>Lihat Bukti Bayar</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <h5>Produk Milik Anda</h5>
+  <div class='table-responsive'>
+    <table class='table align-middle'>
+      <thead class='table-light'>
+        <tr><th>Produk</th><th>Ukuran</th><th>Harga Satuan</th><th>Qty</th><th>Subtotal</th></tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.product_name }}</td>
+          <td>{{ it.size or '-' }}</td>
+          <td>Rp {{ '{:,}'.format(it.unit_price).replace(',','.') }}</td>
+          <td>{{ it.quantity }}</td>
+          <td>Rp {{ '{:,}'.format(it.subtotal).replace(',','.') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan='5' class='text-center'>Tidak ada item milik Anda pada pesanan ini.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan='4' class='text-end fw-bold'>Subtotal Anda:</td>
+          <td class='fw-bold'>Rp {{ '{:,}'.format(subtotal).replace(',','.') }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% set transitions = {'dibayar': ['dikirim'], 'dikirim': ['selesai']} %}
+  {% set allowed = transitions.get(order.status, []) %}
+  {% if allowed %}
+  <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' class='d-flex align-items-center gap-2'>
+    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+    <label class='form-label mb-0'>Ubah status:</label>
+    <select name='new_status' class='form-select' style='width:auto'>
+      {% for st in allowed %}<option value='{{ st }}'>{{ st }}</option>{% endfor %}
+    </select>
+    <button class='btn btn-primary' type='submit'>Simpan</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
