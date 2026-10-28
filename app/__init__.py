@@ -82,6 +82,12 @@ def create_app(config_name=None):
     os.makedirs(app.config['UPLOAD_PRIVATE'], exist_ok=True)
     os.makedirs('instance', exist_ok=True)
     _cek_koneksi_mysql(app)
+    if app.config.get('PROXY_FIX_X_FOR'):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=app.config['PROXY_FIX_X_FOR'], x_proto=1, x_host=1
+        )
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -127,6 +133,7 @@ def create_app(config_name=None):
 
     from app.cli import (
         create_admin,
+        kunci_akun_demo,
         seed_demo,
         seed_promo,
         seed_sosial,
@@ -139,6 +146,7 @@ def create_app(config_name=None):
     app.cli.add_command(seed_promo)
     app.cli.add_command(sesuaikan_produk)
     app.cli.add_command(seed_sosial)
+    app.cli.add_command(kunci_akun_demo)
 
     @app.before_request
     def _https_forwarded():

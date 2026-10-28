@@ -10,7 +10,10 @@ def email_field(message=None):
     agar akun demo tetap bisa dipakai, tetapi tetap ketat di production."""
 
     def _validate(form, field):
-        allow_special = current_app.config.get('ENV', 'dev') != 'prod'
+        allow_special = (
+            current_app.config.get('ENV', 'dev') != 'prod'
+            or current_app.config.get('ALLOW_TEST_EMAILS')
+        )
         try:
             validate_email(
                 field.data,

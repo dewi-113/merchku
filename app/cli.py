@@ -1023,20 +1023,42 @@ def seed_sosial(force, hapus):
     total_reviews = 0
     for product in Product.query.filter_by(is_active=True).order_by(Product.id).all():
         pool = SOCIAL_REVIEWS['pakaian' if product.category in ('kaos', 'hoodie', 'jaket', 'almet') else 'aksesori']
+        # Acak per produk: target ulasan tetap sama di setiap run, jadi aman dijalankan ulang
+        prng = random.Random(2610 + product.id)  # nosec B311 - hanya mengacak data demo
         reviewed = {uid for (uid,) in db.session.query(Review.user_id).filter_by(product_id=product.id)}
-        want = rng.randint(6, 18)
-        candidates = [u for u in rng.sample(accounts, min(60, len(accounts))) if u.id not in reviewed]
+        want = prng.randint(6, 18)
+        candidates = [u for u in prng.sample(accounts, min(60, len(accounts))) if u.id not in reviewed]
         for user in candidates[:max(0, want - len(reviewed))]:
-            rating, comment = rng.choice(pool)
-            created = now - timedelta(days=rng.randint(1, 120), hours=rng.randint(0, 23))
+            rating, comment = prng.choice(pool)
+            created = now - timedelta(days=prng.randint(1, 120), hours=prng.randint(0, 23))
             review = Review(product_id=product.id, user_id=user.id, rating=rating,
                             comment=comment, created_at=created)
-            if rng.random() < 0.3:
-                review.seller_reply = rng.choice(SOCIAL_SELLER_REPLIES)
-                review.replied_at = created + timedelta(hours=rng.randint(1, 30))
+            if prng.random() < 0.3:
+                review.seller_reply = prng.choice(SOCIAL_SELLER_REPLIES)
+                review.replied_at = created + timedelta(hours=prng.randint(1, 30))
             db.session.add(review)
             total_reviews += 1
 
     db.session.commit()
     click.echo(f'\nSeed sosial selesai ({total_reviews} ulasan demo baru).')
     click.echo('Hapus lagi kapan saja: flask seed-sosial --hapus')
+
+
+@click.command('kunci-akun-demo')
+@click.option('--password', envvar='DEMO_PASSWORD', required=True,
+              help='Password baru untuk semua akun demo (atau env DEMO_PASSWORD).')
+@with_appcontext
+def kunci_akun_demo(password):
+    """Ganti password semua akun demo aktif (@demo.test).
+
+    Password bawaan seed tertulis di repo publik; di server yang bisa diakses
+    internet, jalankan ini agar akun admin/penjual demo tidak bisa dimasuki orang lain.
+    """
+    if len(password) < 10:
+        raise click.BadParameter('password minimal 10 karakter')
+    users = User.query.filter(User.email.like('%@demo.test'), User.is_active.is_(True)).all()
+    new_hash = hash_password(password)
+    for user in users:
+        user.password_hash = new_hash
+    db.session.commit()
+    click.echo(f'{len(users)} akun demo dikunci dengan password dari DEMO_PASSWORD.')

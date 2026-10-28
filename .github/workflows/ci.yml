@@ -108,3 +108,77 @@ jobs:
           UPLOAD_PUBLIC: "/tmp/uploads/public"
           UPLOAD_PRIVATE: "/tmp/uploads/private"
         run: pytest -q
+
+  deploy-postgres:
+    name: Deploy check (PostgreSQL / Render)
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: merchku
+          POSTGRES_PASSWORD: merchku
+          POSTGRES_DB: merchku
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U merchku"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    # Sama dengan environment di render.yaml
+    env:
+      DATABASE_URL: "postgres://merchku:merchku@127.0.0.1:5432/merchku"
+      ENV: prod
+      FLASK_ENV: production
+      SECRET_KEY: "ci-secret-not-for-prod"
+      SECURE_COOKIES: "1"
+      PROXY_FIX_X_FOR: "1"
+      SEED_DEMO: "1"
+      ALLOW_TEST_EMAILS: "1"
+      DEMO_PASSWORD: "ci-demo-password-123"
+      LOG_DIR: "/tmp/logs"
+      UPLOAD_PUBLIC: "/tmp/uploads/public"
+      UPLOAD_PRIVATE: "/tmp/uploads/private"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Migrasi + seed dua kali (harus idempoten)
+        run: |
+          sed '/^exec gunicorn/,$d' scripts/render-start.sh > /tmp/prestart.sh
+          count='from app import create_app, db
+          app = create_app()
+          with app.app_context():
+              for t in ("users", "products", "orders", "reviews", "shop_follows"):
+                  print(t, db.session.execute(db.text(f"SELECT COUNT(*) FROM {t}")).scalar())'
+          bash /tmp/prestart.sh
+          python -c "$count" | tee /tmp/count1
+          bash /tmp/prestart.sh
+          python -c "$count" | tee /tmp/count2
+          diff /tmp/count1 /tmp/count2
+
+      - name: Smoke test
+        run: python scripts/smoke_deploy.py
+
+      - name: Gunicorn menyala dan /healthz sehat
+        env:
+          PORT: "8000"
+          SEED_DEMO: "0"
+        run: |
+          bash scripts/render-start.sh > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fs http://127.0.0.1:8000/healthz && exit 0
+            sleep 2
+          done
+          cat /tmp/server.log
+          exit 1

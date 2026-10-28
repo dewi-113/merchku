@@ -94,3 +94,16 @@ def test_form_auth_punya_validasi_client_side():
         assert b'form-validation.js' in page
     assert b'minlength="10"' in register
     assert b'data-match="password"' in register
+
+
+def test_email_test_ditolak_di_prod_kecuali_allow_test_emails():
+    for allow, expected_ok in ((False, False), (True, True)):
+        app = create_test_app(ENV='prod', ALLOW_TEST_EMAILS=allow)
+        with app.app_context():
+            db.session.query(User).delete()
+            db.session.add(User(email='admin@demo.test', password_hash=hash_password('AdminDemo1234'),
+                                role='admin', is_active=True))
+            db.session.commit()
+        with app.test_client() as c:
+            c.post('/auth/login', data={'email': 'admin@demo.test', 'password': 'AdminDemo1234'})
+            assert (c.get('/admin/').status_code == 200) is expected_ok

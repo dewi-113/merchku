@@ -22,6 +22,14 @@ def _database_uri() -> str | URL:
     if explicit_uri:
         return explicit_uri
 
+    # Render/Heroku memberi DATABASE_URL berformat postgres://...; arahkan ke driver psycopg 3
+    database_url = os.getenv('DATABASE_URL', '').strip()
+    if database_url:
+        for prefix in ('postgres://', 'postgresql://'):
+            if database_url.startswith(prefix):
+                return 'postgresql+psycopg://' + database_url[len(prefix):]
+        return database_url
+
     if os.getenv('DB_ENGINE', 'sqlite').strip().lower() in {'mysql', 'mariadb'}:
         return URL.create(
             'mysql+pymysql',
@@ -45,11 +53,17 @@ class Config:
         raise RuntimeError('SECRET_KEY wajib di production (set lewat environment variable)')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = _database_uri()
+    # Cek koneksi sebelum dipakai: database cloud memutus koneksi yang lama menganggur
+    SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True}
     LOG_DIR = _abs(os.getenv('LOG_DIR', 'logs'))
     LOG_MAX_BYTES = int(os.getenv('LOG_MAX_BYTES', '10485760'))
     LOG_BACKUP_COUNT = int(os.getenv('LOG_BACKUP_COUNT', '5'))
     TRUSTED_PROXIES = os.getenv('TRUSTED_PROXIES', '127.0.0.1/32,::1/128').split(',')
     SECURE_COOKIES = os.getenv('SECURE_COOKIES', '0') == '1'
+    # Jumlah reverse proxy di depan app (Render/nginx = 1) agar IP asli pengunjung terbaca
+    PROXY_FIX_X_FOR = int(os.getenv('PROXY_FIX_X_FOR', '0'))
+    # Izinkan email domain .test (akun demo) walau ENV=prod — hanya untuk server demo
+    ALLOW_TEST_EMAILS = os.getenv('ALLOW_TEST_EMAILS', '0') == '1'
     METRICS_TOKEN = os.getenv('METRICS_TOKEN', '')
     UPLOAD_PUBLIC = _abs(os.getenv('UPLOAD_PUBLIC', 'uploads/public'))
     PRODUCT_PHOTOS_DIR = _abs(os.getenv('PRODUCT_PHOTOS_DIR', 'product_photos'))
