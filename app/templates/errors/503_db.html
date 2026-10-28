@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang='id'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <title>Database belum menyala — Merchku</title>
+  {# Sengaja tidak extends base.html: layout utama butuh database untuk navbar/keranjang #}
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box;
+           background: #f6f4ef; color: #14161c; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    .box { max-width: 520px; padding: 32px; border: 1px solid #e6e2d8; border-radius: 22px; background: #fff; }
+    .code { display: inline-block; margin-bottom: 12px; padding: 3px 10px; border-radius: 99px; background: #14161c; color: #fff; font-size: .75rem; font-weight: 700; }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    p { margin: 0 0 14px; color: #6b6f7a; line-height: 1.55; }
+    pre { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: #14161c; color: #fff; font-size: .85rem; overflow-x: auto; }
+    a { color: #2451d6; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main class='box'>
+    <span class='code'>503</span>
+    <h1>Database MySQL belum menyala</h1>
+    <p>Merchku tidak bisa terhubung ke database. Biasanya karena service MySQL belum berjalan setelah komputer dinyalakan.</p>
+    {% if config.DEBUG %}
+    <p>Jalankan di PowerShell (sebagai Administrator):</p>
+    <pre>Start-Service MySQL84</pre>
+    {% endif %}
+    <p>Setelah itu <a href=''>muat ulang halaman ini</a>.</p>
+  </main>
+</body>
+</html>

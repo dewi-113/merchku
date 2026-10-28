@@ -1,8 +1,12 @@
 from flask import render_template, request
+from sqlalchemy.exc import InterfaceError, OperationalError
 from werkzeug.exceptions import HTTPException
 
 from app.core.utils import get_client_ip
 from app.security_logger import sec_log
+
+# Kode error PyMySQL saat server tidak bisa dihubungi / login ditolak
+MYSQL_CONNECTION_ERRORS = {1045, 1049, 2002, 2003, 2006, 2013}
 
 
 def register_error_handlers(app):
@@ -25,6 +29,18 @@ def register_error_handlers(app):
     def e500(e):
         sec_log(event='server_error', ip=get_client_ip(app.config.get('TRUSTED_PROXIES')), path=request.path, method=request.method)
         return render_template('errors/500.html'), 500
+    @app.errorhandler(OperationalError)
+    @app.errorhandler(InterfaceError)
+    def e_database(e):
+        # Koneksi ke MySQL gagal (service mati / kredensial salah): tampilkan
+        # petunjuk yang jelas, bukan halaman 500 polos. Error database lain
+        # (mis. tabel belum dimigrasi) tetap lewat penanganan umum.
+        mysql_code = (getattr(e.orig, 'args', None) or (None,))[0]
+        if mysql_code not in MYSQL_CONNECTION_ERRORS:
+            return e_any(e)
+        app.logger.error('Database tidak bisa dihubungi: %s', e.__class__.__name__)
+        sec_log(event='server_error', ip=get_client_ip(app.config.get('TRUSTED_PROXIES')), path=request.path, method=request.method, reason='database_unavailable')
+        return render_template('errors/503_db.html'), 503
     @app.errorhandler(Exception)
     def e_any(e):
         if isinstance(e, HTTPException):

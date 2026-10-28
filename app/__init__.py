@@ -35,6 +35,35 @@ def load_user(user_id):
         return None
 
 
+def _cek_koneksi_mysql(app):
+    """Di dev: beri peringatan jelas di terminal kalau MySQL belum menyala.
+
+    Aplikasi tetap memakai MySQL (tidak pindah database); halaman yang dibuka
+    selama MySQL mati menampilkan petunjuk 503 dari app/core/errors.py.
+    """
+    uri = str(app.config.get('SQLALCHEMY_DATABASE_URI', ''))
+    if not uri.startswith('mysql') or app.config.get('TESTING') or not app.config.get('DEBUG'):
+        return
+
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(
+        app.config['SQLALCHEMY_DATABASE_URI'], connect_args={'connect_timeout': 3}
+    )
+    try:
+        with engine.connect() as conn:
+            conn.execute(text('SELECT 1'))
+    except Exception as exc:
+        print(
+            '\n[MERCHKU] PERINGATAN: MySQL tidak bisa dihubungi '
+            f'({exc.__class__.__name__}).\n'
+            '[MERCHKU] Nyalakan dulu di PowerShell (Administrator): Start-Service MySQL84\n',
+            flush=True,
+        )
+    finally:
+        engine.dispose()
+
+
 def create_app(config_name=None):
     app = Flask(__name__, instance_relative_config=True)
     cfg = config_map.get(
@@ -52,6 +81,7 @@ def create_app(config_name=None):
     os.makedirs(app.config['PRODUCT_PHOTOS_DIR'], exist_ok=True)
     os.makedirs(app.config['UPLOAD_PRIVATE'], exist_ok=True)
     os.makedirs('instance', exist_ok=True)
+    _cek_koneksi_mysql(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
