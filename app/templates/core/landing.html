@@ -32,7 +32,6 @@
             <span class='promo-btn promo-btn-hot'>{{ 'Serbu diskonnya' if max_discount else 'Lihat terlaris' }} →</span>
           </div>
           <div class='promo-stage' aria-hidden='true'>
-            <span class='promo-bubble'>{% if max_discount %}Diskon s.d. {{ max_discount }}%! 🎉{% else %}Yuk belanja! 🎉{% endif %}</span>
             {% include 'partials/promo_mascot.html' %}
             {% for p in discounted[:2] %}
             <span class='promo-float promo-float-{{ loop.index }}'>{{ product_image(p) }}<em>-{{ p.discount_percent }}%</em></span>

@@ -902,14 +902,6 @@ img[src*="/media/produk"] { object-position: 50% 0; }
 .mascot-spark { transform-box: fill-box; transform-origin: center; animation: mascotSpark 2s ease-in-out infinite; }
 .mascot-spark.s2 { animation-delay: .7s; }
 .mascot-spark.s3 { animation-delay: 1.3s; }
-.promo-bubble {
-  position: absolute; z-index: 2; top: 8%; right: 0;
-  padding: 8px 12px; border-radius: 14px 14px 14px 4px;
-  background: #fff; color: var(--mk-price);
-  font-size: .86rem; font-weight: 800; white-space: nowrap;
-  box-shadow: 0 8px 20px rgba(5, 15, 60, .25);
-  animation: bubblePop 3s ease-in-out infinite;
-}
 .promo-float {
   position: absolute; z-index: 1;
   width: 74px; aspect-ratio: 1 / 1; overflow: hidden;
@@ -930,12 +922,10 @@ img[src*="/media/produk"] { object-position: 50% 0; }
 @keyframes mascotShout { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(4deg); } }
 @keyframes mascotSound { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes mascotSpark { 0%, 100% { transform: scale(.6); opacity: .4; } 50% { transform: scale(1.15); opacity: 1; } }
-@keyframes bubblePop { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.06) rotate(1deg); } }
 @keyframes floatA { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
 @keyframes floatB { 0%, 100% { translate: 0 0; } 50% { translate: 0 6px; } }
 .promo-ad .promo-copy { flex: 1 1 0; min-width: 0; }
 .promo-ad .promo-desc { max-width: 340px; }
-.promo-bubble { right: 6%; }
 
 .promo-app {
   background:
@@ -984,7 +974,6 @@ img[src*="/media/produk"] { object-position: 50% 0; }
   .promo-dots button.active { width: 14px; }
   .promo-stage { width: 44%; }
   .mascot { right: 10%; height: 104%; }
-  .promo-bubble { top: 4%; right: -4px; padding: 5px 8px; font-size: .62rem; border-radius: 10px 10px 10px 3px; }
   .promo-float { width: 44px; border-width: 2px; border-radius: 8px; }
   .promo-float em { font-size: .52rem; }
   .promo-float-2 { display: none; }
@@ -1004,6 +993,6 @@ img[src*="/media/produk"] { object-position: 50% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .mascot, .mascot-arm-right, .mascot-arm-left, .mascot-wave, .mascot-spark,
-  .promo-bubble, .promo-float, .promo-phone { animation: none !important; }
+  .promo-float, .promo-phone { animation: none !important; }
   .mascot-wave { opacity: 1; }
 }
