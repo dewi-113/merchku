@@ -17,11 +17,10 @@
 
 <div class='container home'>
 
-  {# ── Banner slider + banner samping (desktop) ───────────── #}
-  <section class='home-top'>
+  {# ── Banner promo: maskot Merchy + pasang di HP ─────────── #}
+  <section class='promo-banner' aria-label='Promo Merchku'>
     <div class='promo' data-carousel>
       <div class='promo-track' data-carousel-track>
-        {# Iklan promosi Merchku dengan maskot #}
         <a class='promo-slide promo-ad' href='{{ url_for("katalog.index", sort="diskon" if max_discount else "terlaris") }}'>
           <span class='promo-confetti' aria-hidden='true'></span>
           <div class='promo-copy'>
@@ -40,23 +39,6 @@
             {% endfor %}
           </div>
         </a>
-        <article class='promo-slide promo-main'>
-          <video class='promo-video' autoplay loop muted playsinline preload='metadata' aria-hidden='true'>
-            <source src='{{ url_for("core.video") }}' type='video/mp4'>
-          </video>
-          <div class='promo-copy'>
-            <span class='promo-kicker'>
-              {% if current_user.is_authenticated and current_user.role == 'customer' %}
-              Welcome {{ current_user.recipient_name or current_user.email.split('@')[0] }}
-              {% else %}
-              Merchandise kampus dan komunitas
-              {% endif %}
-            </span>
-            <h1 class='promo-title'>Merchandise kampus <span>yang kamu cari</span></h1>
-            <p class='promo-desc'>Kaos, hoodie, jaket &amp; aksesori dari berbagai toko kampus.</p>
-            <a class='promo-btn' href='{{ url_for("katalog.index") }}'>Belanja sekarang</a>
-          </div>
-        </article>
         {# Promosi Merchku di HP (web app yang bisa dipasang ke layar utama) #}
         <article class='promo-slide promo-app'>
           <div class='promo-copy'>
@@ -83,113 +65,92 @@
       </div>
       <div class='promo-dots' data-carousel-dots></div>
     </div>
-    <div class='home-side'>
-      <a class='side-banner side-a' href='{{ url_for("katalog.index", sort="populer") }}'>
-        <span class='side-kicker'>Paling dicari</span>
-        <strong>Produk populer</strong>
-        <span class='side-link'>Lihat ›</span>
+  </section>
+
+  {# ── Kategori ─────────────────────────────────────────── #}
+  <section class='section' aria-labelledby='home-cat-title'>
+    <div class='section-head'>
+      <h2 class='section-title' id='home-cat-title'>Belanja per kategori</h2>
+    </div>
+    <div class='cat-cards'>
+      {% for label, params, photo in home_categories %}
+      <a class='cat-card{{ " cat-card-all" if not photo }}' href='{{ url_for("katalog.index", **params) }}'>
+        {% if photo %}
+        <img src='{{ url_for("core.kategori_foto", key=photo) }}' alt='' loading='lazy'>
+        {% else %}
+        <svg viewBox='0 0 24 24' aria-hidden='true'><rect x='3' y='3' width='7' height='7' rx='2'/><rect x='14' y='3' width='7' height='7' rx='2'/><rect x='3' y='14' width='7' height='7' rx='2'/><rect x='14' y='14' width='7' height='7' rx='2'/></svg>
+        {% endif %}
+        <span class='cat-card-label'>{{ label }}</span>
       </a>
-      <a class='side-banner side-b' href='{{ url_for("katalog.index", sort="terbaru") }}'>
-        <span class='side-kicker'>Baru masuk</span>
-        <strong>Produk terbaru</strong>
-        <span class='side-link'>Lihat ›</span>
-      </a>
+      {% endfor %}
     </div>
   </section>
 
   {# ── Lagi diskon ──────────────────────────────────────── #}
   {% if discounted %}
-  {% set disc_stats = product_stats(discounted) %}
-  {% set deal = namespace(max_sold=1) %}{% for p in discounted %}{% set deal.max_sold = [deal.max_sold, disc_stats[p.id].sold]|max %}{% endfor %}
-  <section class='mk-block deal-block' aria-labelledby='home-deal-title'>
-    <div class='mk-block-head'>
-      <h2 class='mk-block-title deal-title' id='home-deal-title'><span class='deal-bolt' aria-hidden='true'>⚡</span> Lagi Diskon <small>s.d. {{ max_discount }}%</small></h2>
-      <a class='mk-see-all' href='{{ url_for("katalog.index", sort="diskon") }}'>Lihat semua ›</a>
+  <section class='section' aria-labelledby='home-deal-title'>
+    <div class='section-head'>
+      <h2 class='section-title' id='home-deal-title'>Lagi Diskon <span class='section-note'>hemat hingga {{ max_discount }}%</span></h2>
+      <a class='section-link' href='{{ url_for("katalog.index", sort="diskon") }}'>Lihat semua</a>
     </div>
-    <div class='deal-row'>
-      {% for p in discounted %}
-      {% set ds = disc_stats.get(p.id) %}
-      <a class='deal-card' href='{{ url_for("katalog.detail", pid=p.id) }}'>
-        <span class='deal-img'>{{ product_image(p) }}<span class='deal-tag'><strong>{{ p.discount_percent }}%</strong>OFF</span></span>
-        <span class='deal-price'><small>Rp</small>{{ '{:,}'.format(p.price).replace(',', '.') }}</span>
-        <del class='deal-old'>Rp{{ '{:,}'.format(p.original_price).replace(',', '.') }}</del>
-        <span class='deal-bar'><span style='width:{{ [22, (ds.sold * 100 / deal.max_sold)|round|int]|max if ds.sold else 12 }}%'></span><em>{{ ds.sold_label ~ ' terjual' if ds.sold else 'Baru diskon' }}</em></span>
-      </a>
-      {% endfor %}
+    <div class='mk-grid mk-grid-row'>
+      {% for p in discounted[:5] %}{{ product_card(p, product_stats(discounted)) }}{% endfor %}
     </div>
   </section>
   {% endif %}
 
-  {# ── Info belanja ─────────────────────────────────────── #}
-  <section class='trust-strip' aria-label='Cara belanja'>
-    <div class='trust-item'><span class='trust-icon'>01</span><span><strong>Pilih merchandise</strong><small>Foto, ukuran, stok &amp; warna</small></span></div>
-    <div class='trust-item'><span class='trust-icon'>02</span><span><strong>Checkout pesanan</strong><small>Pilih kurir &amp; pembayaran</small></span></div>
-    <div class='trust-item'><span class='trust-icon'>03</span><span><strong>Pantau status</strong><small>Lacak di riwayat pesanan</small></span></div>
-  </section>
-
-  {# ── Kategori ─────────────────────────────────────────── #}
-  <section class='mk-block' aria-labelledby='home-cat-title'>
-    <div class='mk-block-head'>
-      <h2 class='mk-block-title' id='home-cat-title'>Kategori</h2>
-    </div>
-    <div class='cat-grid cat-grid-compact'>
-      {% for label, params, photo in home_categories %}
-      <a class='cat-tile' href='{{ url_for("katalog.index", **params) }}'>
-        <span class='cat-thumb{{ " cat-all" if not photo }}'>
-          {% if photo %}
-          <img src='{{ url_for("core.kategori_foto", key=photo) }}' alt='' loading='lazy'>
-          {% else %}
-          <svg viewBox='0 0 24 24' aria-hidden='true'><rect x='3' y='3' width='7' height='7' rx='2'/><rect x='14' y='3' width='7' height='7' rx='2'/><rect x='3' y='14' width='7' height='7' rx='2'/><rect x='14' y='14' width='7' height='7' rx='2'/></svg>
-          {% endif %}
-        </span>
-        <span class='cat-label'>{{ label }}</span>
-      </a>
-      {% endfor %}
-    </div>
-  </section>
-
-  {# ── Terlaris ─────────────────────────────────────────── #}
+  {# ── Paling banyak dipesan ─────────────────────────────── #}
   {% if bestsellers %}
-  <section class='mk-block hot-block' aria-labelledby='home-hot-title'>
-    <div class='mk-block-head'>
-      <h2 class='mk-block-title hot-title' id='home-hot-title'>🔥 Terlaris</h2>
-      <a class='mk-see-all' href='{{ url_for("katalog.index", sort="terlaris") }}'>Lihat semua ›</a>
+  <section class='section' aria-labelledby='home-hot-title'>
+    <div class='section-head'>
+      <h2 class='section-title' id='home-hot-title'>Paling banyak dipesan</h2>
+      <a class='section-link' href='{{ url_for("katalog.index", sort="terlaris") }}'>Lihat semua</a>
     </div>
-    {% set max_sold = [stats.get(bestsellers[0].id).sold, 1]|max %}
-    <div class='hot-row'>
-      {% for p in bestsellers %}
+    <ol class='rank-list'>
+      {% for p in bestsellers[:6] %}
       {% set s = stats.get(p.id) %}
-      <a class='hot-card' href='{{ url_for("katalog.detail", pid=p.id) }}'>
-        <span class='hot-img'>{{ product_image(p) }}<span class='hot-rank'>{{ loop.index }}</span></span>
-        <span class='hot-price'><small>Rp</small>{{ '{:,}'.format(p.price).replace(',', '.') }}</span>
-        <span class='hot-bar'><span style='width:{{ [18, (s.sold * 100 / max_sold)|round|int]|max }}%'></span><em>{{ s.sold_label }} terjual</em></span>
-      </a>
+      <li>
+        <a class='rank-item' href='{{ url_for("katalog.detail", pid=p.id) }}'>
+          <span class='rank-img'>{{ product_image(p) }}<span class='rank-no'>{{ loop.index }}</span></span>
+          <span class='rank-text'>
+            <span class='rank-name'>{{ p.name }}</span>
+            <span class='rank-price'>Rp{{ '{:,}'.format(p.price).replace(',', '.') }}</span>
+            {% if s and s.sold %}<span class='rank-meta'>{{ s.sold_label }} terjual</span>{% endif %}
+          </span>
+        </a>
+      </li>
       {% endfor %}
-    </div>
+    </ol>
   </section>
   {% endif %}
 
   {# ── Toko ─────────────────────────────────────────────── #}
   {% if shops %}
-  <section class='mk-block' aria-labelledby='home-shop-title'>
-    <div class='mk-block-head'>
-      <h2 class='mk-block-title' id='home-shop-title'>Toko di Merchku</h2>
+  <section class='section' aria-labelledby='home-shop-title'>
+    <div class='section-head'>
+      <h2 class='section-title' id='home-shop-title'>Toko di Merchku</h2>
     </div>
     {% set shop_followers = follower_counts(shops|map(attribute='seller.id')|list) %}
-    <div class='shop-row'>
+    <div class='shop-cards'>
       {% for shop in shops %}
       {% set seller = shop.seller %}
-      <a class='shop-tile' href='{{ url_for("katalog.toko_public", seller_id=seller.id) }}'>
-        {% if seller.avatar %}
-        <img class='shop-tile-avatar' src='{{ url_for("core.avatar_media", filename=seller.avatar) }}' alt=''>
-        {% else %}
-        <span class='shop-tile-avatar' aria-hidden='true'>{{ (seller.shop_name or seller.email)[0]|upper }}</span>
-        {% endif %}
-        <span class='shop-tile-text'>
-          <span class='shop-tile-name'>{{ seller.shop_name or seller.email.split('@')[0] }}</span>
-          <span class='shop-tile-meta'>{{ shop_followers[seller.id]|ringkas }} pengikut · {{ shop.product_count }} produk</span>
+      <a class='shop-card' href='{{ url_for("katalog.toko_public", seller_id=seller.id) }}'>
+        <span class='shop-card-top'>
+          {% if seller.avatar %}
+          <img class='shop-card-avatar' src='{{ url_for("core.avatar_media", filename=seller.avatar) }}' alt=''>
+          {% else %}
+          <span class='shop-card-avatar' aria-hidden='true'>{{ (seller.shop_name or seller.email)[0]|upper }}</span>
+          {% endif %}
+          <span class='shop-card-text'>
+            <span class='shop-card-name'>{{ seller.shop_name or seller.email.split('@')[0] }}</span>
+            <span class='shop-card-meta'>{{ shop_followers[seller.id]|ringkas }} pengikut · {{ shop.product_count }} produk</span>
+          </span>
         </span>
-        <span class='shop-tile-cta'>Kunjungi</span>
+        {% if shop.products %}
+        <span class='shop-card-thumbs' aria-hidden='true'>
+          {% for p in shop.products %}<span>{{ product_image(p) }}</span>{% endfor %}
+        </span>
+        {% endif %}
       </a>
       {% endfor %}
     </div>
@@ -197,16 +158,17 @@
   {% endif %}
 
   {# ── Rekomendasi ──────────────────────────────────────── #}
-  <section class='products-section' aria-labelledby='home-rec-title'>
-    <div class='rec-head'>
-      <h2 id='home-rec-title'>Rekomendasi</h2>
+  <section class='section' aria-labelledby='home-rec-title'>
+    <div class='section-head'>
+      <h2 class='section-title' id='home-rec-title'>Pilihan untukmu</h2>
+      <a class='section-link' href='{{ url_for("katalog.index") }}'>Katalog lengkap</a>
     </div>
     {% if recommended %}
-    <div class='mk-grid mk-grid-dense'>
-      {% for p in recommended %}{{ product_card(p, stats) }}{% endfor %}
+    <div class='mk-grid'>
+      {% for p in recommended[:20] %}{{ product_card(p, stats) }}{% endfor %}
     </div>
     <div class='rec-more'>
-      <a class='rec-more-btn' href='{{ url_for("katalog.index") }}'>Lihat lainnya</a>
+      <a class='btn-line' href='{{ url_for("katalog.index") }}'>Lihat produk lainnya</a>
     </div>
     {% else %}
     <div class='home-empty'>Belum ada produk aktif untuk ditampilkan. Coba lihat katalog lagi nanti.</div>
@@ -217,9 +179,9 @@
   <section class='cta-card'>
     <div>
       <h2 class='cta-title'>Siap pesan merch kamu?</h2>
-      <p class='cta-desc'>Daftar gratis dan mulai belanja merchandise kampus &amp; komunitas favoritmu.</p>
+      <p class='cta-desc'>Daftar gratis untuk menyimpan keranjang, chat dengan penjual, dan melacak pesanan.</p>
     </div>
-    <a href='{{ url_for("auth.register") }}' class='btn-cta'>Daftar Sekarang Gratis</a>
+    <a href='{{ url_for("auth.register") }}' class='btn-cta'>Buat akun</a>
   </section>
   {% endif %}
 </div>

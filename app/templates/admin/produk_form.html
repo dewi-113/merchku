@@ -2,7 +2,7 @@
 {% block content %}
 <div class='container mt-4' style='max-width:720px'>
   <h3>{{ 'Edit' if product else 'Produk Baru' }}</h3>
-  <form method='post' enctype='multipart/form-data'>
+  <form method='post' enctype='multipart/form-data' novalidate data-validate>
 {{ form.csrf_token }}
     {% if form.errors %}
     <div class='alert alert-danger py-2'>
@@ -20,14 +20,14 @@
     </div>
     <div class='row'>
       <div class='col-md-6 mb-3'>{{ form.category.label(class='form-label') }}{{ form.category(class='form-select') }}</div>
-      <div class='col-md-6 mb-3'>{{ form.price.label(class='form-label') }}{{ form.price(class='form-control', min=100) }}</div>
-      <div class='col-md-6 mb-3'>{{ form.original_price.label(class='form-label') }}{{ form.original_price(class='form-control', min=100, placeholder='Kosongkan jika tidak diskon') }}<div class='form-text'>Isi lebih tinggi dari harga jual untuk menampilkan harga coret &amp; label diskon.</div></div>
+      <div class='col-md-6 mb-3'>{{ form.price.label(class='form-label') }}{{ form.price(class='form-control', min=100, data_label='Harga') }}</div>
+      <div class='col-md-6 mb-3'>{{ form.original_price.label(class='form-label') }}{{ form.original_price(class='form-control', min=100, data_greater_than='price', data_label='Harga sebelum diskon', placeholder='Kosongkan jika tidak diskon') }}<div class='form-text'>Isi lebih tinggi dari harga jual untuk menampilkan harga coret &amp; label diskon.</div></div>
       <div class='col-md-6 mb-3'>{{ form.weight_gram.label(class='form-label') }}{{ form.weight_gram(class='form-control', min=1) }}</div>
     </div>
     <div class='form-check mb-2'>{{ form.use_sizes(class='form-check-input') }}{{ form.use_sizes.label(class='form-check-label') }}</div>
     <div class='form-check mb-3'>{{ form.is_active(class='form-check-input') }}{{ form.is_active.label(class='form-check-label') }}</div>
     <div class='form-check mb-3'>{{ form.is_fragile(class='form-check-input') }}{{ form.is_fragile.label(class='form-check-label') }}</div>
-    <div id='stock-tunggal' class='mb-3'>{{ form.stock.label(class='form-label') }}{{ form.stock(class='form-control', min=0) }}</div>
+    <div id='stock-tunggal' class='mb-3'>{{ form.stock.label(class='form-label') }}{{ form.stock(class='form-control', min=0, data_required_unless='use_sizes', data_label='Stok') }}</div>
     <div id='stock-ukuran' class='row'>
       {% for s in ['S','M','L','XL','XXL'] %}
       {% set field = form|attr('stock_' + s) %}
@@ -36,7 +36,7 @@
     </div>
     <div class='mb-3'>
       {{ form.image.label(class='form-label') }}
-      {{ form.image(class='form-control', accept='.jpg,.jpeg,.png,image/jpeg,image/png') }}
+      {{ form.image(class='form-control', accept='.jpg,.jpeg,.png,image/jpeg,image/png', data_ext='jpg,jpeg,png', data_max_bytes=1048576, data_label='Gambar') }}
 {% if product and product.image %}<img class='mt-2 d-block' style='max-height:120px' src='{{ url_for("core.produk_media", filename=product.image) }}' alt=''> {% endif %}
 
     </div>

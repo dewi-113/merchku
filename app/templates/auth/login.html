@@ -503,7 +503,7 @@
         <p class='login-subtitle'>Masuk ke akun Merchku-mu</p>
       </div>
 
-      <form method='post' novalidate>
+      <form method='post' novalidate data-validate>
         {{ form.csrf_token }}
         {% if next_url %}<input type='hidden' name='next' value='{{ next_url }}'>{% endif %}
 
@@ -519,7 +519,8 @@
               autocomplete='email',
               inputmode='email',
               autocapitalize='none',
-              spellcheck='false'
+              spellcheck='false',
+              data_validate_email=True
             ) }}
             <div class='input-glow'></div>
           </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content'>
-  <meta name='theme-color' content='#2563eb'>
+  <meta name='theme-color' content='#f6f4ef'>
   <meta name='csrf-token' content='{{ csrf_token() }}'>
   <title>{% block title %}Merchku{% endblock %}</title>
   <link rel='icon' type='image/png' href='{{ url_for("core.logo") }}'>
@@ -11,6 +11,7 @@
   <link rel='apple-touch-icon' href='{{ url_for("static", filename="icons/merchku-192.png") }}'>
   <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' rel='stylesheet'>
   <link href='https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.18/index.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/@fontsource-variable/space-grotesk@5.0.18/index.css' rel='stylesheet'>
   <style>
     /* ── CSS Variables ───────────────────────────────── */
     :root {
@@ -645,7 +646,7 @@
     .nav-links .nav-link-item:hover, .nav-links .nav-link-item.active {
       color: #1d4ed8; background: #eff6ff; text-shadow: none; transform: none;
     }
-    .nav-badge { background: #2563eb; box-shadow: none; animation: none; }
+    .nav-badge { background: #2451d6; box-shadow: none; animation: none; }
     .nav-dropdown-menu, .mobile-menu {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
       box-shadow: 0 12px 28px rgba(16,24,40,.12); backdrop-filter: none;
@@ -690,7 +691,8 @@
   </style>
   {% block extra_head %}{% endblock %}
   {# Lapisan responsif bersama (desktop + tampilan aplikasi di HP), dimuat terakhir #}
-  <link href='{{ url_for("static", filename="css/app.css") }}?v=10' rel='stylesheet'>
+  <link href='{{ url_for("static", filename="css/app.css") }}?v=12' rel='stylesheet'>
+  <link href='{{ url_for("static", filename="css/theme.css") }}?v=4' rel='stylesheet'>
 </head>
 <body class='marketplace-theme {% block body_class %}{% endblock %}'>
 
@@ -913,6 +915,7 @@
 <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'></script>
 <script src='{{ url_for("static", filename="js/app.js") }}?v=8' defer></script>
 <script src='{{ url_for("static", filename="js/cs-chat.js") }}' defer></script>
+<script src='{{ url_for("static", filename="js/form-validation.js") }}' defer></script>
 {% block extra_scripts %}{% endblock %}
 </body>
 </html>

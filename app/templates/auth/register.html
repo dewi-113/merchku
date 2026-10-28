@@ -447,7 +447,7 @@
         <p class='login-subtitle'>Pilih jenis akun kamu</p>
       </div>
 
-      <form method='post' novalidate>
+      <form method='post' novalidate data-validate>
         {{ form.csrf_token }}
 
         {# ── Pilihan Role ── #}
@@ -481,7 +481,7 @@
           <label class='form-label-custom' for='email'>Email</label>
           <div class='input-wrapper'>
             <span class='input-icon'>@</span>
-            {{ form.email(class='form-input', id='email', placeholder='kamu@email.com', autocomplete='email', inputmode='email', autocapitalize='none', spellcheck='false') }}
+            {{ form.email(class='form-input', id='email', placeholder='kamu@email.com', autocomplete='email', inputmode='email', autocapitalize='none', spellcheck='false', data_validate_email=True) }}
           </div>
           {% if form.email.errors %}
             <p class='field-error'>{{ form.email.errors[0] }}</p>
@@ -508,7 +508,7 @@
           <label class='form-label-custom' for='password2'>Konfirmasi Password</label>
           <div class='input-wrapper'>
             <span class='input-icon'>#</span>
-            {{ form.password2(class='form-input', id='password2', placeholder='Ulangi password', autocomplete='new-password') }}
+            {{ form.password2(class='form-input', id='password2', placeholder='Ulangi password', autocomplete='new-password', data_match='password', data_label='Konfirmasi password') }}
             <button class='password-toggle' type='button' data-password-toggle='password2' aria-label='Tampilkan password' aria-pressed='false'>Lihat</button>
           </div>
           {% if form.password2.errors %}

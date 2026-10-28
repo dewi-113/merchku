@@ -80,3 +80,17 @@ def test_auth_pages_have_password_visibility_controls():
     assert register.status_code == 200
     assert b"data-password-toggle='password'" in register.data
     assert b"data-password-toggle='password2'" in register.data
+
+
+def test_form_auth_punya_validasi_client_side():
+    app = create_test_app()
+    with app.test_client() as c:
+        login = c.get('/auth/login').data
+        register = c.get('/auth/register').data
+
+    for page in (login, register):
+        assert b'data-validate' in page
+        assert b'data-validate-email' in page
+        assert b'form-validation.js' in page
+    assert b'minlength="10"' in register
+    assert b'data-match="password"' in register

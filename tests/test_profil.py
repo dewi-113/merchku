@@ -214,20 +214,4 @@ def test_landing_page_publik():
         r = c.get('/')
         assert r.status_code == 200
         assert b'Merchku' in r.data
-        assert b'Merchandise kampus dan komunitas' in r.data
-
-
-def test_landing_page_menyapa_customer_dengan_nama_profil():
-    app = _make_app()
-    user_id = _seed(app)
-    with app.app_context():
-        user = db.session.get(User, user_id)
-        user.recipient_name = 'Justin'
-        db.session.commit()
-
-    with app.test_client() as c:
-        c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
-        response = c.get('/')
-
-    assert response.status_code == 200
-    assert b'Welcome Justin' in response.data
+        assert b'Promo Merchku' in r.data

@@ -9,11 +9,10 @@
   <a class='pc-link' href='{{ url_for("katalog.detail", pid=p.id) }}'>
     <div class='product-img-wrap'>
       {{ product_image(p) }}
-      {% if s.get('sold', 0) >= 5 %}
-      <span class='pc-badge pc-badge-hot'>Terlaris</span>
-      {% endif %}
       {% if p.discount_percent %}
-      <span class='pc-discount' aria-label='Diskon {{ p.discount_percent }} persen'><strong>{{ p.discount_percent }}%</strong>OFF</span>
+      <span class='pc-discount' aria-label='Diskon {{ p.discount_percent }} persen'>−{{ p.discount_percent }}%</span>
+      {% elif s.get('sold', 0) >= 5 %}
+      <span class='pc-badge'>Favorit</span>
       {% endif %}
       {% if stock <= 0 %}
       <span class='pc-soldout'>Habis</span>
@@ -23,11 +22,11 @@
     </div>
     <div class='product-body'>
       <h3 class='product-name'>{{ p.name }}</h3>
-      {% if p.use_sizes %}<div class='pc-tags'><span class='pc-tag'>S–XXL</span></div>{% endif %}
-      <div class='product-price'><small>Rp</small>{{ '{:,}'.format(p.price).replace(',', '.') }}{% if p.discount_percent %}<del>Rp{{ '{:,}'.format(p.original_price).replace(',', '.') }}</del>{% endif %}</div>
+      <div class='product-price'>Rp{{ '{:,}'.format(p.price).replace(',', '.') }}{% if p.discount_percent %}<del>Rp{{ '{:,}'.format(p.original_price).replace(',', '.') }}</del>{% endif %}</div>
       <div class='pc-meta'>
         {%- if s.get('rating') %}<span class='pc-rating'><span aria-hidden='true'>★</span> {{ s.rating }}</span>{% endif -%}
         {%- if s.get('sold', 0) > 0 %}<span>{{ s.sold_label }} terjual</span>{% endif -%}
+        {%- if p.use_sizes %}<span class='pc-tag'>S–XXL</span>{% endif -%}
       </div>
       {% if p.owner and p.owner.shop_name %}
       <div class='product-shop'>
