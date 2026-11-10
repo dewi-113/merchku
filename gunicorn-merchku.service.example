@@ -1,4 +1,5 @@
 # /etc/systemd/system/merchku.service example
+# Jalankan: sudo systemctl daemon-reload && sudo systemctl enable --now merchku
 [Unit]
 Description=Merchku Gunicorn
 After=network.target
@@ -8,8 +9,21 @@ User=www-data
 Group=www-data
 WorkingDirectory=/opt/merchku
 EnvironmentFile=/opt/merchku/.env
-ExecStart=/usr/bin/env gunicorn -w 4 -b 127.0.0.1:8000 run:app
+# Hanya dengar di localhost: dunia luar wajib lewat nginx/Cloudflare
+ExecStart=/opt/merchku/venv/bin/gunicorn -w 4 -b 127.0.0.1:8000 --timeout 60 --access-logfile - run:app
 Restart=on-failure
+
+# Sandbox systemd: batasi apa yang bisa dilakukan proses bila app sampai dibobol
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/merchku/uploads /opt/merchku/logs /opt/merchku/instance
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
 
 [Install]
 WantedBy=multi-user.target

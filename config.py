@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL
@@ -60,6 +61,18 @@ class Config:
     LOG_BACKUP_COUNT = int(os.getenv('LOG_BACKUP_COUNT', '5'))
     TRUSTED_PROXIES = os.getenv('TRUSTED_PROXIES', '127.0.0.1/32,::1/128').split(',')
     SECURE_COOKIES = os.getenv('SECURE_COOKIES', '0') == '1'
+    # Cookie sesi & "ingat saya": hanya lewat HTTPS (bila SECURE_COOKIES=1),
+    # tidak bisa dibaca JavaScript, dan tidak ikut terkirim dari situs lain.
+    SESSION_COOKIE_SECURE = SECURE_COOKIES
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_SECURE = SECURE_COOKIES
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_DURATION = timedelta(days=int(os.getenv('REMEMBER_DAYS', '14')))
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=int(os.getenv('SESSION_HOURS', '12')))
+    # HSTS: paksa browser selalu memakai HTTPS (aktif hanya bila SECURE_COOKIES=1)
+    HSTS_MAX_AGE = int(os.getenv('HSTS_MAX_AGE', '31536000'))
     # Jumlah reverse proxy di depan app (Render/nginx = 1) agar IP asli pengunjung terbaca
     PROXY_FIX_X_FOR = int(os.getenv('PROXY_FIX_X_FOR', '0'))
     # Izinkan email domain .test (akun demo) walau ENV=prod — hanya untuk server demo
@@ -71,6 +84,10 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', '16777216'))  # 16MB
     # Batas default rate limit (fallback bila route tidak punya batas sendiri)
     RATE_LIMIT_DEFAULT = os.getenv('RATE_LIMIT_DEFAULT', '200 per minute')
+    # Penyimpanan hitungan rate limit. Default memori (per worker); untuk Gunicorn
+    # multi-worker pakai Redis agar batas berlaku bersama, mis. redis://127.0.0.1:6379/0
+    RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', 'memory://')
+    RATELIMIT_LOGIN = os.getenv('RATELIMIT_LOGIN', '10 per minute; 50 per hour')
     BITESHIP_API_KEY = os.getenv('BITESHIP_API_KEY', '')
     BITESHIP_BASE_URL = os.getenv('BITESHIP_BASE_URL', 'https://api.biteship.com')
     SHIPPING_ORIGIN_POSTAL_CODE = os.getenv('SHIPPING_ORIGIN_POSTAL_CODE', '')

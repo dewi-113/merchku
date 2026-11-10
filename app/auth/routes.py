@@ -11,7 +11,7 @@ from flask import (
 )
 from flask_login import current_user, login_user, logout_user
 
-from app import db, limiter
+from app import client_ip_key, db, limiter
 from app.auth.forms import LoginForm, RegisterForm
 from app.auth.models import User
 from app.auth.security import hash_password, verify_password
@@ -45,6 +45,11 @@ def _safe_next(target):
 
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit(
+    lambda: current_app.config.get('RATELIMIT_LOGIN', '10 per minute; 50 per hour'),
+    key_func=client_ip_key,
+    methods=['POST'],
+)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('katalog.index'))

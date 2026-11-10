@@ -21,34 +21,46 @@ def scan_request(path: str):
     return None
 
 
+def _parse_networks(cidrs):
+    nets = []
+    for cidr in cidrs or []:
+        try:
+            nets.append(ipaddress.ip_network(cidr.strip(), strict=False))
+        except ValueError:
+            continue
+    return nets
+
+
 def get_client_ip(app_config_trusted=None):
-    trusted = app_config_trusted or []
+    """IP asli pengunjung, tahan pemalsuan header.
+
+    X-Forwarded-For dibaca dari KANAN: setiap proxy menambahkan IP pengirimnya
+    di ujung kanan, sedangkan entri di kiri bisa ditulis bebas oleh penyerang.
+    Lewati semua IP proxy tepercaya dari kanan; IP pertama yang bukan proxy
+    adalah pengunjung. Header CF-Connecting-IP tidak dibaca di sini; biarkan
+    nginx (modul real_ip, hanya untuk IP Cloudflare) yang menerjemahkannya.
+    """
+    trusted = _parse_networks(app_config_trusted)
     try:
         remote = ipaddress.ip_address(request.remote_addr)
     except Exception:  # nosec B110 - remote_addr selalu ada; fallback aman
-        remote = ipaddress.ip_address('127.0.0.1')
-    if request.headers:
-        for cidr in trusted:
-            try:
-                net = ipaddress.ip_network(cidr, strict=False)
-            except ValueError:
-                continue
-            if remote in net:
-                xff = request.headers.get('X-Forwarded-For', '')
-                if xff:
-                    ip = xff.split(',')[0].strip()
-                    try:
-                        return str(ipaddress.ip_address(ip))
-                    except ValueError:
-                        pass
-                cf = request.headers.get('CF-Connecting-IP')
-                if cf:
-                    try:
-                        return str(ipaddress.ip_address(cf.strip()))
-                    except ValueError:
-                        pass
-                break
-    return request.remote_addr
+        return request.remote_addr
+
+    def is_trusted(ip):
+        return any(ip in net for net in trusted)
+
+    if not is_trusted(remote):
+        return str(remote)
+
+    xff = request.headers.get('X-Forwarded-For', '')
+    for raw in reversed([part.strip() for part in xff.split(',') if part.strip()]):
+        try:
+            ip = ipaddress.ip_address(raw)
+        except ValueError:
+            break  # entri rusak: berhenti, jangan percaya sisanya
+        if not is_trusted(ip):
+            return str(ip)
+    return str(remote)
 
 
 def log_access_denied(resource: str, resource_id=None, reason: str = 'ownership'):

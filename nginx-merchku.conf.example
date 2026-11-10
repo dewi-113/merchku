@@ -1,18 +1,79 @@
-# Nginx reverse proxy example (Gunicorn di 127.0.0.1:8000)
+# Nginx reverse proxy untuk Merchku di belakang Cloudflare (Gunicorn di 127.0.0.1:8000)
+# Salin ke /etc/nginx/sites-available/merchku, ganti server_name, lalu:
+#   sudo ln -s /etc/nginx/sites-available/merchku /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+
+# ── IP asli pengunjung dari Cloudflare ─────────────────────────────────────
+# Hanya percaya header CF-Connecting-IP bila koneksi datang dari IP Cloudflare.
+# Daftar terbaru: https://www.cloudflare.com/ips/ (perbarui sesekali)
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+# Jika memakai Cloudflare Tunnel (cloudflared di VM yang sama), tambahkan juga:
+# set_real_ip_from 127.0.0.1;
+real_ip_header CF-Connecting-IP;
+
+# Batas laju lapis nginx (lapis kedua setelah Flask-Limiter)
+limit_req_zone $binary_remote_addr zone=merchku_login:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=merchku_all:10m rate=20r/s;
+
 server {
   listen 80;
-  server_name merchku.local;
+  listen [::]:80;
+  server_name merchku.example.com;   # ganti dengan domain kamu
 
-  # Samakan dengan batas upload di aplikasi (MAX_CONTENT_LENGTH = 16 MB)
-  client_max_body_size 16m;
+  server_tokens off;                  # sembunyikan versi nginx
+  client_max_body_size 16m;           # samakan dengan MAX_CONTENT_LENGTH
+  client_body_timeout 15s;
+  client_header_timeout 15s;
 
-  location / {
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_pass http://127.0.0.1:8000;
+  # Tolak file sensitif/tersembunyi (.env, .git, dll) dan skrip yang bukan milik app
+  location ~ /\.(?!well-known) { deny all; return 404; }
+  location ~* \.(php|asp|aspx|jsp|cgi|sql|bak|ini|log|sh)$ { return 404; }
+
+  location = /auth/login {
+    limit_req zone=merchku_login burst=5 nodelay;
+    limit_req_status 429;
+    include /etc/nginx/merchku_proxy.conf;
   }
 
-  location /static { alias /opt/merchku/app/static; }
+  location /static/ {
+    alias /opt/merchku/app/static/;
+    expires 7d;
+    add_header Cache-Control "public";
+    add_header X-Content-Type-Options nosniff;
+  }
+
+  location / {
+    limit_req zone=merchku_all burst=40 nodelay;
+    limit_req_status 429;
+    include /etc/nginx/merchku_proxy.conf;
+  }
 }
+
+# ── /etc/nginx/merchku_proxy.conf (file terpisah) ──────────────────────────
+# proxy_set_header Host $host;
+# proxy_set_header X-Real-IP $remote_addr;
+# proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# proxy_set_header X-Forwarded-Proto https;   # Cloudflare melayani HTTPS ke pengunjung
+# proxy_read_timeout 60s;
+# proxy_pass http://127.0.0.1:8000;
