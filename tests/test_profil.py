@@ -214,4 +214,4 @@ def test_landing_page_publik():
         r = c.get('/')
         assert r.status_code == 200
         assert b'Merchku' in r.data
-        assert b'Promo Merchku' in r.data
+        assert b'Promo Merchku Store' in r.data

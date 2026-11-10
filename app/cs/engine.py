@@ -66,7 +66,7 @@ def product_payload(product):
         'old_price': _rp(product.original_price) if product.discount_percent else None,
         'discount': product.discount_percent,
         'stock': product.total_stock,
-        'shop': product.owner.shop_name if product.owner and product.owner.shop_name else 'Merchku',
+        'shop': product.owner.shop_name if product.owner and product.owner.shop_name else 'Merchku Store',
         'url': url_for('katalog.detail', pid=product.id),
         'image': image,
     }
@@ -136,7 +136,7 @@ def answer(message, user=None):
         if logged_in:
             name = ' ' + (getattr(user, 'recipient_name', None) or user.email.split('@')[0]).split()[0]
         reply = (
-            f'Halo{name}! 👋 Aku Merchy, CS Merchku. Aku bisa bantu cari produk, cek status '
+            f'Halo{name}! 👋 Aku Merchy, CS Merchku Store. Aku bisa bantu cari produk, cek status '
             'pesanan, info ongkir, pembayaran, sampai panduan ukuran. Mau tanya apa?'
         )
     elif intent == 'thanks':
@@ -178,12 +178,12 @@ def answer(message, user=None):
         reply = (
             'Maaf atas ketidaknyamanannya 🙏 Saat ini belum ada fitur retur/refund otomatis. '
             'Silakan chat penjualnya langsung dan sertakan nomor pesanan serta foto barang, '
-            'supaya bisa ditindaklanjuti. Kalau penjual belum merespons, hubungi admin Merchku.'
+            'supaya bisa ditindaklanjuti. Kalau penjual belum merespons, hubungi admin Merchku Store.'
         )
         links = [{'label': 'Buka Pesan', 'url': url_for('chat.inbox')}] if is_customer else []
     elif intent == 'payment':
         reply = (
-            'Metode pembayaran di Merchku:\n'
+            'Metode pembayaran di Merchku Store:\n'
             '• Transfer bank, QRIS, atau e-wallet — bayar lalu unggah bukti di halaman pesanan\n'
             '• COD — bayar tunai saat barang diterima\n'
             '• Pembayaran online otomatis (QRIS/transfer/e-wallet) bila sedang aktif\n'
@@ -216,14 +216,14 @@ def answer(message, user=None):
         ids = best_seller_ids(4)
         found = {p.id: p for p in Product.query.filter(Product.id.in_(ids)).all()} if ids else {}
         products = [found[i] for i in ids if i in found]
-        reply = 'Ini produk paling laris di Merchku 🏆' if products else 'Belum ada data produk terlaris.'
+        reply = 'Ini produk paling laris di Merchku Store 🏆' if products else 'Belum ada data produk terlaris.'
         links = [{'label': 'Lihat semua terlaris', 'url': url_for('katalog.index', sort='terlaris')}]
     elif intent == 'account':
         reply = (
             'Soal akun:\n'
             '• Daftar: pilih Pembeli untuk belanja, atau Penjual untuk membuka toko.\n'
             '• Ganti password: Akun → Keamanan Akun (saat sudah login).\n'
-            '• Lupa password: belum ada reset otomatis, silakan hubungi admin Merchku.'
+            '• Lupa password: belum ada reset otomatis, silakan hubungi admin Merchku Store.'
         )
         links = (
             [{'label': 'Keamanan Akun', 'url': url_for('profil.keamanan')}] if logged_in
@@ -231,7 +231,7 @@ def answer(message, user=None):
         )
     elif intent == 'seller':
         reply = (
-            'Mau jualan di Merchku? Daftar akun baru dan pilih peran "Penjual". Setelah itu kamu '
+            'Mau jualan di Merchku Store? Daftar akun baru dan pilih peran "Penjual". Setelah itu kamu '
             'bisa atur profil toko, menambah produk, dan memproses pesanan dari Dashboard Penjual. '
             'Catatan: akun pembeli yang sudah ada tidak bisa diubah jadi akun penjual.'
         )
@@ -246,7 +246,7 @@ def answer(message, user=None):
         links = [{'label': 'Buka Pesan', 'url': url_for('chat.inbox')}] if logged_in and user.role in ('customer', 'seller') else []
     elif intent == 'how_to_buy':
         reply = (
-            'Cara belanja di Merchku:\n'
+            'Cara belanja di Merchku Store:\n'
             '1. Masuk sebagai pembeli\n'
             '2. Pilih produk → pilih ukuran & jumlah → Tambah ke Keranjang / Beli Sekarang\n'
             '3. Checkout: cek alamat, pilih kurir & pembayaran → Buat Pesanan\n'

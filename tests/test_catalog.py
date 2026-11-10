@@ -105,7 +105,7 @@ def test_product_detail_shows_public_seller_profile_and_recommendations():
         shop = client.get(f'/katalog/toko/{seller_id}')
         assert b'Deskripsi toko untuk pengunjung.' in shop.data
         assert b'Kaos demo' in shop.data
-        assert b'Official store di Merchku' in shop.data
+        assert b'Official store di Merchku Store' in shop.data
         assert b'5</strong> produk' in shop.data
 
 

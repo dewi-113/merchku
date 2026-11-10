@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html' %}
 {% from 'partials/product_image.html' import product_image %}
 {% from 'partials/product_card.html' import product_card %}
-{% block title %}Merchku — Merchandise Kampus & Komunitas{% endblock %}
+{% block title %}Merchku Store — Merchandise Kampus & Komunitas{% endblock %}
 {% block body_class %}page-home{% endblock %}
 
 {% block content %}
@@ -18,13 +18,13 @@
 <div class='container home'>
 
   {# ── Banner promo: maskot Merchy + pasang di HP ─────────── #}
-  <section class='promo-banner' aria-label='Promo Merchku'>
+  <section class='promo-banner' aria-label='Promo Merchku Store'>
     <div class='promo' data-carousel>
       <div class='promo-track' data-carousel-track>
         <a class='promo-slide promo-ad' href='{{ url_for("katalog.index", sort="diskon" if max_discount else "terlaris") }}'>
           <span class='promo-confetti' aria-hidden='true'></span>
           <div class='promo-copy'>
-            <span class='promo-kicker'>Promo Merchku</span>
+            <span class='promo-kicker'>Promo Merchku Store</span>
             <h2 class='promo-title'>
               {% if max_discount %}Merch kampus <span>diskon s.d. {{ max_discount }}%</span>{% else %}Merch kampus <span>favoritmu</span>{% endif %}
             </h2>
@@ -41,12 +41,12 @@
         {# Promosi Merchku di HP (web app yang bisa dipasang ke layar utama) #}
         <article class='promo-slide promo-app'>
           <div class='promo-copy'>
-            <span class='promo-kicker'>📱 Merchku di HP kamu</span>
+            <span class='promo-kicker'>📱 Merchku Store di HP kamu</span>
             <h2 class='promo-title'>Belanja merch kampus <span>cukup dari genggaman</span></h2>
-            <p class='promo-desc'>Chat penjual, lacak pesanan, dan tanya CS Merchy kapan aja. Pasang Merchku di layar utama, rasanya kayak aplikasi!</p>
+            <p class='promo-desc'>Chat penjual, lacak pesanan, dan tanya CS Merchy kapan aja. Pasang Merchku Store di layar utama, rasanya kayak aplikasi!</p>
             <div class='promo-app-actions'>
               <button type='button' class='promo-btn promo-btn-app' data-install-app>
-                <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 4v11m0 0l-4-4m4 4l4-4M5 19h14'/></svg> Pasang Merchku
+                <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 4v11m0 0l-4-4m4 4l4-4M5 19h14'/></svg> Pasang Merchku Store
               </button>
               <span class='promo-app-badges' aria-hidden='true'><span>⚡ Ringan</span><span>🔔 Praktis</span></span>
             </div>
@@ -127,7 +127,7 @@
   {% if shops %}
   <section class='section' aria-labelledby='home-shop-title'>
     <div class='section-head'>
-      <h2 class='section-title' id='home-shop-title'>Toko di Merchku</h2>
+      <h2 class='section-title' id='home-shop-title'>Toko di Merchku Store</h2>
     </div>
     {% set shop_followers = follower_counts(shops|map(attribute='seller.id')|list) %}
     <div class='shop-cards'>

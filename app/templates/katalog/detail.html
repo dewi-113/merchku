@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html' %}
 {% from 'partials/product_image.html' import product_image %}
 {% from 'partials/product_card.html' import product_card %}
-{% block title %}{{ product.name }} — Merchku{% endblock %}
+{% block title %}{{ product.name }} — Merchku Store{% endblock %}
 
 {% block body_class %}{% if product.total_stock > 0 and (not current_user.is_authenticated or current_user.role == 'customer') %}has-action-bar{% endif %}{% endblock %}
 
@@ -291,7 +291,7 @@
         <a class='seller-card-name text-decoration-none' href='{{ url_for("katalog.toko_public", seller_id=product.owner.id) }}'>
           {{ product.owner.shop_name or product.owner.email.split('@')[0] }}
         </a>
-        <div class='small text-muted'>Toko di Merchku</div>
+        <div class='small text-muted'>Toko di Merchku Store</div>
         {% if product.owner.shop_description %}
         <div class='small text-muted mt-1'>{{ product.owner.shop_description|truncate(115)|e }}</div>
         {% endif %}

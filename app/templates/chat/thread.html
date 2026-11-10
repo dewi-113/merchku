@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% from 'partials/product_image.html' import product_image %}
-{% block title %}Percakapan — Merchku{% endblock %}
+{% block title %}Percakapan — Merchku Store{% endblock %}
 {% block body_class %}page-chat page-chat-room{% endblock %}
 {% block content %}
 {% set other = thread.seller if current_user.id == thread.customer_id else thread.customer %}
