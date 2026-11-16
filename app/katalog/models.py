@@ -62,3 +62,32 @@ class ProductSizeStock(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
 
     __table_args__ = (db.UniqueConstraint('product_id', 'size', name='uq_product_size'),)
+
+
+def delete_or_archive_product(product, upload_dir):
+    """Hapus produk, atau arsipkan (nonaktifkan) bila sudah pernah dipesan.
+
+    Baris order_items menyimpan FK ke products, jadi produk yang sudah ada di
+    riwayat pesanan tidak boleh dihapus permanen: di MySQL akan gagal karena
+    foreign key, dan riwayat pesanan pembeli akan rusak. Return 'archived'
+    atau 'deleted'.
+    """
+    import contextlib
+    import os
+
+    from app.keranjang.models import CartItem
+    from app.pesanan.models import OrderItem
+
+    if db.session.query(OrderItem.id).filter_by(product_id=product.id).first():
+        product.is_active = False
+        CartItem.query.filter_by(product_id=product.id).delete()
+        db.session.commit()
+        return 'archived'
+
+    if product.image:
+        with contextlib.suppress(OSError):
+            os.remove(os.path.join(upload_dir, product.image))
+    CartItem.query.filter_by(product_id=product.id).delete()
+    db.session.delete(product)
+    db.session.commit()
+    return 'deleted'

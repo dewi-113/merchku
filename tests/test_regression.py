@@ -162,7 +162,9 @@ def test_admin_edit_hapus_produk_tidak_500():
         assert r.status_code == 302, f'Expected 302, got {r.status_code}'
 
     with app.app_context():
-        assert db.session.get(Product, pid) is None
+        # produk sudah ada di riwayat pesanan → diarsipkan, bukan dihapus
+        p = db.session.get(Product, pid)
+        assert p is not None and p.is_active is False
 
 
 def test_admin_ubah_status_user_tidak_500():

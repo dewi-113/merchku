@@ -20,9 +20,18 @@ from app import db, limiter
 from app.admin.forms import OrderNoteForm, ProductForm, RoleChangeForm
 from app.auth.decorators import role_required
 from app.auth.models import User
+from app.chat.models import ChatMessage, ChatThread
 from app.core.uploads import UploadRejected, reencode_and_save, validate_image_upload
 from app.core.utils import get_client_ip, log_access_denied
-from app.katalog.models import SIZES, Product, ProductSizeStock
+from app.katalog.follow_model import ShopFollow
+from app.katalog.models import (
+    SIZES,
+    Product,
+    ProductSizeStock,
+    delete_or_archive_product,
+)
+from app.katalog.review_model import Review
+from app.keranjang.models import CartItem
 from app.pesanan.models import (
     ORDER_STATUSES,
     STOCK_RESERVED_STATUSES,
@@ -220,13 +229,13 @@ def produk_edit(pid):
 @bp.route('/produk/<int:pid>/hapus', methods=['POST'])
 def produk_delete(pid):
     p = db.session.get(Product, pid) or abort(404)
-    if p.image:
-        with contextlib.suppress(OSError):
-            os.remove(os.path.join(current_app.config['UPLOAD_PUBLIC'], p.image))
-    db.session.delete(p)
-    db.session.commit()
-    _log('produk_deleted', produk_id=pid, user_id=current_user.id)
-    flash('Produk dihapus.', 'success')
+    result = delete_or_archive_product(p, current_app.config['UPLOAD_PUBLIC'])
+    if result == 'archived':
+        _log('produk_archived', produk_id=pid, user_id=current_user.id)
+        flash('Produk sudah ada di riwayat pesanan, jadi dinonaktifkan (tidak tampil di katalog).', 'warning')
+    else:
+        _log('produk_deleted', produk_id=pid, user_id=current_user.id)
+        flash('Produk dihapus.', 'success')
     return redirect(url_for('admin.produk_list'))
 
 
@@ -279,13 +288,35 @@ def user_role(uid):
     return render_template('admin/user_role.html', user=u, form=form)
 
 
+def _user_has_history(uid):
+    """True bila pengguna terkait data yang wajib dijaga (FK tanpa cascade)."""
+    checks = (
+        db.session.query(Order.id).filter(Order.user_id == uid),
+        db.session.query(Product.id).filter(Product.owner_id == uid),
+        db.session.query(Review.id).filter(Review.user_id == uid),
+        db.session.query(ChatThread.id).filter(
+            db.or_(ChatThread.customer_id == uid, ChatThread.seller_id == uid)
+        ),
+        db.session.query(ChatMessage.id).filter(ChatMessage.sender_id == uid),
+    )
+    return any(q.first() for q in checks)
+
+
 @bp.route('/pengguna/<int:uid>/hapus', methods=['POST'])
 def user_delete(uid):
     u = db.session.get(User, uid) or abort(404)
     if u.id == current_user.id:
         flash('Tidak bisa menghapus akun sendiri.', 'danger')
         return redirect(url_for('admin.user_list'))
+    if _user_has_history(u.id):
+        flash('Pengguna ini punya riwayat (pesanan, produk, ulasan, atau chat) sehingga '
+              'tidak bisa dihapus. Nonaktifkan saja akunnya.', 'warning')
+        return redirect(url_for('admin.user_list'))
     email = u.email
+    CartItem.query.filter_by(user_id=u.id).delete()
+    ShopFollow.query.filter(
+        db.or_(ShopFollow.seller_id == u.id, ShopFollow.follower_id == u.id)
+    ).delete(synchronize_session=False)
     db.session.delete(u)
     db.session.commit()
     _log('user_deleted', target_user_id=uid, target_email=email, user_id=current_user.id)
@@ -370,7 +401,7 @@ def pesanan_ubah_status(order_id):
             restore_reserved_stock(order)
         except Exception:
             db.session.rollback()
-            _log('server_error', event='restore_stock_failed', order_id=order_id)
+            _log('server_error', reason='restore_stock_failed', order_id=order_id)
             flash('Gagal mengembalikan stok pesanan. Coba lagi.', 'danger')
             return redirect(url_for('admin.pesanan_detail', order_id=order_id))
 

@@ -63,6 +63,14 @@ def login():
             sec_log(event='login_failed', ip=ip, email=email, path='/auth/login', method='POST')
             flash('Email atau password salah.', 'danger')
             return render_template('auth/login.html', form=form, next_url=next_url)
+        if not user.is_active:
+            sec_log(event='login_failed', ip=ip, user_id=user.id, email=user.email, role=user.role, reason='inactive')
+            flash('Akun ini dinonaktifkan. Hubungi admin.', 'danger')
+            return render_template('auth/login.html', form=form, next_url=next_url)
+        if user.locked_until and user.locked_until <= _utcnow():
+            # masa kunci sudah habis: mulai hitung percobaan dari nol lagi
+            user.locked_until = None
+            user.failed_attempts = 0
         if user.locked_until and user.locked_until > _utcnow():
             sec_log(event='account_locked', ip=ip, user_id=user.id, email=user.email, role=user.role)
             flash('Akun terkunci. Coba lagi nanti.', 'danger')

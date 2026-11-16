@@ -23,7 +23,12 @@ from app.admin.forms import ProductForm
 from app.auth.decorators import role_required
 from app.core.uploads import UploadRejected, reencode_and_save, validate_image_upload
 from app.core.utils import get_client_ip
-from app.katalog.models import SIZES, Product, ProductSizeStock
+from app.katalog.models import (
+    SIZES,
+    Product,
+    ProductSizeStock,
+    delete_or_archive_product,
+)
 from app.katalog.review_model import Review
 from app.pesanan.models import Order, OrderItem
 from app.security_logger import sec_log
@@ -228,13 +233,13 @@ def produk_edit(pid):
 @bp.route('/produk/<int:pid>/hapus', methods=['POST'])
 def produk_delete(pid):
     p = _own_product_or_404(pid)
-    if p.image:
-        with contextlib.suppress(OSError):
-            os.remove(os.path.join(current_app.config['UPLOAD_PUBLIC'], p.image))
-    db.session.delete(p)
-    db.session.commit()
-    _log('seller_produk_deleted', produk_id=pid)
-    flash('Produk dihapus.', 'success')
+    result = delete_or_archive_product(p, current_app.config['UPLOAD_PUBLIC'])
+    if result == 'archived':
+        _log('seller_produk_archived', produk_id=pid)
+        flash('Produk sudah ada di riwayat pesanan, jadi dinonaktifkan (tidak tampil di katalog).', 'warning')
+    else:
+        _log('seller_produk_deleted', produk_id=pid)
+        flash('Produk dihapus.', 'success')
     return redirect(url_for('seller.produk_list'))
 
 
