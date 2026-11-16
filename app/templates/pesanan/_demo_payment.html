@@ -1,0 +1,48 @@
+{# Instruksi pembayaran DEMO untuk QRIS & transfer bank. Semua data fiktif. #}
+{% set demo = demo_payment_context(order) %}
+{% set total_rp = '{:,}'.format(order.total_price).replace(',', '.') %}
+<style>
+  .demo-pay { padding: 18px; border: 1px solid #d5defa; border-radius: 14px; background: #f5f7fe; }
+  .demo-pay-badge { display: inline-block; margin-bottom: 10px; padding: 2px 10px; border-radius: 99px; background: #fff4d6; color: #8a5a00; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+  .demo-pay-qr { display: block; width: 200px; max-width: 100%; height: auto; margin: 4px auto 10px; padding: 8px; border: 1px solid #e3e8f7; border-radius: 12px; background: #fff; }
+  .demo-pay-qr svg { display: block; width: 100%; height: auto; }
+  .demo-pay-brand { text-align: center; font-weight: 800; letter-spacing: .08em; color: #1a3fb0; }
+  .demo-pay-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed #d5defa; }
+  .demo-pay-row:last-of-type { border-bottom: 0; }
+  .demo-pay-label { color: #6b7280; font-size: .85rem; }
+  .demo-pay-value { font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+  .demo-pay-va { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.15rem; color: #1a3fb0; letter-spacing: .04em; }
+  .demo-pay-steps { margin: 12px 0 0; padding-left: 18px; font-size: .85rem; color: #4b5563; }
+</style>
+
+{% if order.payment_method == 'qris' %}
+<div class='demo-pay'>
+  <span class='demo-pay-badge'>MODE DEMO</span>
+  <div class='demo-pay-brand'>QRIS</div>
+  <div class='demo-pay-qr'>{{ demo.qris_svg }}</div>
+  <div class='text-center small text-muted mb-2'>{{ demo.account_holder }}</div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>Total bayar</span><span class='demo-pay-value'>Rp {{ total_rp }}</span></div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>ID referensi</span><span class='demo-pay-value font-monospace'>{{ demo.qris_reference }}</span></div>
+  <ol class='demo-pay-steps'>
+    <li>Buka aplikasi e-wallet atau mobile banking.</li>
+    <li>Pindai kode QRIS di atas, lalu bayar sesuai total.</li>
+    <li>Unggah tangkapan layar bukti bayar di halaman pesanan.</li>
+  </ol>
+  <p class='small text-muted mb-0 mt-2'>Kode QR ini hanya contoh untuk demo aplikasi dan tidak dapat dipindai.</p>
+</div>
+{% elif order.payment_method == 'bank_transfer' %}
+<div class='demo-pay'>
+  <span class='demo-pay-badge'>MODE DEMO</span>
+  <div class='demo-pay-row'><span class='demo-pay-label'>Bank</span><span class='demo-pay-value'>{{ demo.bank_name }}</span></div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>Kode bank</span><span class='demo-pay-value font-monospace'>{{ demo.bank_code }}</span></div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>No. Virtual Account</span><span class='demo-pay-value demo-pay-va'>{{ demo.va_number }}</span></div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>Atas nama</span><span class='demo-pay-value'>{{ demo.account_holder }}</span></div>
+  <div class='demo-pay-row'><span class='demo-pay-label'>Total transfer</span><span class='demo-pay-value'>Rp {{ total_rp }}</span></div>
+  <ol class='demo-pay-steps'>
+    <li>Pilih menu Transfer &rarr; Virtual Account di mobile banking.</li>
+    <li>Masukkan nomor Virtual Account di atas dan pastikan nominal sesuai.</li>
+    <li>Unggah bukti transfer di halaman pesanan.</li>
+  </ol>
+  <p class='small text-muted mb-0 mt-2'>Bank dan nomor rekening ini fiktif, hanya untuk demo aplikasi.</p>
+</div>
+{% endif %}

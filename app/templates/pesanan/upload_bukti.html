@@ -4,15 +4,6 @@
 <style>
   .payment-reference { padding: 18px; border: 1px solid #d5defa; border-radius: 12px; background: #edf1fd; }
   .payment-reference-code { color: #1a3fb0; font-size: 1.1rem; font-weight: 750; letter-spacing: .02em; overflow-wrap: anywhere; }
-  .qris-demo-placeholder {
-    display: grid; width: 140px; height: 140px; margin: 0 auto 14px; place-items: center;
-    border: 2px dashed #9fb4f0; border-radius: 12px; background:
-      linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%),
-      linear-gradient(45deg, #fff 25%, #edf1fd 25%, #edf1fd 75%, #fff 75%);
-    background-position: 0 0, 9px 9px;
-    background-size: 18px 18px;
-    color: #1a3fb0; font-weight: 800;
-  }
 </style>
 {% endblock %}
 {% block content %}
@@ -32,24 +23,17 @@
           <li class='list-group-item'><strong>Metode:</strong> {{ order.payment_method_label }}</li>
         </ul>
       </div>
-      {% if order.payment_method == 'qris' %}
-      <section class='payment-reference mb-3'>
-        <div class='qris-demo-placeholder' role='img' aria-label='QRIS belum dikonfigurasi, bukan kode yang dapat dipindai'>QR DEMO</div>
-        <div class='text-center fw-bold mb-2'>QRIS belum aktif</div>
-        <p class='small mb-3'>Kode QR merchant belum disediakan. Tampilan ini hanya untuk demonstrasi dan tidak menerima pembayaran.</p>
-        <div class='small text-muted'>ID referensi (untuk admin)</div>
-        <div class='payment-reference-code font-monospace'>MERCHKU-QRIS-{{ '%06d'|format(order.id) }}</div>
-        <p class='small text-muted mb-0 mt-2'>ID ini bukan kode QRIS atau kode pembayaran bank.</p>
-      </section>
+      {% if order.payment_method in ('qris', 'bank_transfer') %}
+      <div class='mb-3'>{% include 'pesanan/_demo_payment.html' %}</div>
       {% endif %}
     </div>
     <div class='col-md-7'>
       <div class='card'>
         <div class='card-header'>{{ 'Kirim Bukti Pembayaran Demo' if order.payment_method == 'qris' else 'Unggah Bukti Pembayaran' }}</div>
         <div class='card-body'>
-          {% if order.payment_method == 'qris' %}
+          {% if order.payment_method in ('qris', 'bank_transfer') %}
           <div class='alert alert-warning small'>
-            Jangan melakukan pembayaran sungguhan dengan informasi demo. Bukti yang dikirim tetap perlu diverifikasi admin dan status pesanan tidak berubah otomatis.
+            Data pembayaran di halaman ini adalah contoh untuk demo. Bukti yang dikirim tetap diverifikasi admin dan status pesanan tidak berubah otomatis.
           </div>
           {% endif %}
           <p class='text-muted small'>Format: JPG, PNG, atau PDF. Ukuran maks 2 MB.</p>

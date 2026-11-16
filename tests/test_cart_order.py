@@ -257,17 +257,38 @@ def test_qris_demo_shows_reference_without_claiming_real_qris_payment():
         detail = client.get(f'/pesanan/{order_id}')
         assert detail.status_code == 200
         assert b'MERCHKU-QRIS-000001' in detail.data
-        assert b'kode ini tidak bisa dipindai' in detail.data
+        assert b'MODE DEMO' in detail.data
+        assert b'<svg' in detail.data
+        assert b'tidak dapat dipindai' in detail.data
 
         payment = client.get(f'/pesanan/{order_id}/upload-bukti')
         assert payment.status_code == 200
-        assert b'QRIS belum aktif' in payment.data
-        assert b'ID ini bukan kode QRIS' in payment.data
+        assert b'MODE DEMO' in payment.data
+        assert b'<svg' in payment.data
 
     with app.app_context():
         order = db.session.get(Order, order_id)
         assert order.status == 'menunggu_pembayaran'
         assert order.payment_proof is None
+
+
+def test_transfer_demo_menampilkan_bank_dan_virtual_account_fiktif():
+    app = _make_app()
+    user_id, _other_id, product_id, _sized_product_id = _seed(app)
+    order_id = _create_order_for_user(app, user_id, product_id)
+    with app.app_context():
+        order = db.session.get(Order, order_id)
+        order.payment_method = 'bank_transfer'
+        db.session.commit()
+
+    with app.test_client() as client:
+        client.post('/auth/login', data={'email': 'a@t.test', 'password': 'Password111'})
+        for url in (f'/pesanan/{order_id}', f'/pesanan/{order_id}/upload-bukti'):
+            page = client.get(url)
+            assert page.status_code == 200
+            assert b'Bank Demo Merchku' in page.data
+            assert b'8808 0000 0000 0001' in page.data
+            assert b'MODE DEMO' in page.data
 
 
 def test_idor_order_batalkan():

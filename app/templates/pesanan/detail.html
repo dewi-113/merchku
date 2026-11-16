@@ -214,16 +214,8 @@
             </form>
           </div>
           {% else %}
-          {% if order.payment_method == 'qris' %}
-          <div class='alert alert-warning small mb-0'>
-            <strong>QRIS belum terhubung untuk pembayaran sungguhan.</strong>
-            Kode QRIS merchant belum dikonfigurasi. Untuk demo, gunakan ID referensi di bawah sebagai penanda pesanan saja; kode ini tidak bisa dipindai atau dipakai untuk membayar.
-          </div>
-          <div class='mt-3 p-3 border rounded-3 bg-white'>
-            <div class='small text-muted'>ID referensi pembayaran (untuk admin)</div>
-            <div class='fs-5 fw-bold font-monospace'>MERCHKU-QRIS-{{ '%06d'|format(order.id) }}</div>
-            <div class='small text-muted mt-1'>Ini bukan payload atau kode QRIS merchant.</div>
-          </div>
+          {% if order.payment_method in ('qris', 'bank_transfer') %}
+          {% include 'pesanan/_demo_payment.html' %}
           {% else %}
           <p class='small text-muted mb-0'>Ongkos kirim dan total akhir masih menunggu konfirmasi admin. Detail rekening resmi belum diatur di aplikasi; hubungi admin dan jangan transfer ke nomor contoh.</p>
           {% endif %}

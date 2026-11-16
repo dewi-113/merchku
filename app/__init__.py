@@ -135,6 +135,8 @@ def create_app(config_name=None):
 
     from app.katalog.follow_model import follower_counts
     from app.katalog.stats import product_stats, reviewer_name, sold_label
+    from app.pesanan.demo_payment import demo_payment_context
+    app.add_template_global(demo_payment_context)
     app.add_template_global(product_stats)
     app.add_template_global(follower_counts)
     app.add_template_filter(sold_label, 'ringkas')
