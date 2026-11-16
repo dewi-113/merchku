@@ -147,27 +147,3 @@ Contoh konfigurasi tersedia di `gunicorn-merchku.service.example` (systemd) dan
 > Catatan produksi: Flask-Limiter memakai storage in-memory secara default.
 > Untuk multi-worker Gunicorn, set `RATELIMIT_STORAGE_URI` (mis.
 > `redis://localhost:6379`) agar batas request konsisten antar worker.
-
-### Render (paket gratis, PostgreSQL)
-
-Repo ini sudah berisi Blueprint `render.yaml` (web Flask + PostgreSQL gratis).
-
-1. Render Dashboard → **New → Blueprint** → pilih repo ini → **Apply**.
-2. Saat diminta, isi **`DEMO_PASSWORD`**: password rahasia (min. 10 karakter)
-   untuk semua akun demo. Password bawaan seed di repo ini bersifat publik dan
-   **tidak berlaku** di Render.
-3. Setelah deploy selesai, login sebagai `admin@demo.test` atau
-   `seller@demo.test` dengan `DEMO_PASSWORD`.
-
-Setiap kali server menyala, `scripts/render-start.sh` menjalankan migrasi,
-seed demo (idempoten), dan `flask kunci-akun-demo`, lalu Gunicorn. CI job
-*Deploy check (PostgreSQL / Render)* menguji langkah yang sama.
-
-Batasan paket gratis:
-
-- Server tidur setelah ±15 menit tanpa pengunjung; akses pertama butuh ±1 menit.
-  Buka web beberapa menit sebelum demo.
-- Disk tidak permanen: avatar, foto produk yang diunggah, bukti bayar, dan
-  `logs/` hilang saat server restart/deploy ulang. Foto produk demo dibuat ulang
-  otomatis.
-- Database PostgreSQL gratis Render punya masa berlaku; cek tanggalnya di dashboard.
