@@ -28,7 +28,7 @@ SIZE_CHART = (
 )
 
 STORE_FACTS = f"""\
-Merchku Store adalah marketplace merchandise kampus & komunitas (kaos, hoodie, jaket,
+Merchku adalah marketplace merchandise kampus & komunitas (kaos, hoodie, jaket,
 almamater, tote bag, stiker, lanyard, topi, mug, pin, notebook, gantungan kunci)
 dari beberapa toko/penjual kampus.
 
@@ -63,7 +63,7 @@ PEMBATALAN, RETUR & KOMPLAIN
   "Bukti bayar ditolak" dari halaman detail pesanan.
 - Belum ada fitur retur/refund otomatis. Untuk barang rusak/salah kirim,
   pembeli menghubungi penjual lewat fitur Chat Penjual (sertakan foto dan
-  nomor pesanan) atau admin Merchku Store.
+  nomor pesanan) atau admin Merchku.
 
 ULASAN
 Ulasan & rating bisa diberikan setelah pesanan berstatus Selesai.
@@ -72,7 +72,7 @@ AKUN
 - Penjual membuat akun penjual saat mendaftar (pilih "Penjual"); akun pembeli
   tidak bisa diubah menjadi akun penjual.
 - Ganti password di Akun → Keamanan Akun (saat sudah login). Belum ada fitur
-  lupa password otomatis; hubungi admin Merchku Store.
+  lupa password otomatis; hubungi admin Merchku.
 - Chat dengan penjual: tombol "Chat Penjual" di halaman produk atau toko
   (khusus akun pembeli).
 

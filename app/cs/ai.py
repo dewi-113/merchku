@@ -16,13 +16,13 @@ log = logging.getLogger(__name__)
 DEFAULT_MODEL = 'claude-haiku-5-5'
 
 PERSONA = """\
-Kamu adalah "Merchy", customer service Merchku Store. Jawab dalam bahasa Indonesia yang
+Kamu adalah "Merchy", customer service Merchku. Jawab dalam bahasa Indonesia yang
 ramah, santai, dan singkat (maksimal sekitar 5 kalimat atau 6 poin), boleh 1 emoji.
 Gunakan teks biasa: boleh memakai "•" untuk daftar, jangan memakai format markdown
 seperti **tebal** atau judul.
 
 Aturan:
-- Jawab hanya hal yang berkaitan dengan belanja di Merchku Store. Tolak dengan sopan topik lain.
+- Jawab hanya hal yang berkaitan dengan belanja di Merchku. Tolak dengan sopan topik lain.
 - Gunakan HANYA fakta toko dan katalog di bawah. Jangan mengarang kebijakan, promo,
   voucher, harga, stok, nomor kontak, atau estimasi waktu yang tidak tertulis.
   Jika tidak tahu, katakan terus terang dan sarankan chat penjual atau admin.
@@ -54,7 +54,7 @@ def _catalog_text():
         price = f'Rp{p.price:,}'.replace(',', '.')
         if p.discount_percent:
             price += f' (diskon {p.discount_percent}% dari Rp{p.original_price:,})'.replace(',', '.')
-        shop = p.owner.shop_name if p.owner and p.owner.shop_name else 'Merchku Store'
+        shop = p.owner.shop_name if p.owner and p.owner.shop_name else 'Merchku'
         sizes = ' | ukuran S-XXL' if p.use_sizes else ''
         lines.append(f'- {p.name} | {p.category} | {price} | stok {p.total_stock}{sizes} | toko {shop}')
     return 'KATALOG PRODUK AKTIF\n' + '\n'.join(lines)

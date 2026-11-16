@@ -64,7 +64,7 @@ def test_customer_and_seller_can_exchange_messages():
         assert b"class='chat-shell'" in thread_page.data
         assert b"class='chat-message-row is-mine'" in thread_page.data
         footer_brand = thread_page.data.index(b"class='footer-brand'")
-        footer_copyright = thread_page.data.index(b'&copy; 2026 Merchku Store - PBLRKS321')
+        footer_copyright = thread_page.data.index(b'&copy; 2026 merchku - PBLRKS321')
         assert footer_brand < footer_copyright
         assert b"class='footer-links'" not in thread_page.data
 

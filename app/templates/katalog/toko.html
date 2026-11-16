@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html' %}
 {% from 'partials/product_image.html' import product_image %}
 {% from 'partials/product_card.html' import product_card %}
-{% block title %}{{ seller.shop_name or seller.email.split('@')[0] }} — Merchku Store{% endblock %}
+{% block title %}{{ seller.shop_name or seller.email.split('@')[0] }} — Merchku{% endblock %}
 {% block extra_head %}
 <style>
   .shop-page { max-width: 1120px; }
@@ -54,7 +54,7 @@
       {% endif %}
       <div class='flex-grow-1'>
         <h1 class='shop-name mb-1'>{{ seller.shop_name or seller.email.split('@')[0] }}</h1>
-        <div class='small text-muted'>Official store di Merchku Store</div>
+        <div class='small text-muted'>Official store di Merchku</div>
         {% if seller.shop_description %}
         <div class='small text-muted mt-2' style='white-space:pre-wrap'>{{ seller.shop_description|e }}</div>
         {% else %}
@@ -89,7 +89,7 @@
       <div class='shop-stat'><strong>{{ products|length }}</strong> produk</div>
       <div class='shop-stat'><strong>{{ review_average }}</strong> ★ penilaian toko</div>
       <div class='shop-stat'><strong>{{ review_count }}</strong> ulasan</div>
-      <div class='shop-stat'>Bergabung {{ seller.created_at.strftime('%b %Y') if seller.created_at else 'di Merchku Store' }}</div>
+      <div class='shop-stat'>Bergabung {{ seller.created_at.strftime('%b %Y') if seller.created_at else 'di Merchku' }}</div>
     </div>
   </section>
 

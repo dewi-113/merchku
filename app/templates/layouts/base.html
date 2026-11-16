@@ -5,7 +5,7 @@
   <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content'>
   <meta name='theme-color' content='#f6f4ef'>
   <meta name='csrf-token' content='{{ csrf_token() }}'>
-  <title>{% block title %}Merchku Store{% endblock %}</title>
+  <title>{% block title %}Merchku{% endblock %}</title>
   <link rel='icon' type='image/png' href='{{ url_for("core.logo") }}'>
   <link rel='manifest' href='{{ url_for("static", filename="manifest.webmanifest") }}'>
   <link rel='apple-touch-icon' href='{{ url_for("static", filename="icons/merchku-192.png") }}'>
@@ -703,9 +703,9 @@
 <nav class='glass-navbar' id='glassNav'>
   <div class='container'>
     {# Brand #}
-    <a class='navbar-brand-logo' href='{{ url_for("core.landing") }}' aria-label='Merchku Store beranda'>
-      <img class='brand-logo' src='{{ url_for("core.logo") }}' alt='Merchku Store'>
-      <span class='brand-text'>Merchku Store</span>
+    <a class='navbar-brand-logo' href='{{ url_for("core.landing") }}' aria-label='Merchku beranda'>
+      <img class='brand-logo' src='{{ url_for("core.logo") }}' alt='Merchku'>
+      <span class='brand-text'>Merchku</span>
     </a>
 
     {# Pencarian (dipakai di desktop & HP) #}
@@ -859,11 +859,11 @@
 <footer class='site-footer'>
   <div class='footer-card'>
     <div class='footer-brand'>
-      <img class='footer-logo' src='{{ url_for("core.logo") }}' alt='Merchku Store'>
+      <img class='footer-logo' src='{{ url_for("core.logo") }}' alt='Merchku'>
       <div class='footer-text'>
-        <span class='f-name'>Merchku Store</span>
+        <span class='f-name'>merchku</span>
         <span class='f-sub'>Kampus &amp; komunitas merchandise</span>
-        <span class='f-copy'>&copy; 2026 Merchku Store - PBLRKS321</span>
+        <span class='f-copy'>&copy; 2026 merchku - PBLRKS321</span>
       </div>
     </div>
 

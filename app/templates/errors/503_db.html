@@ -3,7 +3,7 @@
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
-  <title>Database belum menyala — Merchku Store</title>
+  <title>Database belum menyala — Merchku</title>
   {# Sengaja tidak extends base.html: layout utama butuh database untuk navbar/keranjang #}
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box;
@@ -20,7 +20,7 @@
   <main class='box'>
     <span class='code'>503</span>
     <h1>Database MySQL belum menyala</h1>
-    <p>Merchku Store tidak bisa terhubung ke database. Biasanya karena service MySQL belum berjalan setelah komputer dinyalakan.</p>
+    <p>Merchku tidak bisa terhubung ke database. Biasanya karena service MySQL belum berjalan setelah komputer dinyalakan.</p>
     {% if config.DEBUG %}
     <p>Jalankan di PowerShell (sebagai Administrator):</p>
     <pre>Start-Service MySQL84</pre>
