@@ -257,14 +257,12 @@ def test_qris_demo_shows_reference_without_claiming_real_qris_payment():
         detail = client.get(f'/pesanan/{order_id}')
         assert detail.status_code == 200
         assert b'MERCHKU-QRIS-000001' in detail.data
-        assert b'MODE DEMO' in detail.data
-        assert b'<svg' in detail.data
+        assert b'images/qris-demo.png' in detail.data
         assert b'tidak dapat dipindai' in detail.data
 
         payment = client.get(f'/pesanan/{order_id}/upload-bukti')
         assert payment.status_code == 200
-        assert b'MODE DEMO' in payment.data
-        assert b'<svg' in payment.data
+        assert b'images/qris-demo.png' in payment.data
 
     with app.app_context():
         order = db.session.get(Order, order_id)

@@ -1,13 +1,12 @@
 """Data pembayaran DEMO untuk metode QRIS dan transfer bank (konfirmasi manual).
 
 Semua informasi di sini fiktif dan hanya untuk demonstrasi aplikasi:
-- QRIS: gambar berpola mirip QR, TIDAK bisa dipindai dan tidak berisi payload QRIS.
+- QRIS: kartu app/static/images/qris-demo.png (dibuat scripts/buat_qris_demo.py);
+  pola QR-nya TIDAK bisa dipindai dan tidak berisi payload QRIS.
 - Transfer: "Bank Demo Merchku" dengan kode bank 999 (tidak dipakai bank mana pun)
   dan nomor Virtual Account yang diturunkan dari nomor pesanan.
 """
 import hashlib
-
-from markupsafe import Markup
 
 DEMO_BANK_NAME = 'Bank Demo Merchku'
 DEMO_BANK_CODE = '999'
@@ -44,16 +43,23 @@ def _reserved(r, c, n):
     return (r < 8 and c < 8) or (r < 8 and c >= n - 8) or (r >= n - 8 and c < 8)
 
 
-def demo_qris_svg(order, size_px=200):
-    """SVG berpola QR yang konsisten per pesanan, tetapi tidak dapat dipindai."""
-    n = _QR_SIZE
+def demo_qr_matrix(seed_text, n=_QR_SIZE):
+    """Matriks n x n berpola QR (finder + timing + modul acak dari seed).
+
+    Pola selalu sama untuk seed yang sama, tetapi bukan kode QR yang valid.
+    """
     cells = [[False] * n for _ in range(n)]
     _finder(cells, 0, 0)
     _finder(cells, 0, n - 7)
     _finder(cells, n - 7, 0)
 
-    seed = hashlib.sha256(f'merchku-demo-qris-{order.id}-{order.total_price}'.encode()).digest()
-    bits = ''.join(f'{b:08b}' for b in (seed * ((n * n) // (len(seed) * 8) + 1)))
+    # bit acak deterministik: sha256(seed + nomor blok), tidak berulang
+    bits = ''
+    block = 0
+    while len(bits) < n * n:
+        digest = hashlib.sha256(f'{seed_text}:{block}'.encode()).digest()
+        bits += ''.join(f'{b:08b}' for b in digest)
+        block += 1
     i = 0
     for r in range(n):
         for c in range(n):
@@ -64,21 +70,7 @@ def demo_qris_svg(order, size_px=200):
     # pola "timing" seperti QR asli
     for k in range(8, n - 8):
         cells[6][k] = cells[k][6] = k % 2 == 0
-
-    quiet = 2
-    total = n + quiet * 2
-    rects = ''.join(
-        f'<rect x="{c + quiet}" y="{r + quiet}" width="1" height="1"/>'
-        for r in range(n) for c in range(n) if cells[r][c]
-    )
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total} {total}" '
-        f'width="{size_px}" height="{size_px}" shape-rendering="crispEdges" '
-        f'role="img" aria-label="QRIS demo, tidak dapat dipindai">'
-        f'<rect width="{total}" height="{total}" fill="#fff"/>'
-        f'<g fill="#111827">{rects}</g></svg>'
-    )
-    return Markup(svg)
+    return cells
 
 
 def demo_payment_context(order):
@@ -89,5 +81,4 @@ def demo_payment_context(order):
         'account_holder': DEMO_ACCOUNT_HOLDER,
         'va_number': format_va(demo_va_number(order)),
         'qris_reference': demo_qris_reference(order),
-        'qris_svg': demo_qris_svg(order),
     }
