@@ -26,6 +26,17 @@ def register_security_headers(app):
                 'Strict-Transport-Security',
                 f"max-age={app.config['HSTS_MAX_AGE']}; includeSubDomains",
             )
+        # Halaman pribadi jangan disimpan di cache (tombol Back setelah logout
+        # di komputer bersama tidak boleh menampilkan data akun)
+        from flask_login import current_user
+        if (
+            'Cache-Control' not in resp.headers
+            and resp.mimetype == 'text/html'
+            and current_user
+            and current_user.is_authenticated
+        ):
+            resp.headers['Cache-Control'] = 'no-store'
+            resp.headers['Pragma'] = 'no-cache'
         # Jangan beri tahu versi server ke penyerang
         resp.headers.pop('Server', None)
         return resp

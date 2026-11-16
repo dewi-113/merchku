@@ -1,3 +1,4 @@
+import hashlib
 from datetime import UTC, datetime
 
 from flask_login import UserMixin
@@ -33,6 +34,14 @@ class User(UserMixin, db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
+
+    def session_fingerprint(self):
+        """Sidik jari dari hash password. Berubah saat password diganti, sehingga
+        semua sesi & cookie "ingat saya" lama otomatis tidak berlaku."""
+        return hashlib.sha256((self.password_hash or '').encode()).hexdigest()[:16]
+
+    def get_id(self):
+        return f'{self.id}:{self.session_fingerprint()}'
 
     @property
     def is_seller(self):

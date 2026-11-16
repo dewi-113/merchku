@@ -36,7 +36,7 @@ class LoginForm(FlaskForm):
         filters=[normalize_email],
         validators=[DataRequired(), email_field()],
     )
-    password = PasswordField('Password', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(max=128)])
     remember = BooleanField('Ingat saya')
     submit = SubmitField('Masuk')
 
@@ -49,8 +49,8 @@ class RegisterForm(FlaskForm):
     )
     password = PasswordField(
         'Password',
-        validators=[DataRequired(), Length(min=10)],
-        render_kw={'minlength': 10},
+        validators=[DataRequired(), Length(min=10, max=128)],
+        render_kw={'minlength': 10, 'maxlength': 128},
     )
     password2 = PasswordField('Konfirmasi', validators=[DataRequired(), EqualTo('password')])
     role = RadioField(

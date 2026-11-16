@@ -11,7 +11,7 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
 
 from app import db, limiter
 from app.auth.security import hash_password, verify_password
@@ -119,10 +119,14 @@ def ganti_password():
         flash('Password lama salah.', 'danger')
         return _render_security_form(pw_form, 400)
 
-    current_user.password_hash = hash_password(pw_form.password_baru.data)
+    user = current_user._get_current_object()
+    user.password_hash = hash_password(pw_form.password_baru.data)
     db.session.commit()
+    # Sidik jari sesi berubah: login ulang di perangkat ini saja,
+    # sesi di perangkat lain otomatis tidak berlaku lagi.
+    login_user(user)
     _log('password_changed', success=True)
-    flash('Password berhasil diubah.', 'success')
+    flash('Password berhasil diubah. Sesi di perangkat lain sudah dikeluarkan.', 'success')
     return redirect(url_for('profil.index'))
 
 

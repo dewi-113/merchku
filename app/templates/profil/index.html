@@ -165,7 +165,7 @@
             <a class='btn btn-light profile-shortcut' href='{{ url_for("profil.keamanan") }}'>
               <span>Keamanan Akun</span><span aria-hidden='true'>›</span>
             </a>
-            <a class='btn btn-outline-danger profile-shortcut profile-logout' href='{{ url_for("auth.logout") }}'>
+            <a class='btn btn-outline-danger profile-shortcut profile-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>
               <span>Keluar</span><span aria-hidden='true'>›</span>
             </a>
           </nav>

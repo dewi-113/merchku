@@ -53,7 +53,7 @@ def test_profil_200_setelah_login():
         c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
         home = c.get('/')
         assert b"href='/profil/' aria-label='Buka profil saya'" in home.data
-        assert b"class='btn-nav-logout' href='/auth/logout'" in home.data
+        assert b"class='btn-nav-logout' href='/auth/logout?token=" in home.data
         r = c.get('/profil/')
         assert r.status_code == 200
         assert b'profile-account-banner' in r.data

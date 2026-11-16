@@ -78,7 +78,11 @@ def index():
         .all()
     )
     # Hitung total di server
-    total = sum(item.product.price * item.quantity for item in items if item.product)
+    total = sum(
+        item.product.price * item.quantity
+        for item in items
+        if item.product and item.product.is_active
+    )
     return render_template('keranjang/index.html', items=items, total=total)
 
 

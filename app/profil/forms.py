@@ -62,7 +62,7 @@ class GantiPasswordForm(FlaskForm):
         'Password Baru',
         validators=[
             DataRequired(message='Password baru wajib diisi.'),
-            Length(min=10, message='Password minimal 10 karakter.'),
+            Length(min=10, max=128, message='Password 10-128 karakter.'),
         ],
     )
     password_baru2 = PasswordField(

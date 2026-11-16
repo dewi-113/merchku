@@ -29,16 +29,28 @@ def client_ip_key():
 
 limiter = Limiter(key_func=client_ip_key)
 login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Silakan masuk terlebih dahulu.'
+login_manager.login_message_category = 'warning'
+login_manager.session_protection = 'basic'
 
 
 @login_manager.user_loader
 def load_user(user_id):
+    import hmac
+
     from app.auth.models import User
 
     try:
-        return db.session.get(User, int(user_id))
+        uid, _, fingerprint = str(user_id).partition(':')
+        user = db.session.get(User, int(uid))
     except Exception:
         return None
+    if user is None or not user.is_active:
+        return None
+    # Sesi dari sebelum password diganti (atau format lama) tidak berlaku lagi
+    if not hmac.compare_digest(fingerprint, user.session_fingerprint()):
+        return None
+    return user
 
 
 def _cek_koneksi_mysql(app):

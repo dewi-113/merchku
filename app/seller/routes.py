@@ -30,7 +30,12 @@ from app.katalog.models import (
     delete_or_archive_product,
 )
 from app.katalog.review_model import Review
-from app.pesanan.models import Order, OrderItem
+from app.pesanan.models import (
+    STOCK_RESERVED_STATUSES,
+    Order,
+    OrderItem,
+    restore_reserved_stock,
+)
 from app.security_logger import sec_log
 
 bp = Blueprint('seller', __name__, url_prefix='/seller')
@@ -350,6 +355,8 @@ def pesanan_ubah_status(order_id):
         return redirect(url_for('seller.pesanan_detail', order_id=order_id))
 
     old_status = order.status
+    if new_status == 'dibatalkan' and old_status in STOCK_RESERVED_STATUSES:
+        restore_reserved_stock(order)
     order.status = new_status
     db.session.commit()
     _log('order_status_changed', order_id=order_id, old_status=old_status,

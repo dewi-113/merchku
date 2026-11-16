@@ -772,7 +772,7 @@
           <span class='d-none d-md-inline'>{{ current_user.email.split('@')[0] }}</span>
           <span class='account-link-arrow' aria-hidden='true'>↗</span>
       </a>
-      <a class='btn-nav-logout' href='{{ url_for("auth.logout") }}'>Keluar</a>
+      <a class='btn-nav-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>Keluar</a>
       {% else %}
       <a class='btn-nav-login' href='{{ url_for("auth.login") }}'>Masuk</a>
       <a class='btn-nav-register' href='{{ url_for("auth.register") }}'>Daftar</a>
@@ -825,7 +825,7 @@
   {% endif %}
   <div class='divider'></div>
   <a href='{{ url_for("profil.index") }}'>Profil Saya</a>
-  <a href='{{ url_for("auth.logout") }}' style='color:#ef4444'>Keluar</a>
+  <a href='{{ url_for("auth.logout", token=csrf_token()) }}' style='color:#ef4444'>Keluar</a>
   {% else %}
   <div class='divider'></div>
   <a href='{{ url_for("auth.login") }}'>Masuk</a>

@@ -7,9 +7,12 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_user, logout_user
+from flask_wtf.csrf import CSRFError, validate_csrf
+from wtforms import ValidationError
 
 from app import client_ip_key, db, limiter
 from app.auth.forms import LoginForm, RegisterForm
@@ -19,6 +22,17 @@ from app.core.utils import get_client_ip
 from app.security_logger import sec_log
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# Hash palsu untuk menyamakan waktu respon login saat email tidak terdaftar,
+# supaya penyerang tidak bisa menebak email terdaftar dari lamanya respon.
+_DUMMY_HASH = None
+
+
+def _dummy_verify(password):
+    global _DUMMY_HASH
+    if _DUMMY_HASH is None:
+        _DUMMY_HASH = hash_password('dummy-password-untuk-timing')
+    verify_password(_DUMMY_HASH, password or '')
 
 
 def get_ip():
@@ -60,6 +74,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         ip = get_ip()
         if not user:
+            _dummy_verify(form.password.data)
             sec_log(event='login_failed', ip=ip, email=email, path='/auth/login', method='POST')
             flash('Email atau password salah.', 'danger')
             return render_template('auth/login.html', form=form, next_url=next_url)
@@ -88,6 +103,7 @@ def login():
         user.locked_until = None
         user.last_login_at = _utcnow()
         db.session.commit()
+        session.clear()  # buang isi sesi lama (cegah session fixation)
         login_user(user, remember=form.remember.data)
         sec_log(event='login_success', ip=ip, user_id=user.id, email=user.email, role=user.role)
         if next_url:
@@ -98,9 +114,16 @@ def login():
 
 @bp.route('/logout')
 def logout():
+    # Logout wajib membawa token CSRF agar situs lain tidak bisa memaksa logout
+    try:
+        validate_csrf(request.args.get('token', ''))
+    except (ValidationError, CSRFError):
+        if current_app.config.get('WTF_CSRF_ENABLED', True):
+            return redirect(url_for('katalog.index'))
     if current_user.is_authenticated:
         sec_log(event='logout', ip=get_ip(), user_id=current_user.id, email=current_user.email, role=current_user.role)
         logout_user()
+    session.clear()
     return redirect(url_for('auth.login'))
 
 
