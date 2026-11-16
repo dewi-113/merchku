@@ -21,7 +21,6 @@ BLUE = '#2451d6'
 BLUE_DARK = '#1a3fb0'
 INK = '#14161c'
 MUTED = '#6b6f7a'
-PAGE = '#f6f4ef'
 LINE = '#e6e2d8'
 
 W, H = 720, 1040
@@ -72,7 +71,7 @@ def logo_tile(size):
 
 
 def main():
-    img = Image.new('RGB', (s(W), s(H)), PAGE)
+    img = Image.new('RGBA', (s(W), s(H)), (0, 0, 0, 0))  # latar transparan
     d = ImageDraw.Draw(img)
 
     # kartu
