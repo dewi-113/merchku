@@ -70,6 +70,22 @@ def _seller_only():
     pass
 
 
+@bp.context_processor
+def _panel_badge():
+    """Jumlah pesanan yang perlu tindakan penjual (badge di sidebar)."""
+    if not current_user.is_authenticated:
+        return {}
+    q = (
+        db.session.query(func.count(func.distinct(Order.id)))
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .join(Product, Product.id == OrderItem.product_id)
+        .filter(Order.status.in_(['menunggu_verifikasi', 'dibayar']))
+    )
+    if current_user.role != 'admin':
+        q = q.filter(Product.owner_id == current_user.id)
+    return {'panel_badge': int(q.scalar() or 0)}
+
+
 def _own_product_or_404(pid):
     """Ambil produk milik penjual ini. Admin boleh akses semua."""
     p = db.session.get(Product, pid)

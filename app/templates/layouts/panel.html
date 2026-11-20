@@ -1,0 +1,71 @@
+{% extends 'layouts/base.html' %}
+{#
+  Layout panel penjual & admin: sidebar kiri + area konten.
+  Template turunan mengisi {% block panel_content %}.
+#}
+{% block extra_head %}
+<link href='{{ url_for("static", filename="css/panel.css") }}?v=2' rel='stylesheet'>
+{% endblock %}
+
+{% from 'partials/_panel_icons.html' import icon %}
+
+{% block content %}
+{% set ep = request.endpoint or '' %}
+{% set is_admin_panel = request.blueprint == 'admin' %}
+{% if is_admin_panel %}
+  {% set menu = [
+    ('admin.dashboard', 'Dashboard', 'home', ['admin.dashboard'], 0),
+    ('admin.produk_list', 'Produk', 'box', ['admin.produk_list', 'admin.produk_create', 'admin.produk_edit'], 0),
+    ('admin.user_list', 'Pengguna', 'users', ['admin.user_list', 'admin.user_role'], 0),
+    ('admin.pesanan_list', 'Pesanan', 'bag', ['admin.pesanan_list', 'admin.pesanan_detail'], panel_badge or 0),
+    ('admin.laporan', 'Laporan', 'chart', ['admin.laporan'], 0),
+  ] %}
+{% else %}
+  {% set menu = [
+    ('seller.dashboard', 'Dashboard', 'home', ['seller.dashboard'], 0),
+    ('seller.produk_list', 'Produk Saya', 'box', ['seller.produk_list', 'seller.produk_edit', 'seller.produk_ulasan'], 0),
+    ('seller.produk_create', 'Tambah Produk', 'plus', ['seller.produk_create'], 0),
+    ('seller.pesanan_list', 'Pesanan Masuk', 'bag', ['seller.pesanan_list', 'seller.pesanan_detail'], panel_badge or 0),
+    ('seller.shop_profile', 'Profil Toko', 'store', ['seller.shop_profile'], 0),
+  ] %}
+{% endif %}
+{% set shop_label = current_user.shop_name or current_user.email.split('@')[0] %}
+
+<div class='pn-shell'>
+  <aside class='pn-sidebar' aria-label='{{ "Menu admin" if is_admin_panel else "Menu toko" }}'>
+    <div class='pn-identity'>
+      <span class='pn-avatar {{ "is-admin" if is_admin_panel else "" }}'>{{ ('A' if is_admin_panel else shop_label[0])|upper }}</span>
+      <span class='pn-identity-text'>
+        <span class='pn-identity-name'>{{ 'Panel Admin' if is_admin_panel else shop_label }}</span>
+        <span class='pn-identity-sub'>{{ current_user.email if is_admin_panel else 'Pusat Penjual' }}</span>
+      </span>
+    </div>
+
+    <nav class='pn-nav'>
+      <span class='pn-nav-label'>Menu</span>
+      {% for endpoint, label, ic, actives, badge in menu %}
+      <a class='pn-link {{ "is-active" if ep in actives else "" }}' href='{{ url_for(endpoint) }}'{% if ep in actives %} aria-current='page'{% endif %}>
+        {{ icon(ic) }}<span>{{ label }}</span>
+        {% if badge %}<span class='pn-badge' title='Perlu tindakan'>{{ badge }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </nav>
+
+    {% if not is_admin_panel %}
+    <a class='pn-shop-cta' href='{{ url_for("katalog.toko_public", seller_id=current_user.id) }}'>
+      {{ icon('eye') }}
+      <span><strong>Lihat toko saya</strong><small>Tampilan yang dilihat pembeli</small></span>
+    </a>
+    {% else %}
+    <a class='pn-shop-cta' href='{{ url_for("core.landing") }}'>
+      {{ icon('eye') }}
+      <span><strong>Lihat website</strong><small>Halaman utama Merchku</small></span>
+    </a>
+    {% endif %}
+  </aside>
+
+  <section class='pn-main'>
+    {% block panel_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

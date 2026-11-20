@@ -1,38 +1,83 @@
-﻿{% extends 'layouts/base.html' %}
-{% block content %}
-<div class='container mt-4'>
-  <h3>Admin - Dashboard</h3>
-  <div class='row g-3'>
-    <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Pengguna</h5><p class='display-6'>{{ stats.users }}</p></div></div></div>
-    <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Produk</h5><p class='display-6'>{{ stats.products }}</p></div></div></div>
-    <div class='col-md-4'><div class='card'><div class='card-body'><h5 class='card-title'>Total Pesanan</h5><p class='display-6'>{{ stats.orders }}</p></div></div></div>
-    <div class='col-md-4'><div class='card border-warning'><div class='card-body'><h5 class='card-title'>Menunggu Verifikasi</h5><p class='display-6'>{{ stats.pending_verification }}</p><a href='{{ url_for("admin.pesanan_list", status="menunggu_verifikasi") }}'>Periksa pembayaran</a></div></div></div>
-    <div class='col-md-4'><div class='card border-success'><div class='card-body'><h5 class='card-title'>Omzet Terkonfirmasi</h5><p class='fs-4'>Rp {{ '{:,}'.format(stats.revenue).replace(',', '.') }}</p></div></div></div>
+{% extends 'layouts/panel.html' %}
+{% from 'partials/_panel_icons.html' import icon %}
+{% block title %}Dashboard Admin — Merchku{% endblock %}
+{% macro rupiah(v) %}Rp {{ '{:,}'.format(v or 0).replace(',', '.') }}{% endmacro %}
+{% block panel_content %}
+<div class='pn-hero'>
+  <div>
+    <h1 class='pn-title'>Admin - Dashboard</h1>
+    <p>Pantau pengguna, produk, dan transaksi Merchku.</p>
   </div>
-  <div class='mt-3'>
+  <div class='pn-hero-actions'>
     <a class='btn btn-primary' href='{{ url_for("admin.produk_list") }}'>Kelola Produk</a>
-    <a class='btn btn-outline-primary' href='{{ url_for("admin.user_list") }}'>Kelola Pengguna</a>
-    <a class='btn btn-outline-info' href='{{ url_for("admin.laporan") }}'>Laporan Transaksi</a>
+    <a class='btn btn-outline-primary' href='{{ url_for("admin.laporan") }}'>Laporan Transaksi</a>
   </div>
-  <h5 class='mt-4'>Pesanan Terbaru</h5>
+</div>
+
+{% if stats.pending_verification %}
+<div class='pn-alert' role='status'>
+  <strong>⚡ Perlu tindakan</strong>
+  <span><strong>{{ stats.pending_verification }}</strong> pembayaran menunggu verifikasi</span>
+  <a href='{{ url_for("admin.pesanan_list", status="menunggu_verifikasi") }}'>Periksa pembayaran →</a>
+</div>
+{% endif %}
+
+<div class='pn-stats'>
+  <a class='pn-stat tone-violet' href='{{ url_for("admin.user_list") }}'>
+    <span class='pn-stat-icon'>{{ icon('users') }}</span>
+    <span class='pn-stat-label'>Pengguna</span>
+    <span class='pn-stat-value'>{{ stats.users }}</span>
+    <span class='pn-stat-sub'>akun terdaftar</span>
+  </a>
+  <a class='pn-stat tone-rose' href='{{ url_for("admin.produk_list") }}'>
+    <span class='pn-stat-icon'>{{ icon('box') }}</span>
+    <span class='pn-stat-label'>Produk</span>
+    <span class='pn-stat-value'>{{ stats.products }}</span>
+    <span class='pn-stat-sub'>dari semua toko</span>
+  </a>
+  <a class='pn-stat tone-blue' href='{{ url_for("admin.pesanan_list") }}'>
+    <span class='pn-stat-icon'>{{ icon('bag') }}</span>
+    <span class='pn-stat-label'>Total Pesanan</span>
+    <span class='pn-stat-value'>{{ stats.orders }}</span>
+    <span class='pn-stat-sub'>semua status</span>
+  </a>
+  <a class='pn-stat tone-amber' href='{{ url_for("admin.pesanan_list", status="menunggu_verifikasi") }}'>
+    <span class='pn-stat-icon'>{{ icon('star') }}</span>
+    <span class='pn-stat-label'>Menunggu Verifikasi</span>
+    <span class='pn-stat-value'>{{ stats.pending_verification }}</span>
+    <span class='pn-stat-sub'>Periksa pembayaran</span>
+  </a>
+  <a class='pn-stat tone-green' href='{{ url_for("admin.laporan") }}'>
+    <span class='pn-stat-icon'>{{ icon('chart') }}</span>
+    <span class='pn-stat-label'>Omzet Terkonfirmasi</span>
+    <span class='pn-stat-value'>{{ rupiah(stats.revenue) }}</span>
+    <span class='pn-stat-sub'>pesanan sudah dibayar</span>
+  </a>
+</div>
+
+<section class='pn-panel'>
+  <div class='pn-panel-head'>
+    <h2>Pesanan Terbaru</h2>
+    <a href='{{ url_for("admin.pesanan_list") }}'>Lihat semua →</a>
+  </div>
   <div class='table-responsive'>
     <table class='table align-middle'>
       <thead><tr><th>#</th><th>Customer</th><th>Tanggal</th><th>Total</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for order in recent_orders %}
         <tr>
-          <td>{{ order.id }}</td>
+          <td class='fw-semibold'>#{{ order.id }}</td>
           <td>{{ order.user.email if order.user else '-' }}</td>
           <td>{{ order.created_at.strftime('%d %b %Y') }}</td>
-          <td>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</td>
-          <td>{{ order.display_status.replace('_', ' ') }}</td>
-          <td><a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.pesanan_detail", order_id=order.id) }}'>Detail</a></td>
+          <td>{{ rupiah(order.total_price) }}</td>
+          <td><span class='pn-status s-{{ order.display_status }}'>{{ order.display_status.replace('_', ' ') }}</span></td>
+          <td class='text-end'><a class='btn btn-sm btn-outline-primary' href='{{ url_for("admin.pesanan_detail", order_id=order.id) }}'>Detail</a></td>
         </tr>
         {% else %}
-        <tr><td colspan='6' class='text-center text-muted'>Belum ada pesanan.</td></tr>
+        <tr><td colspan='6' class='pn-empty'>Belum ada pesanan.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-</div>
+</section>
 {% endblock %}

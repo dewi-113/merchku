@@ -72,7 +72,8 @@ def test_dashboard_tampilkan_performa_toko():
         c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
         r = c.get('/seller/')
         assert r.status_code == 200
-        assert b'Performa Toko' in r.data
+        assert b'Pendapatan' in r.data
+        assert b'Produk Terlaris' in r.data
         assert b'Rp 18.000' in r.data
         assert b'Stiker' in r.data
 

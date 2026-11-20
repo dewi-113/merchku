@@ -1,5 +1,5 @@
-﻿{% extends 'layouts/base.html' %}
-{% block content %}
+{% extends 'layouts/panel.html' %}
+{% block panel_content %}
 <div class='container mt-4' style='max-width:720px'>
   <h3>{{ 'Edit' if product else 'Produk Baru' }}</h3>
   <form method='post' enctype='multipart/form-data' novalidate data-validate>

@@ -1,6 +1,6 @@
-{% extends 'layouts/base.html' %}
+{% extends 'layouts/panel.html' %}
 {% block title %}{{ 'Edit' if product else 'Produk Baru' }} — Merchku{% endblock %}
-{% block content %}
+{% block panel_content %}
 <div class='container mt-4' style='max-width:720px'>
   <h3>{{ 'Edit Produk' if product else 'Produk Baru' }}</h3>
   <form method='post' enctype='multipart/form-data' novalidate data-validate>

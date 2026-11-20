@@ -65,6 +65,12 @@ def _admin_only():
     pass
 
 
+@bp.context_processor
+def _panel_badge():
+    """Jumlah pembayaran yang menunggu verifikasi (badge di sidebar)."""
+    return {'panel_badge': Order.query.filter_by(status='menunggu_verifikasi').count()}
+
+
 @bp.route('/')
 def dashboard():
     stats = {

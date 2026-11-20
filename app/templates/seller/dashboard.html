@@ -1,106 +1,112 @@
-{% extends 'layouts/base.html' %}
+{% extends 'layouts/panel.html' %}
+{% from 'partials/_panel_icons.html' import icon %}
 {% block title %}Dashboard Penjual — Merchku{% endblock %}
-{% block content %}
-<div class='container mt-4'>
-  <h3>Dashboard Penjual</h3>
-  <div class='row g-3'>
-    <div class='col-md-4'>
-      <div class='card'><div class='card-body'>
-        <h6 class='text-muted'>Produk Saya</h6>
-        <p class='display-6'>{{ stats.products }}</p>
-      </div></div>
-    </div>
-    <div class='col-md-4'>
-      <div class='card'><div class='card-body'>
-        <h6 class='text-muted'>Produk Aktif</h6>
-        <p class='display-6'>{{ stats.active }}</p>
-      </div></div>
-    </div>
-    <div class='col-md-4'>
-      <div class='card'><div class='card-body'>
-        <h6 class='text-muted'>Barang Terjual</h6>
-        <p class='display-6'>{{ stats.sold }}</p>
-      </div></div>
-    </div>
+{% macro rupiah(v) %}Rp {{ '{:,}'.format(v or 0).replace(',', '.') }}{% endmacro %}
+{% block panel_content %}
+<div class='pn-hero'>
+  <div>
+    <h1 class='pn-title'>Halo, {{ current_user.shop_name or current_user.email.split('@')[0] }} 👋</h1>
+    <p>Ringkasan performa toko kamu hari ini.</p>
   </div>
-  {% macro rupiah(v) %}Rp {{ '{:,}'.format(v).replace(',', '.') }}{% endmacro %}
-  <h5 class='mt-4'>Performa Toko</h5>
-  <div class='row g-3'>
-    <div class='col-6 col-md-3'>
-      <div class='card h-100'><div class='card-body'>
-        <h6 class='text-muted'>Pendapatan</h6>
-        <p class='fs-4 fw-bold mb-0'>{{ rupiah(perf.revenue) }}</p>
-        <small class='text-muted'>dari pesanan dibayar s.d. selesai</small>
-      </div></div>
-    </div>
-    <div class='col-6 col-md-3'>
-      <div class='card h-100'><div class='card-body'>
-        <h6 class='text-muted'>Pesanan</h6>
-        <p class='fs-4 fw-bold mb-0'>{{ perf.orders_total }}</p>
-        <small class='text-muted'>{{ perf.orders_completed }} selesai ({{ perf.completion_rate }}%)</small>
-      </div></div>
-    </div>
-    <div class='col-6 col-md-3'>
-      <div class='card h-100'><div class='card-body'>
-        <h6 class='text-muted'>Rating Toko</h6>
-        <p class='fs-4 fw-bold mb-0'>{% if perf.rating %}&#9733; {{ perf.rating }}{% else %}-{% endif %}</p>
-        <small class='text-muted'>{{ perf.rating_count }} ulasan</small>
-      </div></div>
-    </div>
-    <div class='col-6 col-md-3'>
-      <div class='card h-100'><div class='card-body'>
-        <h6 class='text-muted'>Pengikut</h6>
-        <p class='fs-4 fw-bold mb-0'>{{ perf.followers }}</p>
-        <small class='text-muted'>pembeli mengikuti toko</small>
-      </div></div>
-    </div>
-  </div>
-
-  {% if perf.to_verify or perf.to_ship %}
-  <div class='alert alert-warning mt-3 mb-0'>
-    Perlu tindakan:
-    {% if perf.to_verify %}<strong>{{ perf.to_verify }}</strong> pesanan menunggu verifikasi pembayaran{% endif %}{% if perf.to_verify and perf.to_ship %}, {% endif %}
-    {% if perf.to_ship %}<strong>{{ perf.to_ship }}</strong> pesanan siap dikirim{% endif %}.
-    <a href='{{ url_for("seller.pesanan_list") }}'>Lihat pesanan</a>
-  </div>
-  {% endif %}
-
-  <h6 class='mt-3'>Produk Terlaris</h6>
-  <table class='table table-sm align-middle'>
-    <thead><tr><th>Produk</th><th class='text-end'>Terjual</th><th class='text-end'>Pendapatan</th></tr></thead>
-    <tbody>
-    {% for p in perf.top_products %}
-      <tr><td>{{ p.name }}</td><td class='text-end'>{{ p.sold }}</td><td class='text-end'>{{ rupiah(p.revenue) }}</td></tr>
-    {% else %}
-      <tr><td colspan='3' class='text-center text-muted'>Belum ada produk terjual</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-
-  <div class='mt-3'>
-    <a class='btn btn-success' href='{{ url_for("seller.produk_create") }}'>+ Produk Baru</a>
-    <a class='btn btn-primary' href='{{ url_for("seller.produk_list") }}'>Kelola Produk</a>
+  <div class='pn-hero-actions'>
+    <a class='btn btn-primary' href='{{ url_for("seller.produk_create") }}'>+ Produk Baru</a>
     <a class='btn btn-outline-primary' href='{{ url_for("seller.pesanan_list") }}'>Pesanan Masuk</a>
-    <a class='btn btn-outline-secondary' href='{{ url_for("seller.shop_profile") }}'>Profil Toko</a>
   </div>
+</div>
 
-  <h5 class='mt-4'>Produk Terbaru</h5>
-  <table class='table table-striped align-middle'>
-    <thead><tr><th>#</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Aktif</th></tr></thead>
-    <tbody>
-    {% for p in recent %}
-      <tr>
-        <td>{{ p.id }}</td>
-        <td>{{ p.name }}</td>
-        <td>{{ p.category }}</td>
-        <td>Rp {{ '{:,}'.format(p.price).replace(',', '.') }}</td>
-        <td>{{ p.total_stock }}</td>
-        <td>{{ 'aktif' if p.is_active else 'nonaktif' }}</td>
-      </tr>
+{% if perf.to_verify or perf.to_ship %}
+<div class='pn-alert' role='status'>
+  <strong>⚡ Perlu tindakan</strong>
+  <span>
+    {% if perf.to_verify %}<strong>{{ perf.to_verify }}</strong> pesanan menunggu konfirmasi pembayaran{% endif %}{% if perf.to_verify and perf.to_ship %} · {% endif %}
+    {% if perf.to_ship %}<strong>{{ perf.to_ship }}</strong> pesanan siap dikirim{% endif %}
+  </span>
+  <a href='{{ url_for("seller.pesanan_list") }}'>Proses sekarang →</a>
+</div>
+{% endif %}
+
+<div class='pn-stats'>
+  <div class='pn-stat tone-green'>
+    <span class='pn-stat-icon'>{{ icon('chart') }}</span>
+    <span class='pn-stat-label'>Pendapatan</span>
+    <span class='pn-stat-value'>{{ rupiah(perf.revenue) }}</span>
+    <span class='pn-stat-sub'>pesanan dibayar s.d. selesai</span>
+  </div>
+  <a class='pn-stat tone-blue' href='{{ url_for("seller.pesanan_list") }}'>
+    <span class='pn-stat-icon'>{{ icon('bag') }}</span>
+    <span class='pn-stat-label'>Pesanan</span>
+    <span class='pn-stat-value'>{{ perf.orders_total }}</span>
+    <span class='pn-stat-sub'>{{ perf.orders_completed }} selesai · {{ perf.completion_rate }}%</span>
+  </a>
+  <div class='pn-stat tone-amber'>
+    <span class='pn-stat-icon'>{{ icon('star') }}</span>
+    <span class='pn-stat-label'>Rating Toko</span>
+    <span class='pn-stat-value'>{% if perf.rating %}{{ perf.rating }} <small class='fs-6'>/ 5</small>{% else %}–{% endif %}</span>
+    <span class='pn-stat-sub'>{{ perf.rating_count }} ulasan</span>
+  </div>
+  <div class='pn-stat tone-violet'>
+    <span class='pn-stat-icon'>{{ icon('users') }}</span>
+    <span class='pn-stat-label'>Pengikut</span>
+    <span class='pn-stat-value'>{{ perf.followers }}</span>
+    <span class='pn-stat-sub'>pembeli mengikuti toko</span>
+  </div>
+  <a class='pn-stat tone-rose' href='{{ url_for("seller.produk_list") }}'>
+    <span class='pn-stat-icon'>{{ icon('box') }}</span>
+    <span class='pn-stat-label'>Produk</span>
+    <span class='pn-stat-value'>{{ stats.active }} <small class='fs-6 text-muted'>/ {{ stats.products }}</small></span>
+    <span class='pn-stat-sub'>aktif · {{ stats.sold }} barang terjual</span>
+  </a>
+</div>
+
+<div class='pn-grid-2'>
+  <section class='pn-panel'>
+    <div class='pn-panel-head'>
+      <h2>Produk Terbaru</h2>
+      <a href='{{ url_for("seller.produk_list") }}'>Kelola semua →</a>
+    </div>
+    <div class='table-responsive'>
+      <table class='table align-middle'>
+        <thead><tr><th>Nama</th><th>Harga</th><th>Stok</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for p in recent %}
+          <tr>
+            <td><a class='fw-semibold text-decoration-none text-reset' href='{{ url_for("seller.produk_edit", pid=p.id) }}'>{{ p.name }}</a><div class='small text-muted'>{{ p.category }}</div></td>
+            <td>{{ rupiah(p.price) }}</td>
+            <td>{% if p.total_stock %}{{ p.total_stock }}{% else %}<span class='text-danger fw-semibold'>Habis</span>{% endif %}</td>
+            <td>{% if p.is_active %}<span class='pn-status s-selesai'>aktif</span>{% else %}<span class='pn-status'>nonaktif</span>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan='4' class='pn-empty'>Belum ada produk. <a href='{{ url_for("seller.produk_create") }}'>Tambah produk pertama</a></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class='pn-panel'>
+    <div class='pn-panel-head'>
+      <h2>🔥 Produk Terlaris</h2>
+    </div>
+    {% if perf.top_products %}
+    {% set top_max = perf.top_products[0].sold or 1 %}
+    <ol class='pn-rank'>
+      {% for p in perf.top_products %}
+      <li>
+        <span class='pn-rank-no'>{{ loop.index }}</span>
+        <span class='pn-rank-body'>
+          <span class='d-flex justify-content-between gap-2'>
+            <span class='pn-rank-name'>{{ p.name }}</span>
+            <span class='pn-rank-meta'>{{ p.sold }} terjual</span>
+          </span>
+          <span class='pn-rank-bar'><span style='width: {{ (p.sold * 100 / top_max)|round|int }}%'></span></span>
+          <span class='pn-rank-meta'>{{ rupiah(p.revenue) }}</span>
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
     {% else %}
-      <tr><td colspan='6' class='text-center'>Belum ada produk</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <div class='pn-empty'>Belum ada produk terjual.<br>Produk terlaris akan muncul di sini.</div>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
