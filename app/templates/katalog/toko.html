@@ -89,9 +89,22 @@
       <div class='shop-stat'><strong>{{ products|length }}</strong> produk</div>
       <div class='shop-stat'><strong>{{ review_average }}</strong> ★ penilaian toko</div>
       <div class='shop-stat'><strong>{{ review_count }}</strong> ulasan</div>
+      <div class='shop-stat'><strong>{{ shop_sold|ringkas }}</strong> terjual</div>
+      <div class='shop-stat'><strong>{{ orders_done|ringkas }}</strong> pesanan selesai</div>
       <div class='shop-stat'>Bergabung {{ seller.created_at.strftime('%b %Y') if seller.created_at else 'di Merchku' }}</div>
     </div>
   </section>
+
+  {% if best_sellers %}
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <h2 class='h4 fw-bold mb-0'>🔥 Produk Terlaris</h2>
+    <span class='text-muted small'>berdasarkan jumlah terjual</span>
+  </div>
+  {% set best_stats = product_stats(best_sellers) %}
+  <div class='mk-grid mb-4'>
+    {% for product in best_sellers %}{{ product_card(product, best_stats, quick_add=current_user.is_authenticated and current_user.role == 'customer') }}{% endfor %}
+  </div>
+  {% endif %}
 
   <div class='d-flex justify-content-between align-items-center mb-3'>
     <h2 class='h4 fw-bold mb-0'>Produk toko</h2>

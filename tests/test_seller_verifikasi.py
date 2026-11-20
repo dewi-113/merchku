@@ -96,3 +96,43 @@ def test_cli_bersihkan_dan_reset_demo():
     with app.test_client() as c:
         r = c.post('/auth/login', data={'email': 'seller@demo.test', 'password': 'SellerDemo1234'})
         assert r.status_code == 302
+
+
+def test_pembeli_konfirmasi_diterima_lalu_bisa_ulas():
+    app, oid = _setup()
+    with app.app_context():
+        db.session.get(Order, oid).status = 'dikirim'
+        db.session.commit()
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'b@t.test', 'password': 'Customer12345'})
+        assert b'Pesanan Diterima' in c.get(f'/pesanan/{oid}').data
+        c.post(f'/pesanan/{oid}/diterima')
+        r = c.get(f'/pesanan/{oid}')
+        assert b'Beri Ulasan' in r.data
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'selesai'
+
+
+def test_pembeli_lain_tidak_bisa_konfirmasi():
+    app, oid = _setup()
+    with app.app_context():
+        db.session.get(Order, oid).status = 'dikirim'
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        assert c.post(f'/pesanan/{oid}/diterima').status_code == 403
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'dikirim'
+
+
+def test_halaman_toko_tampilkan_terlaris():
+    app, oid = _setup()
+    with app.app_context():
+        db.session.get(Order, oid).status = 'selesai'
+        sid = User.query.filter_by(email='s1@t.test').one().id
+        db.session.commit()
+    with app.test_client() as c:
+        r = c.get(f'/katalog/toko/{sid}')
+        assert r.status_code == 200
+        assert b'Produk Terlaris' in r.data
+        assert b'terjual' in r.data

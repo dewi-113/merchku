@@ -450,7 +450,36 @@ def detail(order_id):
     if order.user_id != current_user.id:
         log_access_denied('order', order_id, reason='ownership')
         abort(403)
-    return render_template('pesanan/detail.html', order=order)
+    reviewed_ids = set()
+    if order.status == 'selesai':
+        from app.katalog.review_model import Review
+        product_ids = [it.product_id for it in order.items]
+        reviewed_ids = {
+            pid for (pid,) in db.session.query(Review.product_id)
+            .filter(Review.user_id == current_user.id, Review.product_id.in_(product_ids))
+        }
+    return render_template('pesanan/detail.html', order=order, reviewed_ids=reviewed_ids)
+
+
+@bp.route('/<int:order_id>/diterima', methods=['POST'])
+@login_required
+def terima(order_id):
+    """Pembeli mengonfirmasi pesanan sudah diterima (dikirim -> selesai)."""
+    order = db.session.get(Order, order_id)
+    if not order:
+        abort(404)
+    if order.user_id != current_user.id:
+        log_access_denied('order', order_id, reason='ownership')
+        abort(403)
+    if order.status != 'dikirim':
+        flash('Pesanan ini belum bisa dikonfirmasi diterima.', 'warning')
+        return redirect(url_for('pesanan.detail', order_id=order_id))
+    order.status = 'selesai'
+    db.session.commit()
+    _log('order_status_changed', order_id=order.id, old_status='dikirim',
+         new_status='selesai', actor='customer')
+    flash('Terima kasih! Pesanan selesai. Yuk beri ulasan untuk produk yang kamu beli.', 'success')
+    return redirect(url_for('pesanan.detail', order_id=order_id) + '#ulasan-pesanan')
 
 
 @bp.route('/<int:order_id>/batalkan', methods=['POST'])

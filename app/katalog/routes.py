@@ -255,10 +255,43 @@ def toko_public(seller_id):
         .filter(Product.owner_id == seller.id, Product.is_active.is_(True))
         .one()
     )
+    from app.katalog.stats import SOLD_STATUSES
+
+    sold_qty = db.func.sum(OrderItem.quantity)
+    shop_sold = (
+        db.session.query(db.func.coalesce(sold_qty, 0))
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(Product, Product.id == OrderItem.product_id)
+        .filter(Product.owner_id == seller.id, Order.status.in_(SOLD_STATUSES))
+        .scalar()
+    )
+    orders_done = (
+        db.session.query(db.func.count(db.func.distinct(Order.id)))
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .join(Product, Product.id == OrderItem.product_id)
+        .filter(Product.owner_id == seller.id, Order.status == 'selesai')
+        .scalar()
+    )
+    best_rows = (
+        db.session.query(Product.id, sold_qty)
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(Product.owner_id == seller.id, Product.is_active.is_(True),
+                Order.status.in_(SOLD_STATUSES))
+        .group_by(Product.id)
+        .order_by(sold_qty.desc())
+        .limit(4)
+        .all()
+    )
+    by_id = {p.id: p for p in products}
+    best_sellers = [by_id[pid] for pid, _ in best_rows if pid in by_id]
     return render_template(
         'katalog/toko.html',
         seller=seller,
         products=products,
+        best_sellers=best_sellers,
+        shop_sold=int(shop_sold or 0),
+        orders_done=int(orders_done or 0),
         review_count=review_count,
         review_average=f'{review_average:.1f}' if review_average else '0.0',
         followers=follower_counts([seller.id])[seller.id],

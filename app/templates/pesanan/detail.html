@@ -245,6 +245,35 @@
         <div class='payment-action-buttons'><a href='{{ url_for("pesanan.bayar", order_id=order.id) }}' class='btn btn-primary'>Coba bayar lagi</a></div>
       </div></section>
       {% endif %}
+      {% if order.status == 'dikirim' %}
+      <section class='order-detail-card'>
+        <div class='payment-action'>
+          <p class='small text-muted mb-0'><strong>Pesanan sedang dikirim.</strong> Tekan tombol di bawah jika barang sudah kamu terima dalam kondisi baik.</p>
+          <form class='payment-action-buttons' method='post' action='{{ url_for("pesanan.terima", order_id=order.id) }}' data-confirm='Pesanan sudah diterima dengan baik?'>
+            <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+            <button type='submit' class='btn btn-success'>Pesanan Diterima</button>
+          </form>
+        </div>
+      </section>
+      {% elif order.status == 'selesai' %}
+      <section class='order-detail-card' id='ulasan-pesanan'>
+        <div class='order-detail-card-head'>Beri ulasan</div>
+        <div class='order-detail-card-body'>
+          {% for item in order.items %}
+          <div class='d-flex justify-content-between align-items-center gap-2 py-2{% if not loop.last %} border-bottom{% endif %}'>
+            <span>{{ item.product_name }}</span>
+            {% if item.product_id in reviewed_ids %}
+            <span class='badge bg-success-subtle text-success'>✓ Sudah diulas</span>
+            {% elif item.product and item.product.is_active %}
+            <a class='btn btn-sm btn-primary' href='{{ url_for("katalog.detail", pid=item.product_id) }}#ulasan'>★ Beri Ulasan</a>
+            {% else %}
+            <span class='small text-muted'>Produk tidak tersedia</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
       {% if order.payment_proof and order.status != 'menunggu_pembayaran' and not (order.status == 'ditolak' and order.payment_method == 'midtrans') %}
       <a href='{{ url_for("pesanan.serve_bukti", order_id=order.id) }}' class='btn btn-outline-secondary btn-sm mb-3'>Lihat bukti pembayaran</a>
       {% endif %}
