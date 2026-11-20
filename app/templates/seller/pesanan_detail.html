@@ -68,6 +68,17 @@
     </select>
     <button class='btn btn-primary' type='submit'>Simpan</button>
   </form>
+  {% else %}
+  {% set notes = {
+    'menunggu_pembayaran': 'Menunggu pembeli membayar. Status bisa diubah setelah pembayaran diverifikasi admin.',
+    'menunggu_verifikasi': 'Bukti bayar sedang diverifikasi admin. Setelah status menjadi "dibayar", Anda bisa mengubahnya ke "dikirim".',
+    'ditolak': 'Bukti bayar ditolak admin. Menunggu pembeli mengunggah ulang bukti bayar.',
+    'selesai': 'Pesanan sudah selesai.',
+    'dibatalkan': 'Pesanan dibatalkan.',
+  } %}
+  {% if notes.get(order.status) %}
+  <div class='alert alert-info mb-0'>{{ notes[order.status] }}</div>
+  {% endif %}
   {% endif %}
 </div>
 {% endblock %}
