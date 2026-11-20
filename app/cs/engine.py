@@ -136,11 +136,11 @@ def answer(message, user=None):
         if logged_in:
             name = ' ' + (getattr(user, 'recipient_name', None) or user.email.split('@')[0]).split()[0]
         reply = (
-            f'Halo{name}! 👋 Aku Merchy, CS Merchku. Aku bisa bantu cari produk, cek status '
+            f'Halo{name}! Aku Merchy, CS Merchku. Aku bisa bantu cari produk, cek status '
             'pesanan, info ongkir, pembayaran, sampai panduan ukuran. Mau tanya apa?'
         )
     elif intent == 'thanks':
-        reply = 'Sama-sama! 😊 Kalau ada yang mau ditanyakan lagi, tinggal ketik aja ya.'
+        reply = 'Sama-sama! Kalau ada yang mau ditanyakan lagi, tinggal ketik aja ya.'
         suggestions = ['Produk terlaris', 'Produk diskon']
     elif intent == 'order_status':
         if not logged_in:
@@ -152,7 +152,7 @@ def answer(message, user=None):
         else:
             orders = _orders_for(user, text)
             if not orders:
-                reply = 'Kamu belum punya pesanan. Yuk mulai belanja! 🛍️'
+                reply = 'Kamu belum punya pesanan. Yuk mulai belanja!'
                 links = [{'label': 'Jelajahi katalog', 'url': url_for('katalog.index')}]
             else:
                 lines = ['Ini pesanan terbarumu:']
@@ -176,7 +176,7 @@ def answer(message, user=None):
         links = [{'label': 'Pesanan Saya', 'url': url_for('pesanan.riwayat')}]
     elif intent == 'refund':
         reply = (
-            'Maaf atas ketidaknyamanannya 🙏 Saat ini belum ada fitur retur/refund otomatis. '
+            'Maaf atas ketidaknyamanannya. Saat ini belum ada fitur retur/refund otomatis. '
             'Silakan chat penjualnya langsung dan sertakan nomor pesanan serta foto barang, '
             'supaya bisa ditindaklanjuti. Kalau penjual belum merespons, hubungi admin Merchku.'
         )
@@ -208,7 +208,7 @@ def answer(message, user=None):
             .order_by(ratio.asc()).limit(4).all()
         )
         reply = (
-            'Ini produk yang lagi diskon 🔥 Harga coret dan persen diskonnya tertera di setiap produk.'
+            'Ini produk yang lagi diskon. Harga coret dan persen diskonnya tertera di setiap produk.'
             if products else 'Saat ini belum ada produk yang sedang diskon. Cek lagi nanti ya!'
         )
         links = [{'label': 'Semua produk diskon', 'url': url_for('katalog.index', sort='diskon')}]
@@ -216,7 +216,7 @@ def answer(message, user=None):
         ids = best_seller_ids(4)
         found = {p.id: p for p in Product.query.filter(Product.id.in_(ids)).all()} if ids else {}
         products = [found[i] for i in ids if i in found]
-        reply = 'Ini produk paling laris di Merchku 🏆' if products else 'Belum ada data produk terlaris.'
+        reply = 'Ini produk paling laris di Merchku.' if products else 'Belum ada data produk terlaris.'
         links = [{'label': 'Lihat semua terlaris', 'url': url_for('katalog.index', sort='terlaris')}]
     elif intent == 'account':
         reply = (
@@ -237,7 +237,7 @@ def answer(message, user=None):
         )
         links = [{'label': 'Daftar penjual', 'url': url_for('auth.register')}]
     elif intent == 'review':
-        reply = 'Ulasan bisa kamu tulis di halaman produk setelah pesanannya berstatus Selesai. ⭐'
+        reply = 'Ulasan bisa kamu tulis di halaman produk setelah pesanannya berstatus Selesai.'
     elif intent == 'human':
         reply = (
             'Untuk ngobrol langsung dengan penjual, buka halaman produk lalu tekan "Chat Penjual". '
@@ -256,11 +256,11 @@ def answer(message, user=None):
     else:
         products = search_products(text)
         if products:
-            reply = 'Aku nemu produk ini buat kamu 👇 Tap untuk lihat detail, ukuran, dan stoknya.'
+            reply = 'Aku nemu produk ini buat kamu. Tap untuk lihat detail, ukuran, dan stoknya.'
             links = [{'label': 'Cari lebih banyak', 'url': url_for('katalog.index', q=message[:60])}]
         else:
             reply = (
-                'Hmm, aku belum paham pertanyaanmu 😅 Coba tanya soal produk (mis. "hoodie hitam"), '
+                'Hmm, aku belum paham pertanyaanmu. Coba tanya soal produk (mis. "hoodie hitam"), '
                 'status pesanan, ongkir, pembayaran, atau ukuran.'
             )
 

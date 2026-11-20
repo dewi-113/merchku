@@ -16,7 +16,7 @@
 
 {% if stats.pending_verification %}
 <div class='pn-alert' role='status'>
-  <strong>⚡ Perlu tindakan</strong>
+  <strong>Perlu tindakan</strong>
   <span><strong>{{ stats.pending_verification }}</strong> pembayaran menunggu verifikasi</span>
   <a href='{{ url_for("admin.pesanan_list", status="menunggu_verifikasi") }}'>Periksa pembayaran →</a>
 </div>

@@ -183,7 +183,7 @@
             </div>
             <div>
               <div class='delivery-label'>Kurir dan layanan</div>
-              <div class='delivery-value'><span class='delivery-icon'>➜</span>{{ order.courier_label }}{% if order.shipping_service %} · {{ order.shipping_service }}{% endif %}</div>
+              <div class='delivery-value'>{{ order.courier_label }}{% if order.shipping_service %} · {{ order.shipping_service }}{% endif %}</div>
               {% if order.shipping_duration %}<div class='delivery-value text-muted'>Estimasi {{ order.shipping_duration }}</div>{% elif order.shipping_cost == 0 and order.payment_method != 'cod' %}<div class='delivery-value text-muted'>Ongkir dikonfirmasi admin</div>{% endif %}
             </div>
             <div>
@@ -265,7 +265,7 @@
             {% if item.product_id in reviewed_ids %}
             <span class='badge bg-success-subtle text-success'>✓ Sudah diulas</span>
             {% elif item.product and item.product.is_active %}
-            <a class='btn btn-sm btn-primary' href='{{ url_for("katalog.detail", pid=item.product_id) }}#ulasan'>★ Beri Ulasan</a>
+            <a class='btn btn-sm btn-primary' href='{{ url_for("katalog.detail", pid=item.product_id) }}#ulasan'>Beri Ulasan</a>
             {% else %}
             <span class='small text-muted'>Produk tidak tersedia</span>
             {% endif %}

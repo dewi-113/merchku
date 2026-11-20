@@ -17,7 +17,7 @@
       {% for value, text in form.address_label.choices %}
       <label class='address-label-choice'>
         <input type='radio' name='{{ form.address_label.name }}' value='{{ value }}' {{ 'checked' if (form.address_label.data or 'rumah') == value else '' }}>
-        <span>{% if value == 'rumah' %}🏠{% elif value == 'kantor' %}🏢{% else %}🛏️{% endif %} {{ text }}</span>
+        <span>{{ text }}</span>
       </label>
       {% endfor %}
     </div>
@@ -109,7 +109,7 @@
   <div class='address-card-head'>
     <span class='address-owner'>{{ a.recipient_name }}</span>
     <span class='address-phone'>{{ a.phone }}</span>
-    <span class='address-tag tag-{{ a.address_label }}'>{% if a.address_label == 'rumah' %}🏠{% elif a.address_label == 'kantor' %}🏢{% else %}🛏️{% endif %} {{ a.label_text }}</span>
+    <span class='address-tag tag-{{ a.address_label }}'>{{ a.label_text }}</span>
     {% if a.is_default %}<span class='address-tag tag-utama'>Utama</span>{% endif %}
   </div>
   <div class='address-text'>

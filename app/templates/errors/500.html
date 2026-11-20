@@ -1,1 +1,6 @@
-﻿<!doctype html><html><head><meta charset='utf-8'><title>500 Internal Server Error</title></head><body><h1>500</h1><p>Terjadi kesalahan.</p></body></html>
+{% extends 'errors/_layout.html' %}
+{% block title %}Terjadi kesalahan{% endblock %}
+{% block code %}500{% endblock %}
+{% block heading %}Terjadi kesalahan{% endblock %}
+{% block message %}Ada masalah di server kami. Coba lagi beberapa saat lagi.{% endblock %}
+

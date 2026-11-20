@@ -1,1 +1,6 @@
-﻿<!doctype html><html><head><meta charset='utf-8'><title>429 Too Many Requests</title></head><body><h1>429</h1><p>Terlalu banyak permintaan.</p></body></html>
+{% extends 'errors/_layout.html' %}
+{% block title %}Terlalu banyak permintaan{% endblock %}
+{% block code %}429{% endblock %}
+{% block heading %}Terlalu banyak permintaan{% endblock %}
+{% block message %}Kamu melakukan terlalu banyak percobaan dalam waktu singkat. Tunggu beberapa menit lalu coba lagi.{% endblock %}
+

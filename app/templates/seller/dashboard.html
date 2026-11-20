@@ -5,7 +5,7 @@
 {% block panel_content %}
 <div class='pn-hero'>
   <div>
-    <h1 class='pn-title'>Halo, {{ current_user.shop_name or current_user.email.split('@')[0] }} 👋</h1>
+    <h1 class='pn-title'>Halo, {{ current_user.shop_name or current_user.email.split('@')[0] }}</h1>
     <p>Ringkasan performa toko kamu hari ini.</p>
   </div>
   <div class='pn-hero-actions'>
@@ -16,7 +16,7 @@
 
 {% if perf.to_verify or perf.to_ship %}
 <div class='pn-alert' role='status'>
-  <strong>⚡ Perlu tindakan</strong>
+  <strong>Perlu tindakan</strong>
   <span>
     {% if perf.to_verify %}<strong>{{ perf.to_verify }}</strong> pesanan menunggu konfirmasi (pembayaran/COD){% endif %}{% if perf.to_verify and perf.to_ship %} · {% endif %}
     {% if perf.to_ship %}<strong>{{ perf.to_ship }}</strong> pesanan siap dikirim{% endif %}
@@ -30,7 +30,7 @@
     <span class='pn-stat-icon'>{{ icon('chart') }}</span>
     <span class='pn-stat-label'>Pendapatan</span>
     <span class='pn-stat-value'>{{ rupiah(perf.revenue) }}</span>
-    <span class='pn-stat-sub'>pesanan dibayar s.d. selesai</span>
+    <span class='pn-stat-sub'>sudah dibayar (COD saat selesai)</span>
   </div>
   <a class='pn-stat tone-blue' href='{{ url_for("seller.pesanan_list") }}'>
     <span class='pn-stat-icon'>{{ icon('bag') }}</span>
@@ -85,7 +85,7 @@
 
   <section class='pn-panel'>
     <div class='pn-panel-head'>
-      <h2>🔥 Produk Terlaris</h2>
+      <h2>Produk Terlaris</h2>
     </div>
     {% if perf.top_products %}
     {% set top_max = perf.top_products[0].sold or 1 %}

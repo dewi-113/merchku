@@ -1,1 +1,6 @@
-﻿<!doctype html><html><head><meta charset='utf-8'><title>404 Not Found</title></head><body><h1>404</h1><p>Halaman tidak ditemukan.</p></body></html>
+{% extends 'errors/_layout.html' %}
+{% block title %}Halaman tidak ditemukan{% endblock %}
+{% block code %}404{% endblock %}
+{% block heading %}Halaman tidak ditemukan{% endblock %}
+{% block message %}Halaman atau produk yang kamu cari tidak ada atau sudah dihapus.{% endblock %}
+{% block extra_action %}<a class='btn btn-line' href='/katalog/'>Lihat katalog</a>{% endblock %}

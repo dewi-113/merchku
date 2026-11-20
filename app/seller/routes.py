@@ -155,7 +155,13 @@ def _shop_performance():
     def count_orders(*conds):
         return int(items.filter(*conds).with_entities(func.count(func.distinct(Order.id))).scalar() or 0)
 
-    revenue = items.filter(Order.status.in_(SOLD_STATUSES)).with_entities(
+    # Pendapatan = uang yang sudah diterima: non-COD sejak dibayar, COD saat selesai
+    # (sama dengan perhitungan omzet admin).
+    paid = db.or_(
+        db.and_(Order.payment_method != 'cod', Order.status.in_(SOLD_STATUSES)),
+        db.and_(Order.payment_method == 'cod', Order.status == 'selesai'),
+    )
+    revenue = items.filter(paid).with_entities(
         func.coalesce(func.sum(OrderItem.quantity * OrderItem.unit_price), 0)
     ).scalar()
     orders_total = count_orders(Order.status != 'dibatalkan')

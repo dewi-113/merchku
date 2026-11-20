@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'merchku-cs-v1';
   const WELCOME = {
     role: 'assistant',
-    text: 'Halo! 👋 Aku Merchy, CS Merchku. Mau cari produk, cek pesanan, atau tanya ongkir & pembayaran? Ketik aja di bawah ya.',
+    text: 'Halo! Aku Merchy, CS Merchku. Mau cari produk, cek pesanan, atau tanya ongkir & pembayaran? Ketik aja di bawah ya.',
     suggestions: ['Cara belanja', 'Cek status pesanan', 'Produk diskon', 'Produk terlaris'],
   };
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -121,7 +121,7 @@
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
           body: JSON.stringify({ message, history }),
         });
-        if (response.status === 429) throw new Error('Terlalu banyak pertanyaan, tunggu sebentar ya 🙏');
+        if (response.status === 429) throw new Error('Terlalu banyak pertanyaan, tunggu sebentar ya.');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Gagal mengirim pertanyaan.');
         reply = {

@@ -44,7 +44,7 @@
             {% if other.avatar %}<img src='{{ url_for("core.avatar_media", filename=other.avatar) }}' alt=''>{% else %}{{ other_name[0]|upper }}{% endif %}
           </span>
           <strong>{{ other_name }}</strong>
-          <span>{{ 'Tanya stok, ukuran, atau pengiriman langsung ke penjual ya 👋' if i_am_customer else 'Balas pertanyaan pembeli dengan ramah ya 😊' }}</span>
+          <span>{{ 'Tanya stok, ukuran, atau pengiriman langsung ke penjual ya.' if i_am_customer else 'Balas pertanyaan pembeli dengan ramah ya 😊' }}</span>
         </div>
         {% set ns = namespace(day='', sender=none) %}
         {% for message in thread.messages %}
@@ -85,9 +85,9 @@
 
         <div class='chat-quick' aria-label='Balasan cepat'>
           {% if i_am_customer %}
-          {% set quick = ['Halo kak, stoknya masih ada? 😊', 'Bisa dikirim hari ini?', 'Ada ukuran lain?', 'Bisa bayar COD?', 'Terima kasih kak! 🙏'] %}
+          {% set quick = ['Halo kak, stoknya masih ada?', 'Bisa dikirim hari ini?', 'Ada ukuran lain?', 'Bisa bayar COD?', 'Terima kasih kak! 🙏'] %}
           {% else %}
-          {% set quick = ['Halo kak, stok masih tersedia 😊', 'Pesanan dikirim hari ini ya kak', 'Ukuran tersedia S sampai XXL', 'Terima kasih sudah berbelanja! 🙏'] %}
+          {% set quick = ['Halo kak, stok masih tersedia.', 'Pesanan dikirim hari ini ya kak', 'Ukuran tersedia S sampai XXL', 'Terima kasih sudah berbelanja! 🙏'] %}
           {% endif %}
           {% for text in quick %}<button type='button' class='chat-quick-chip' data-chat-fill='{{ text }}'>{{ text }}</button>{% endfor %}
         </div>

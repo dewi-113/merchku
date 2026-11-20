@@ -319,7 +319,10 @@ def user_delete(uid):
               'tidak bisa dihapus. Nonaktifkan saja akunnya.', 'warning')
         return redirect(url_for('admin.user_list'))
     email = u.email
+    from app.profil.models import Address
+
     CartItem.query.filter_by(user_id=u.id).delete()
+    Address.query.filter_by(user_id=u.id).delete()
     ShopFollow.query.filter(
         db.or_(ShopFollow.seller_id == u.id, ShopFollow.follower_id == u.id)
     ).delete(synchronize_session=False)

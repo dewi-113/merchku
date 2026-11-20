@@ -551,7 +551,7 @@ document.querySelectorAll('[data-install-app]').forEach((button) => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     window.alert(standalone
-      ? 'Merchku sudah terpasang di HP kamu 🎉'
+      ? 'Merchku sudah terpasang di HP kamu.'
       : ios
         ? 'Di Safari: ketuk tombol Bagikan (kotak dengan panah ke atas), lalu pilih "Tambah ke Layar Utama".'
         : 'Buka menu browser (⋮) lalu pilih "Instal aplikasi" atau "Tambahkan ke layar utama".');

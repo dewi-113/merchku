@@ -325,7 +325,7 @@ def toggle_follow(seller_id):
         flash('Kamu berhenti mengikuti toko ini.', 'info')
     else:
         db.session.add(ShopFollow(seller_id=seller.id, follower_id=current_user.id))
-        flash('Kamu sekarang mengikuti toko ini 🎉', 'success')
+        flash('Kamu sekarang mengikuti toko ini.', 'success')
     db.session.commit()
     nxt = request.form.get('next', '')
     return redirect(nxt if nxt.startswith('/') and not nxt.startswith('//') else back)
