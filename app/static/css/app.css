@@ -302,7 +302,7 @@ body.marketplace-theme .product-panel, body.marketplace-theme .review-panel { bo
 
   /* Header ringkas: logo · pencarian · chat · keranjang · menu */
   .glass-navbar .container { max-width: none; gap: 6px; padding-left: 10px !important; padding-right: 6px !important; }
-  .nav-links, .user-avatar-btn, .btn-nav-logout, .btn-nav-login, .btn-nav-register { display: none !important; }
+  .nav-links, .nav-user-dd, .user-avatar-btn, .btn-nav-logout, .btn-nav-login, .btn-nav-register { display: none !important; }
   .nav-search { display: block; max-width: none; min-width: 0; }
   .nav-search input { height: 38px; padding-right: 12px; font-size: 16px; /* 16px: cegah auto-zoom iOS */ }
   .nav-search-btn { display: none; }

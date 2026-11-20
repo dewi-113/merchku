@@ -12,6 +12,16 @@
   }
   .checkout-steps .active { color: #2563eb; font-weight: 700; }
   .checkout-layout { align-items: flex-start; }
+  .checkout-address-list { display: grid; gap: 10px; }
+  .checkout-address {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid #e3e7ec; border-radius: 12px;
+    color: inherit; text-decoration: none; transition: border-color .15s ease, background .15s ease;
+  }
+  a.checkout-address:hover { border-color: #9fb3e8; background: #f8faff; color: inherit; }
+  .checkout-address.is-selected { border-color: #2451d6; background: #f5f8ff; box-shadow: 0 0 0 3px rgba(36,81,214,.08); }
+  .checkout-address-radio { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; border: 2px solid #b8c2cc; border-radius: 50%; }
+  .checkout-address.is-selected .checkout-address-radio { border: 5px solid #2451d6; }
+  .checkout-address-body { min-width: 0; }
   .checkout-section, .checkout-summary {
     background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
     box-shadow: 0 2px 8px rgba(31,41,55,.04);
@@ -82,24 +92,31 @@
           <div class='d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3'>
             <div>
               <h2 class='section-title'>Alamat pengiriman</h2>
-              <p class='section-subtitle'>Alamat tersimpan dari profil akunmu.</p>
+              <p class='section-subtitle'>{% if addresses|length > 1 %}Pilih salah satu alamat dari buku alamatmu.{% else %}Alamat tersimpan dari profil akunmu.{% endif %}</p>
             </div>
-            <a class='address-edit' href='{{ url_for("profil.index") }}'>Ubah alamat</a>
+            <a class='address-edit' href='{{ url_for("profil.index") }}#shipping-address'>Kelola alamat</a>
           </div>
-          <div class='address-summary'>
-            <div class='address-summary-name'>
-              {{ current_user.recipient_name }}
-              <span class='text-muted fw-normal mx-1'>|</span>
-              <span class='fw-normal'>{{ current_user.phone }}</span>
-              <span class='badge rounded-pill text-bg-light border ms-1'>{{ current_user.address_label|title }}</span>
-            </div>
-            <div class='address-summary-text mt-1'>
-              {{ current_user.address }}<br>
-              {{ current_user.district }}, {{ current_user.city }}, {{ current_user.province }} {{ current_user.postal_code }}
-            </div>
-            {% if current_user.delivery_note %}
-            <div class='small text-muted mt-2'>Catatan kurir: {{ current_user.delivery_note }}</div>
-            {% endif %}
+          <div class='checkout-address-list'>
+            {% for a in addresses %}
+            {% set selected = a.id == ship.id %}
+            <{{ 'div' if selected else 'a' }} class='checkout-address {{ "is-selected" if selected else "" }}'{% if not selected %} href='{{ url_for("pesanan.checkout", item=selected_param, alamat=a.id) }}'{% endif %}>
+              <span class='checkout-address-radio' aria-hidden='true'></span>
+              <span class='checkout-address-body'>
+                <span class='address-summary-name'>
+                  {{ a.recipient_name }}
+                  <span class='text-muted fw-normal mx-1'>|</span>
+                  <span class='fw-normal'>{{ a.phone }}</span>
+                  <span class='badge rounded-pill text-bg-light border ms-1'>{{ a.label_text }}</span>
+                  {% if a.is_default %}<span class='badge rounded-pill text-bg-primary ms-1'>Utama</span>{% endif %}
+                </span>
+                <span class='address-summary-text d-block mt-1'>
+                  {{ a.address }}<br>
+                  {{ a.district }}, {{ a.city }}, {{ a.province }} {{ a.postal_code }}
+                </span>
+                {% if a.delivery_note and selected %}<span class='small text-muted d-block mt-2'>Catatan kurir: {{ a.delivery_note }}</span>{% endif %}
+              </span>
+            </{{ 'div' if selected else 'a' }}>
+            {% endfor %}
           </div>
         </section>
 

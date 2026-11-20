@@ -3,6 +3,7 @@ import os
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     make_response,
@@ -23,6 +24,14 @@ from app.core.uploads import (
 )
 from app.core.utils import get_client_ip
 from app.profil.forms import AvatarForm, GantiPasswordForm, ShippingAddressForm
+from app.profil.models import (
+    ADDRESS_FIELDS,
+    MAX_ADDRESSES,
+    Address,
+    set_default,
+    sync_user_default,
+    user_addresses,
+)
 from app.security_logger import sec_log
 
 bp = Blueprint('profil', __name__, url_prefix='/profil')
@@ -44,13 +53,35 @@ def _log(event, **kw):
 @login_required
 def index():
     """Halaman profil dan data penerima yang digunakan saat checkout."""
-    av_form = AvatarForm(prefix='av')
-    address_form = ShippingAddressForm(prefix='addr', obj=current_user)
+    return _render_profile(ShippingAddressForm(prefix='addr'))
+
+
+def _render_profile(address_form, av_form=None, status=200, open_form=False):
     return render_template(
         'profil/index.html',
-        av_form=av_form,
+        av_form=av_form or AvatarForm(prefix='av'),
         address_form=address_form,
-    )
+        addresses=user_addresses(current_user),
+        max_addresses=MAX_ADDRESSES,
+        open_form=open_form,
+    ), status
+
+
+def _own_address_or_404(aid):
+    addr = db.session.get(Address, aid)
+    if addr is None:
+        abort(404)
+    if addr.user_id != current_user.id:
+        _log('access_denied', resource='address', resource_id=aid, user_id=current_user.id)
+        abort(403)
+    return addr
+
+
+def _fill_address(addr, form):
+    for field in ADDRESS_FIELDS:
+        value = getattr(form, field).data
+        setattr(addr, field, value.strip() if isinstance(value, str) and value.strip() else None)
+    addr.address_label = form.address_label.data
 
 
 @bp.route('/keamanan')
@@ -73,31 +104,75 @@ def _render_security_form(pw_form, status=200):
 @bp.route('/alamat', methods=['POST'])
 @login_required
 def simpan_alamat():
-    address_form = ShippingAddressForm(prefix='addr', obj=current_user)
+    """Tambah alamat baru ke buku alamat."""
+    address_form = ShippingAddressForm(prefix='addr')
+    existing = user_addresses(current_user)
+    if len(existing) >= MAX_ADDRESSES:
+        flash(f'Maksimal {MAX_ADDRESSES} alamat. Hapus alamat lama terlebih dahulu.', 'warning')
+        return redirect(url_for('profil.index') + '#shipping-address')
     if not address_form.validate_on_submit():
         flash('Periksa kembali data penerima dan alamat pengiriman.', 'danger')
-        return render_template(
-            'profil/index.html',
-            av_form=AvatarForm(prefix='av'),
-            address_form=address_form,
-        ), 400
+        return _render_profile(address_form, status=400, open_form=True)
 
-    for field in (
-        'recipient_name',
-        'address',
-        'district',
-        'city',
-        'province',
-        'postal_code',
-        'phone',
-        'delivery_note',
-    ):
-        value = getattr(address_form, field).data
-        setattr(current_user, field, value.strip() if value else None)
-    current_user.address_label = address_form.address_label.data
+    addr = Address(user_id=current_user.id)
+    _fill_address(addr, address_form)
+    db.session.add(addr)
+    db.session.flush()
+    if not existing or address_form.is_default.data:
+        set_default(current_user, addr)
     db.session.commit()
-    flash('Alamat pengiriman berhasil disimpan.', 'success')
-    return redirect(url_for('profil.index'))
+    flash('Alamat berhasil ditambahkan.', 'success')
+    return redirect(url_for('profil.index') + '#shipping-address')
+
+
+@bp.route('/alamat/<int:aid>/ubah', methods=['GET', 'POST'])
+@login_required
+def ubah_alamat(aid):
+    addr = _own_address_or_404(aid)
+    form = ShippingAddressForm(prefix='addr', obj=addr)
+    if request.method == 'GET':
+        form.is_default.data = addr.is_default
+    if form.validate_on_submit():
+        _fill_address(addr, form)
+        if form.is_default.data or addr.is_default:
+            set_default(current_user, addr)
+        db.session.commit()
+        flash('Alamat berhasil diperbarui.', 'success')
+        return redirect(url_for('profil.index') + '#shipping-address')
+    if request.method == 'POST':
+        flash('Periksa kembali data alamat.', 'danger')
+    return render_template('profil/alamat_form.html', form=form, address=addr)
+
+
+@bp.route('/alamat/<int:aid>/utama', methods=['POST'])
+@login_required
+def alamat_utama(aid):
+    addr = _own_address_or_404(aid)
+    set_default(current_user, addr)
+    db.session.commit()
+    flash(f'Alamat {addr.label_text} a.n. {addr.recipient_name} dijadikan alamat utama.', 'success')
+    return redirect(url_for('profil.index') + '#shipping-address')
+
+
+@bp.route('/alamat/<int:aid>/hapus', methods=['POST'])
+@login_required
+def hapus_alamat(aid):
+    addr = _own_address_or_404(aid)
+    was_default = addr.is_default
+    db.session.delete(addr)
+    db.session.flush()
+    if was_default:
+        nxt = (
+            Address.query.filter_by(user_id=current_user.id)
+            .order_by(Address.created_at.asc(), Address.id.asc()).first()
+        )
+        if nxt:
+            set_default(current_user, nxt)
+        else:
+            sync_user_default(current_user, None)
+    db.session.commit()
+    flash('Alamat dihapus.', 'success')
+    return redirect(url_for('profil.index') + '#shipping-address')
 
 
 @bp.route('/ganti-password', methods=['POST'])
@@ -171,11 +246,7 @@ def upload_avatar():
                 alasan=e.reason,
             )
             flash(f'Foto profil ditolak: {e.reason}', 'danger')
-            return render_template(
-                'profil/index.html',
-                av_form=av_form,
-                address_form=ShippingAddressForm(prefix='addr', obj=current_user),
-            ), 400
+            return _render_profile(ShippingAddressForm(prefix='addr'), av_form=av_form, status=400)
 
         _, img = result
         pub_dir = current_app.config['UPLOAD_PUBLIC']

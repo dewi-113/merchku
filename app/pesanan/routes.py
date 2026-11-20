@@ -97,9 +97,15 @@ def checkout():
             return redirect(url_for('keranjang.index'))
     selected_param = sorted(it.id for it in items) if selected_ids else []
 
-    if not current_user.has_shipping_details:
-        flash('Lengkapi data penerima dan alamat di profil sebelum checkout.', 'warning')
+    from app.profil.models import user_addresses
+
+    addresses = user_addresses(current_user)
+    if not addresses:
+        flash('Tambahkan alamat pengiriman di profil sebelum checkout.', 'warning')
         return redirect(url_for('profil.index'))
+    # ?alamat=<id> memilih alamat dari buku alamat; default = alamat utama.
+    chosen_id = request.args.get('alamat', type=int)
+    ship = next((a for a in addresses if a.id == chosen_id), addresses[0])
 
     shipping_configured = bool(
         current_app.config.get('BITESHIP_API_KEY')
@@ -109,7 +115,7 @@ def checkout():
     rates_error = None
     if shipping_configured:
         try:
-            rates = biteship_rates(current_app.config, current_user, items)
+            rates = biteship_rates(current_app.config, ship, items)
         except IntegrationError as exc:
             rates_error = str(exc)
             _log('biteship_rates_failed', level='error', error=str(exc))
@@ -161,7 +167,7 @@ def checkout():
             )
             if rates_error or not selected_rate:
                 flash('Tarif pengiriman tidak tersedia. Coba muat ulang checkout.', 'danger')
-                return redirect(url_for('pesanan.checkout', item=selected_param))
+                return redirect(url_for('pesanan.checkout', item=selected_param, alamat=ship.id))
 
         # --- Kunci seluruh proses dalam satu transaksi ---
         try:
@@ -269,15 +275,15 @@ def checkout():
                 order = Order(
                     user_id=current_user.id,
                     status='menunggu_pembayaran',
-                    recipient_name=current_user.recipient_name.strip(),
-                    address=current_user.address.strip(),
-                    address_label=current_user.address_label,
-                    district=current_user.district.strip(),
-                    city=current_user.city.strip(),
-                    postal_code=current_user.postal_code.strip(),
-                    province=current_user.province.strip(),
-                    phone=current_user.phone.strip(),
-                    delivery_note=(current_user.delivery_note or '').strip() or None,
+                    recipient_name=ship.recipient_name.strip(),
+                    address=ship.address.strip(),
+                    address_label=ship.address_label,
+                    district=ship.district.strip(),
+                    city=ship.city.strip(),
+                    postal_code=ship.postal_code.strip(),
+                    province=ship.province.strip(),
+                    phone=ship.phone.strip(),
+                    delivery_note=(ship.delivery_note or '').strip() or None,
                     courier=selected_rate['courier'] if selected_rate else form.courier.data,
                     shipping_service=selected_rate['service'] if selected_rate else None,
                     shipping_duration=selected_rate['duration'] if selected_rate else None,
@@ -356,6 +362,9 @@ def checkout():
         'pesanan/checkout.html',
         form=form,
         items=items,
+        addresses=addresses,
+        ship=ship,
+        selected_param=selected_param,
         total=total_preview,
         shipping_rates=rates,
         shipping_configured=shipping_configured,

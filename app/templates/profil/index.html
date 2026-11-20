@@ -1,6 +1,8 @@
 {% extends 'layouts/base.html' %}
+{% from 'profil/_address_fields.html' import address_fields, address_styles, address_card with context %}
 {% block title %}Profil Saya — Merchku{% endblock %}
 {% block extra_head %}
+{{ address_styles() }}
 <style>
   .profile-page { max-width: 1120px; padding-top: 30px; padding-bottom: 56px; }
   .profile-heading {
@@ -177,71 +179,37 @@
       <section class='profile-card mb-3' id='shipping-address'>
         <header class='profile-card-header d-flex flex-wrap align-items-center justify-content-between gap-2'>
           <div>
-            <div class='profile-section-kicker'>Data penerima</div>
+            <div class='profile-section-kicker'>Buku alamat</div>
             <h2 class='profile-section-title'>Alamat pengiriman</h2>
-            <p class='small text-muted mb-0 mt-1'>Simpan data penerima di sini agar checkout lebih cepat.</p>
+            <p class='small text-muted mb-0 mt-1'>Simpan beberapa alamat (rumah, kantor, kos) beserta nama penerimanya. Pilih alamat saat checkout.</p>
           </div>
-          {% if current_user.has_shipping_details %}
-          <span class='badge rounded-pill text-bg-success'>Siap untuk checkout</span>
+          {% if addresses %}
+          <span class='badge rounded-pill text-bg-success'>{{ addresses|length }} alamat · siap checkout</span>
           {% else %}
-          <span class='badge rounded-pill text-bg-warning'>Lengkapi data</span>
+          <span class='badge rounded-pill text-bg-warning'>Belum ada alamat</span>
           {% endif %}
         </header>
         <div class='profile-card-body'>
-          <form method='post' action='{{ url_for("profil.simpan_alamat") }}'>
-            {{ address_form.hidden_tag() }}
-            <div class='row g-3'>
-              <div class='col-md-7'>
-                {{ address_form.recipient_name.label(class='form-label fw-semibold') }}
-                {{ address_form.recipient_name(class='form-control profile-control', placeholder='Nama lengkap penerima', autocomplete='name') }}
-                {% for error in address_form.recipient_name.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-5'>
-                {{ address_form.phone.label(class='form-label fw-semibold') }}
-                {{ address_form.phone(class='form-control profile-control', placeholder='08xxxxxxxxxx', autocomplete='tel', inputmode='tel') }}
-                {% for error in address_form.phone.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-12'>
-                {{ address_form.address.label(class='form-label fw-semibold') }}
-                {{ address_form.address(class='form-control profile-control', rows=3, placeholder='Nama jalan, nomor rumah, RT/RW, kelurahan/desa, dan patokan') }}
-                {% for error in address_form.address.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-6'>
-                {{ address_form.district.label(class='form-label fw-semibold') }}
-                {{ address_form.district(class='form-control profile-control', placeholder='Contoh: Coblong') }}
-                {% for error in address_form.district.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-6'>
-                {{ address_form.city.label(class='form-label fw-semibold') }}
-                {{ address_form.city(class='form-control profile-control', placeholder='Contoh: Bandung') }}
-                {% for error in address_form.city.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-7'>
-                {{ address_form.province.label(class='form-label fw-semibold') }}
-                {{ address_form.province(class='form-control profile-control', placeholder='Contoh: Jawa Barat') }}
-                {% for error in address_form.province.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-5'>
-                {{ address_form.postal_code.label(class='form-label fw-semibold') }}
-                {{ address_form.postal_code(class='form-control profile-control', placeholder='40123', inputmode='numeric', autocomplete='postal-code') }}
-                {% for error in address_form.postal_code.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-md-5'>
-                {{ address_form.address_label.label(class='form-label fw-semibold') }}
-                {{ address_form.address_label(class='form-select profile-control') }}
-                {% for error in address_form.address_label.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-12'>
-                {{ address_form.delivery_note.label(class='form-label fw-semibold') }}
-                {{ address_form.delivery_note(class='form-control profile-control', placeholder='Contoh: titip ke satpam (opsional)') }}
-                {% for error in address_form.delivery_note.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
-              </div>
-              <div class='col-12 d-flex flex-wrap align-items-center gap-3'>
+          {% if addresses %}
+          <div class='address-list'>
+            {% for a in addresses %}{{ address_card(a) }}{% endfor %}
+          </div>
+          {% endif %}
+          {% if addresses|length < max_addresses %}
+          <details class='address-add'{% if open_form or not addresses %} open{% endif %}>
+            <summary>+ Tambah alamat baru</summary>
+            <form method='post' action='{{ url_for("profil.simpan_alamat") }}'>
+              {{ address_form.hidden_tag() }}
+              {{ address_fields(address_form) }}
+              <div class='d-flex flex-wrap align-items-center gap-3 mt-3'>
                 {{ address_form.submit(class='btn btn-primary profile-primary px-4') }}
-                <span class='profile-save-note'>Alamat tersimpan untuk checkout berikutnya.</span>
+                <span class='profile-save-note'>Alamat pertama otomatis menjadi alamat utama.</span>
               </div>
-            </div>
-          </form>
+            </form>
+          </details>
+          {% else %}
+          <p class='small text-muted mb-0'>Sudah mencapai batas {{ max_addresses }} alamat.</p>
+          {% endif %}
         </div>
       </section>
     </div>

@@ -1,0 +1,29 @@
+{% extends 'layouts/base.html' %}
+{% from 'profil/_address_fields.html' import address_fields, address_styles with context %}
+{% block title %}Ubah Alamat — Merchku{% endblock %}
+{% block extra_head %}
+{{ address_styles() }}
+<style>
+  .address-edit-page { max-width: 760px; padding-top: 28px; padding-bottom: 56px; }
+  .address-edit-card { padding: 24px; border: 1px solid #e3e7ec; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px rgba(16,24,40,.05); }
+  .profile-control { min-height: 46px; border-color: #d7dce1; border-radius: 8px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container address-edit-page'>
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <h1 class='h3 fw-bold mb-0'>Ubah alamat</h1>
+    <a class='btn btn-outline-secondary' href='{{ url_for("profil.index") }}#shipping-address'>Kembali</a>
+  </div>
+  <div class='address-edit-card'>
+    <form method='post' action='{{ url_for("profil.ubah_alamat", aid=address.id) }}'>
+      {{ form.hidden_tag() }}
+      {{ address_fields(form) }}
+      <div class='d-flex gap-2 mt-4'>
+        <button class='btn btn-primary px-4' type='submit'>Simpan perubahan</button>
+        <a class='btn btn-light' href='{{ url_for("profil.index") }}#shipping-address'>Batal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

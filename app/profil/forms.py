@@ -1,13 +1,23 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
-from wtforms import PasswordField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import (
+    BooleanField,
+    PasswordField,
+    SelectField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+)
 from wtforms.validators import DataRequired, EqualTo, Length, Optional, Regexp
+
+from app.core.validators import NoMarkup
+from app.profil.models import ADDRESS_LABELS
 
 
 class ShippingAddressForm(FlaskForm):
     recipient_name = StringField(
-        'Nama penerima',
-        validators=[DataRequired(message='Nama penerima wajib diisi.'), Length(max=200)],
+        'Nama penerima (pemilik alamat)',
+        validators=[DataRequired(message='Nama penerima wajib diisi.'), Length(max=200), NoMarkup()],
     )
     phone = StringField(
         'Nomor HP',
@@ -23,7 +33,7 @@ class ShippingAddressForm(FlaskForm):
     )
     address_label = SelectField(
         'Label alamat',
-        choices=[('rumah', 'Rumah'), ('kos', 'Kos'), ('kantor', 'Kantor')],
+        choices=ADDRESS_LABELS,
         validators=[DataRequired()],
     )
     district = StringField(
@@ -50,6 +60,7 @@ class ShippingAddressForm(FlaskForm):
         'Catatan untuk kurir (opsional)',
         validators=[Optional(), Length(max=300)],
     )
+    is_default = BooleanField('Jadikan alamat utama')
     submit = SubmitField('Simpan alamat')
 
 

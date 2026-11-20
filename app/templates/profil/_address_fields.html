@@ -1,0 +1,136 @@
+{# Field form alamat, dipakai di halaman profil (tambah) & halaman ubah alamat. #}
+{% macro address_fields(form) %}
+<div class='row g-3'>
+  <div class='col-md-7'>
+    {{ form.recipient_name.label(class='form-label fw-semibold') }}
+    {{ form.recipient_name(class='form-control profile-control', placeholder='Nama lengkap pemilik alamat', autocomplete='name') }}
+    {% for error in form.recipient_name.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-md-5'>
+    {{ form.phone.label(class='form-label fw-semibold') }}
+    {{ form.phone(class='form-control profile-control', placeholder='08xxxxxxxxxx', autocomplete='tel', inputmode='tel') }}
+    {% for error in form.phone.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-12'>
+    <span class='form-label fw-semibold d-block'>{{ form.address_label.label.text }}</span>
+    <div class='address-label-choices'>
+      {% for value, text in form.address_label.choices %}
+      <label class='address-label-choice'>
+        <input type='radio' name='{{ form.address_label.name }}' value='{{ value }}' {{ 'checked' if (form.address_label.data or 'rumah') == value else '' }}>
+        <span>{% if value == 'rumah' %}🏠{% elif value == 'kantor' %}🏢{% else %}🛏️{% endif %} {{ text }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% for error in form.address_label.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-12'>
+    {{ form.address.label(class='form-label fw-semibold') }}
+    {{ form.address(class='form-control profile-control', rows=3, placeholder='Nama jalan, nomor rumah, RT/RW, kelurahan/desa, dan patokan') }}
+    {% for error in form.address.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-md-6'>
+    {{ form.district.label(class='form-label fw-semibold') }}
+    {{ form.district(class='form-control profile-control', placeholder='Contoh: Coblong') }}
+    {% for error in form.district.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-md-6'>
+    {{ form.city.label(class='form-label fw-semibold') }}
+    {{ form.city(class='form-control profile-control', placeholder='Contoh: Bandung') }}
+    {% for error in form.city.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-md-7'>
+    {{ form.province.label(class='form-label fw-semibold') }}
+    {{ form.province(class='form-control profile-control', placeholder='Contoh: Jawa Barat') }}
+    {% for error in form.province.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-md-5'>
+    {{ form.postal_code.label(class='form-label fw-semibold') }}
+    {{ form.postal_code(class='form-control profile-control', placeholder='40123', inputmode='numeric', autocomplete='postal-code') }}
+    {% for error in form.postal_code.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-12'>
+    {{ form.delivery_note.label(class='form-label fw-semibold') }}
+    {{ form.delivery_note(class='form-control profile-control', placeholder='Contoh: titip ke satpam (opsional)') }}
+    {% for error in form.delivery_note.errors %}<div class='text-danger small mt-1'>{{ error }}</div>{% endfor %}
+  </div>
+  <div class='col-12'>
+    <div class='form-check'>
+      {{ form.is_default(class='form-check-input') }}
+      {{ form.is_default.label(class='form-check-label') }}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro address_styles() %}
+<style>
+  .address-list { display: grid; gap: 12px; margin-bottom: 18px; }
+  .address-card {
+    position: relative; padding: 16px 18px; border: 1px solid #e3e7ec; border-radius: 14px; background: #fff;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .address-card:hover { border-color: #c9d3de; box-shadow: 0 6px 18px rgba(16,24,40,.06); }
+  .address-card.is-default { border-color: #2451d6; box-shadow: 0 0 0 3px rgba(36,81,214,.08); }
+  .address-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .address-owner { color: #14161c; font-size: 1rem; font-weight: 750; }
+  .address-phone { color: #667085; font-size: .88rem; }
+  .address-tag {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px;
+    background: #f2f4f7; color: #344054; font-size: .74rem; font-weight: 700;
+  }
+  .address-tag.tag-kantor { background: #f1ebfd; color: #6c3fd1; }
+  .address-tag.tag-rumah { background: #e8f6ee; color: #1f8a4c; }
+  .address-tag.tag-kos { background: #fdf3e1; color: #b36b06; }
+  .address-tag.tag-utama { background: #2451d6; color: #fff; }
+  .address-text { color: #475467; font-size: .9rem; line-height: 1.55; }
+  .address-note { margin-top: 4px; color: #98a2b3; font-size: .8rem; }
+  .address-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .address-actions .btn { border-radius: 9px; font-size: .82rem; font-weight: 650; }
+  .address-add > summary {
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; list-style: none; cursor: pointer;
+    border: 1.5px dashed #c9d3de; border-radius: 14px; color: #2451d6; font-weight: 700;
+  }
+  .address-add > summary::-webkit-details-marker { display: none; }
+  .address-add > summary:hover { border-color: #2451d6; background: #f5f8ff; }
+  .address-add[open] > summary { margin-bottom: 16px; }
+  .address-label-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .address-label-choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .address-label-choice span {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1px solid #d7dce1; border-radius: 99px;
+    font-weight: 650; cursor: pointer; transition: all .15s ease;
+  }
+  .address-label-choice input:checked + span { border-color: #14161c; background: #14161c; color: #fff; }
+  .address-label-choice input:focus-visible + span { outline: 2px solid #2451d6; outline-offset: 2px; }
+</style>
+{% endmacro %}
+
+{% macro address_card(a, actions=True) %}
+<article class='address-card {{ "is-default" if a.is_default else "" }}'>
+  <div class='address-card-head'>
+    <span class='address-owner'>{{ a.recipient_name }}</span>
+    <span class='address-phone'>{{ a.phone }}</span>
+    <span class='address-tag tag-{{ a.address_label }}'>{% if a.address_label == 'rumah' %}🏠{% elif a.address_label == 'kantor' %}🏢{% else %}🛏️{% endif %} {{ a.label_text }}</span>
+    {% if a.is_default %}<span class='address-tag tag-utama'>Utama</span>{% endif %}
+  </div>
+  <div class='address-text'>
+    {{ a.address }}<br>
+    {{ a.district }}, {{ a.city }}, {{ a.province }} {{ a.postal_code }}
+  </div>
+  {% if a.delivery_note %}<div class='address-note'>Catatan kurir: {{ a.delivery_note }}</div>{% endif %}
+  {% if actions %}
+  <div class='address-actions'>
+    <a class='btn btn-sm btn-outline-secondary' href='{{ url_for("profil.ubah_alamat", aid=a.id) }}'>Ubah</a>
+    {% if not a.is_default %}
+    <form method='post' action='{{ url_for("profil.alamat_utama", aid=a.id) }}'>
+      <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+      <button class='btn btn-sm btn-outline-primary' type='submit'>Jadikan utama</button>
+    </form>
+    {% endif %}
+    <form method='post' action='{{ url_for("profil.hapus_alamat", aid=a.id) }}' data-confirm='Hapus alamat {{ a.label_text }} a.n. {{ a.recipient_name }}?'>
+      <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+      <button class='btn btn-sm btn-outline-danger' type='submit'>Hapus</button>
+    </form>
+  </div>
+  {% endif %}
+</article>
+{% endmacro %}

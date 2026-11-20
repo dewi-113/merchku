@@ -52,8 +52,9 @@ def test_profil_200_setelah_login():
     with app.test_client() as c:
         c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
         home = c.get('/')
-        assert b"href='/profil/' aria-label='Buka profil saya'" in home.data
-        assert b"class='btn-nav-logout' href='/auth/logout?token=" in home.data
+        assert b"aria-label='Menu akun saya'" in home.data
+        assert b"class='nav-user-logout' href='/auth/logout?token=" in home.data
+        assert b'Profil Saya' in home.data and b'Alamat Saya' in home.data
         r = c.get('/profil/')
         assert r.status_code == 200
         assert b'profile-account-banner' in r.data
@@ -215,3 +216,55 @@ def test_landing_page_publik():
         assert r.status_code == 200
         assert b'Merchku' in r.data
         assert b'Promo Merchku' in r.data
+
+
+def _addr(label, name):
+    return {
+        'addr-recipient_name': name, 'addr-phone': '08123456789',
+        'addr-address': f'Jl. {label} No. 1', 'addr-address_label': label,
+        'addr-district': 'Batam Kota', 'addr-city': 'Batam', 'addr-province': 'Kepulauan Riau',
+        'addr-postal_code': '29432',
+    }
+
+
+def test_buku_alamat_banyak_alamat_dan_alamat_utama():
+    from app.profil.models import Address
+    app = _make_app()
+    uid = _seed(app)
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
+        assert c.post('/profil/alamat', data=_addr('rumah', 'Rene Rumah')).status_code == 302
+        assert c.post('/profil/alamat', data=_addr('kantor', 'Rene Kantor')).status_code == 302
+        page = c.get('/profil/').get_data(as_text=True)
+        assert 'Rene Rumah' in page and 'Rene Kantor' in page and 'Kantor' in page
+        with app.app_context():
+            rows = Address.query.filter_by(user_id=uid).order_by(Address.id).all()
+            assert len(rows) == 2 and rows[0].is_default and not rows[1].is_default
+            kantor_id = rows[1].id
+        c.post(f'/profil/alamat/{kantor_id}/utama')
+        with app.app_context():
+            assert db.session.get(Address, kantor_id).is_default
+            assert db.session.get(User, uid).recipient_name == 'Rene Kantor'
+        c.post(f'/profil/alamat/{kantor_id}/hapus')
+        with app.app_context():
+            sisa = Address.query.filter_by(user_id=uid).one()
+            assert sisa.is_default and sisa.recipient_name == 'Rene Rumah'
+
+
+def test_alamat_orang_lain_tidak_bisa_diubah():
+    from app.profil.models import Address
+    app = _make_app()
+    _seed(app)
+    with app.app_context():
+        other = User(email='lain@t.test', password_hash='x', role='customer', is_active=True)
+        db.session.add(other)
+        db.session.flush()
+        a = Address(user_id=other.id, recipient_name='Lain', phone='0812', address='X',
+                    address_label='rumah', district='d', city='c', province='p', postal_code='12345')
+        db.session.add(a)
+        db.session.commit()
+        aid = a.id
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
+        assert c.post(f'/profil/alamat/{aid}/hapus').status_code == 403
+        assert c.get(f'/profil/alamat/{aid}/ubah').status_code == 403

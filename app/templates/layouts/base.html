@@ -321,6 +321,14 @@
       margin: 4px 8px;
     }
 
+    /* Menu akun (profil + keluar) */
+    .nav-user-menu { min-width: 230px; }
+    .nav-user-head { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px 8px; }
+    .nav-user-head strong { font-size: .9rem; }
+    .nav-user-head span { overflow: hidden; color: var(--text-muted); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-dropdown-menu a.nav-user-logout { color: #d92d20; font-weight: 600; }
+    .nav-dropdown-menu a.nav-user-logout:hover { background: #fdecec; color: #b42318; }
+
     /* ── Nav Right Controls ──────────────────────────── */
     .nav-controls {
       display: flex;
@@ -691,7 +699,7 @@
   </style>
   {% block extra_head %}{% endblock %}
   {# Lapisan responsif bersama (desktop + tampilan aplikasi di HP), dimuat terakhir #}
-  <link href='{{ url_for("static", filename="css/app.css") }}?v=14' rel='stylesheet'>
+  <link href='{{ url_for("static", filename="css/app.css") }}?v=15' rel='stylesheet'>
   <link href='{{ url_for("static", filename="css/theme.css") }}?v=4' rel='stylesheet'>
 </head>
 <body class='marketplace-theme {% block body_class %}{% endblock %}'>
@@ -762,7 +770,8 @@
     {# Right Controls #}
     <div class='nav-controls'>
       {% if current_user.is_authenticated %}
-      <a class='user-avatar-btn' href='{{ url_for("profil.index") }}' aria-label='Buka profil saya'>
+      <div class='nav-dropdown nav-user-dd' data-dd>
+        <button type='button' class='user-avatar-btn dd-toggle' aria-haspopup='true' aria-label='Menu akun saya'>
           {% if current_user.avatar %}
           <img src='{{ url_for("core.avatar_media", filename=current_user.avatar) }}'
                class='avatar-sm' alt='Foto profil'>
@@ -770,9 +779,21 @@
           <span class='avatar-initial' aria-hidden='true'>{{ current_user.email[0].upper() }}</span>
           {% endif %}
           <span class='d-none d-md-inline'>{{ current_user.email.split('@')[0] }}</span>
-          <span class='account-link-arrow' aria-hidden='true'>↗</span>
-      </a>
-      <a class='btn-nav-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>Keluar</a>
+          <span class='account-link-arrow' aria-hidden='true'>▾</span>
+        </button>
+        <div class='nav-dropdown-menu menu-right nav-user-menu'>
+          <div class='nav-user-head'>
+            <strong>{{ current_user.recipient_name or current_user.email.split('@')[0] }}</strong>
+            <span>{{ current_user.email }}</span>
+          </div>
+          <a href='{{ url_for("profil.index") }}'>👤 Profil Saya</a>
+          <a href='{{ url_for("profil.index") }}#shipping-address'>📍 Alamat Saya</a>
+          <a href='{{ url_for("pesanan.riwayat") }}'>🧾 Pesanan Saya</a>
+          <a href='{{ url_for("profil.keamanan") }}'>🔒 Keamanan Akun</a>
+          <div class='divider'></div>
+          <a class='nav-user-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>↪ Keluar</a>
+        </div>
+      </div>
       {% else %}
       <a class='btn-nav-login' href='{{ url_for("auth.login") }}'>Masuk</a>
       <a class='btn-nav-register' href='{{ url_for("auth.register") }}'>Daftar</a>

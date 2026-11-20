@@ -635,3 +635,27 @@ def test_checkout_multi_toko_dipecah_satu_pesanan_per_toko():
         assert {s1_id} in owners and {s2_id} in owners
         assert sum(o.total_price for o in orders) == 75000 * 2 + 200000
         assert CartItem.query.filter_by(user_id=u1_id).count() == 0
+
+
+def test_checkout_memakai_alamat_yang_dipilih():
+    from app.profil.models import Address
+    app = _make_app()
+    u1_id, _, p_plain, _ = _seed(app)
+    with app.app_context():
+        db.session.add(CartItem(user_id=u1_id, product_id=p_plain, size=None, quantity=1))
+        kantor = Address(user_id=u1_id, recipient_name='Rene Kantor', phone='0811', address='Gedung A',
+                         address_label='kantor', district='Batam Kota', city='Batam',
+                         province='Kepri', postal_code='29432')
+        db.session.add(kantor)
+        db.session.commit()
+        kid = kantor.id
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'a@t.test', 'password': 'Password111'})
+        page = c.get(f'/pesanan/checkout?alamat={kid}').get_data(as_text=True)
+        assert 'Rene Kantor' in page and 'Test User' in page   # alamat lama ikut dipindah
+        c.post(f'/pesanan/checkout?alamat={kid}', data={'courier': 'jne', 'payment_method': 'qris'})
+    with app.app_context():
+        order = Order.query.filter_by(user_id=u1_id).one()
+        assert order.recipient_name == 'Rene Kantor'
+        assert order.address_label == 'kantor'
+        assert order.city == 'Batam'
