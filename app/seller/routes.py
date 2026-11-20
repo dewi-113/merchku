@@ -79,7 +79,10 @@ def _panel_badge():
         db.session.query(func.count(func.distinct(Order.id)))
         .join(OrderItem, OrderItem.order_id == Order.id)
         .join(Product, Product.id == OrderItem.product_id)
-        .filter(Order.status.in_(['menunggu_verifikasi', 'dibayar']))
+        .filter(db.or_(
+            Order.status.in_(['menunggu_verifikasi', 'dibayar']),
+            db.and_(Order.payment_method == 'cod', Order.status == 'menunggu_pembayaran'),
+        ))
     )
     if current_user.role != 'admin':
         q = q.filter(Product.owner_id == current_user.id)
@@ -179,7 +182,10 @@ def _shop_performance():
         'orders_total': orders_total,
         'orders_completed': orders_completed,
         'completion_rate': round(orders_completed * 100 / orders_total) if orders_total else 0,
-        'to_verify': count_orders(Order.status == 'menunggu_verifikasi'),
+        'to_verify': count_orders(db.or_(
+            Order.status == 'menunggu_verifikasi',
+            db.and_(Order.payment_method == 'cod', Order.status == 'menunggu_pembayaran'),
+        )),
         'to_ship': count_orders(Order.status == 'dibayar'),
         'rating': round(float(rating_avg), 1) if rating_avg else None,
         'rating_count': int(rating_count or 0),
@@ -402,16 +408,28 @@ def _seller_items(order):
     return [it for it in order.items if it.product and it.product.owner_id == current_user.id]
 
 
-def _seller_can_verify(order):
-    """Penjual boleh memverifikasi bukti bayar hanya jika SEMUA item pesanan
-    adalah produk miliknya (pembayaran pesanan multi-toko tetap diverifikasi admin)."""
-    if order.status != 'menunggu_verifikasi' or not order.payment_proof:
-        return False
+def _seller_owns_all(order):
+    """True bila SEMUA item pesanan adalah produk milik penjual ini."""
     if current_user.role == 'admin':
         return True
     return bool(order.items) and all(
         it.product and it.product.owner_id == current_user.id for it in order.items
     )
+
+
+def _seller_can_verify(order):
+    """Penjual boleh memverifikasi bukti bayar hanya jika SEMUA item pesanan
+    adalah produk miliknya (pembayaran pesanan multi-toko tetap diverifikasi admin)."""
+    if order.status != 'menunggu_verifikasi' or not order.payment_proof:
+        return False
+    return _seller_owns_all(order)
+
+
+def _seller_can_confirm_cod(order):
+    """Pesanan COD baru: penjual boleh menerima (siap kirim) atau menolaknya."""
+    if order.payment_method != 'cod' or order.status != 'menunggu_pembayaran':
+        return False
+    return _seller_owns_all(order)
 
 
 @bp.route('/pesanan/<int:order_id>')
@@ -424,6 +442,7 @@ def pesanan_detail(order_id):
     return render_template(
         'seller/pesanan_detail.html', order=order, items=items, subtotal=subtotal,
         can_verify=_seller_can_verify(order),
+        can_confirm_cod=_seller_can_confirm_cod(order),
     )
 
 
@@ -436,6 +455,8 @@ def pesanan_ubah_status(order_id):
     seller_allowed = {'dikirim', 'selesai'}
     if _seller_can_verify(order):
         seller_allowed |= {'dibayar', 'ditolak'}
+    if _seller_can_confirm_cod(order):
+        seller_allowed |= {'dibayar', 'dibatalkan'}
     if current_user.role != 'admin' and new_status not in seller_allowed:
         _log('access_denied', level='warning', resource='order_status',
              order_id=order_id, reason='role', new_status=new_status)
@@ -454,7 +475,13 @@ def pesanan_ubah_status(order_id):
         _log('bukti_bayar_approved', order_id=order_id, actor='seller')
     elif old_status == 'menunggu_verifikasi' and new_status == 'ditolak':
         _log('bukti_bayar_rejected', order_id=order_id, actor='seller')
+    elif order.payment_method == 'cod' and old_status == 'menunggu_pembayaran':
+        _log('cod_confirmed' if new_status == 'dibayar' else 'cod_rejected',
+             order_id=order_id, actor='seller')
     _log('order_status_changed', order_id=order_id, old_status=old_status,
          new_status=new_status, actor='seller', seller_id=current_user.id)
-    flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
+    if order.payment_method == 'cod' and old_status == 'menunggu_pembayaran' and new_status == 'dibayar':
+        flash(f'Pesanan COD #{order_id} diterima. Silakan kemas dan ubah status ke "dikirim".', 'success')
+    else:
+        flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
     return redirect(url_for('seller.pesanan_detail', order_id=order_id))

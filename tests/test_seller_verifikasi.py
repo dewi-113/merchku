@@ -137,3 +137,46 @@ def test_halaman_toko_tampilkan_terlaris():
         assert r.status_code == 200
         assert b'Produk Terlaris' in r.data
         assert b'terjual' in r.data
+
+
+def _make_cod(app, oid):
+    with app.app_context():
+        o = db.session.get(Order, oid)
+        o.payment_method = 'cod'
+        o.status = 'menunggu_pembayaran'
+        o.payment_proof = None
+        db.session.commit()
+
+
+def test_seller_terima_pesanan_cod_lalu_kirim():
+    app, oid = _setup()
+    _make_cod(app, oid)
+    with app.test_client() as c:
+        _login(c)
+        assert b'Terima Pesanan COD' in c.get(f'/seller/pesanan/{oid}').data
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dikirim'})
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'dikirim'
+
+
+def test_seller_tolak_cod_mengembalikan_stok():
+    app, oid = _setup()
+    _make_cod(app, oid)
+    with app.app_context():
+        stok_awal = Product.query.filter_by(name='Stiker').one().stock
+    with app.test_client() as c:
+        _login(c)
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibatalkan'})
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'dibatalkan'
+        assert Product.query.filter_by(name='Stiker').one().stock == stok_awal + 1
+
+
+def test_cod_multi_toko_tidak_bisa_dikonfirmasi_seller():
+    app, oid = _setup(second_shop_item=True)
+    _make_cod(app, oid)
+    with app.test_client() as c:
+        _login(c)
+        assert b'Terima Pesanan COD' not in c.get(f'/seller/pesanan/{oid}').data
+        assert c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'}).status_code == 403

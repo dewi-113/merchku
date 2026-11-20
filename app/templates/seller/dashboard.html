@@ -18,7 +18,7 @@
 <div class='pn-alert' role='status'>
   <strong>⚡ Perlu tindakan</strong>
   <span>
-    {% if perf.to_verify %}<strong>{{ perf.to_verify }}</strong> pesanan menunggu konfirmasi pembayaran{% endif %}{% if perf.to_verify and perf.to_ship %} · {% endif %}
+    {% if perf.to_verify %}<strong>{{ perf.to_verify }}</strong> pesanan menunggu konfirmasi (pembayaran/COD){% endif %}{% if perf.to_verify and perf.to_ship %} · {% endif %}
     {% if perf.to_ship %}<strong>{{ perf.to_ship }}</strong> pesanan siap dikirim{% endif %}
   </span>
   <a href='{{ url_for("seller.pesanan_list") }}'>Proses sekarang →</a>

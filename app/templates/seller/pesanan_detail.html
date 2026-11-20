@@ -78,6 +78,25 @@
       </div>
     </div>
   </div>
+  {% elif can_confirm_cod %}
+  <div class='card border-primary mb-3'>
+    <div class='card-body'>
+      <h5 class='card-title'>Konfirmasi Pesanan COD</h5>
+      <p class='mb-3'>Pembeli akan membayar <strong>tunai saat barang diterima</strong>. Terima pesanan jika stok siap dikirim; setelah itu ubah status ke "dikirim". Jika tidak bisa diproses, tolak pesanan dan stok akan dikembalikan.</p>
+      <div class='d-flex flex-wrap gap-2'>
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='new_status' value='dibayar'>
+          <button class='btn btn-success' type='submit'>Terima Pesanan COD</button>
+        </form>
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' data-confirm='Tolak pesanan COD ini? Pesanan akan dibatalkan.'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='new_status' value='dibatalkan'>
+          <button class='btn btn-outline-danger' type='submit'>Tolak Pesanan</button>
+        </form>
+      </div>
+    </div>
+  </div>
   {% elif allowed %}
   <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' class='d-flex align-items-center gap-2'>
     <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
@@ -95,7 +114,9 @@
     'selesai': 'Pesanan sudah selesai.',
     'dibatalkan': 'Pesanan dibatalkan.',
   } %}
-  {% if notes.get(order.status) %}
+  {% if order.payment_method == 'cod' and order.status == 'menunggu_pembayaran' %}
+  <div class='alert alert-info mb-0'>Pesanan COD ini berisi produk dari beberapa toko, jadi dikonfirmasi admin. Setelah dikonfirmasi, Anda bisa mengubah status ke "dikirim".</div>
+  {% elif notes.get(order.status) %}
   <div class='alert alert-info mb-0'>{{ notes[order.status] }}</div>
   {% endif %}
   {% endif %}
