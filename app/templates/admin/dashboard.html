@@ -1,5 +1,6 @@
 {% extends 'layouts/panel.html' %}
 {% from 'partials/_panel_icons.html' import icon %}
+{% from 'partials/_sales_chart.html' import sales_chart with context %}
 {% block title %}Dashboard Admin — Merchku{% endblock %}
 {% macro rupiah(v) %}Rp {{ '{:,}'.format(v or 0).replace(',', '.') }}{% endmacro %}
 {% block panel_content %}
@@ -54,6 +55,8 @@
     <span class='pn-stat-sub'>pesanan sudah dibayar</span>
   </a>
 </div>
+
+{{ sales_chart(chart, 'Omzet harian') }}
 
 <section class='pn-panel'>
   <div class='pn-panel-head'>

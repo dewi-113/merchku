@@ -22,6 +22,7 @@ from wtforms.validators import Length, Optional
 from app import db, limiter
 from app.admin.forms import ProductForm
 from app.auth.decorators import role_required
+from app.core.sales_chart import daily_revenue
 from app.core.uploads import UploadRejected, reencode_and_save, validate_image_upload
 from app.core.utils import get_client_ip
 from app.core.validators import NoMarkup, SafeShopName
@@ -141,6 +142,7 @@ def dashboard():
     return render_template(
         'seller/dashboard.html', stats=stats, recent=recent, perf=_shop_performance(),
         low_stock=low_stock, low_stock_limit=LOW_STOCK_LIMIT,
+        chart=daily_revenue(14, seller_id=None if current_user.role == 'admin' else current_user.id),
     )
 
 
@@ -559,6 +561,10 @@ def pesanan_ubah_status(order_id):
         _log('bukti_bayar_rejected', order_id=order.id, actor='seller')
     _log('order_status_changed', order_id=order.id, old_status=old_status,
          new_status=new_status, actor='seller', seller_id=current_user.id)
+    from app.notifikasi.models import notify_buyer_status
+
+    notify_buyer_status(order, new_status)
+    db.session.commit()
 
     messages = {
         'dibayar': ('Pesanan COD #{id} diterima. Silakan kemas dan kirim.' if is_cod
@@ -570,3 +576,18 @@ def pesanan_ubah_status(order_id):
     }
     flash(messages[new_status].format(id=order.id), 'success')
     return redirect(url_for('seller.pesanan_detail', order_id=order.id))
+
+
+@bp.route('/pesanan/<int:order_id>/nota')
+def pesanan_invoice(order_id):
+    """Nota pesanan untuk penjual (hanya produk tokonya)."""
+    order = _seller_order_or_404(order_id)
+    items = _seller_items(order)
+    owns_all = _seller_owns_all(order)
+    shop = current_user.shop_name or current_user.email.split('@')[0]
+    return render_template(
+        'pesanan/invoice.html', order=order, items=items,
+        items_total=sum(it.subtotal for it in items), show_fees=owns_all,
+        shop_names=[shop] if current_user.role != 'admin' else [],
+        back_url=url_for('seller.pesanan_detail', order_id=order.id),
+    )

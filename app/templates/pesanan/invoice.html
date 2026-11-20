@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang='id'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <title>Nota Pesanan #{{ order.id }} — Merchku</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #f6f4ef; color: #14161c;
+           font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; }
+    .sheet { max-width: 800px; margin: 0 auto; padding: 36px 40px; border: 1px solid #e6e2d8; border-radius: 18px; background: #fff; }
+    .toolbar { max-width: 800px; margin: 0 auto 14px; display: flex; justify-content: space-between; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border: 1px solid #14161c;
+           border-radius: 10px; background: #14161c; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+    .btn-line { background: #fff; color: #14161c; border-color: #d6d1c4; }
+    .head { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 2px solid #14161c; }
+    .brand { font-size: 1.6rem; font-weight: 800; letter-spacing: -.03em; }
+    .muted { color: #6b6f7a; }
+    .doc-title { text-align: right; }
+    .doc-title h1 { margin: 0; font-size: 1.3rem; letter-spacing: .08em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 22px 0; }
+    .label { margin-bottom: 4px; color: #6b6f7a; font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 8px; border-bottom: 1px solid #14161c; font-size: .74rem; letter-spacing: .05em; text-align: left; text-transform: uppercase; }
+    td { padding: 10px 8px; border-bottom: 1px solid #ece9e1; vertical-align: top; }
+    .num { text-align: right; white-space: nowrap; }
+    .totals { width: 320px; margin: 18px 0 0 auto; }
+    .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
+    .totals .grand { margin-top: 6px; padding-top: 10px; border-top: 2px solid #14161c; font-size: 1.1rem; font-weight: 800; }
+    .status { display: inline-block; padding: 3px 10px; border-radius: 99px; background: #edf1fd; color: #2451d6; font-weight: 700; font-size: .78rem; }
+    .foot { margin-top: 30px; padding-top: 14px; border-top: 1px dashed #d6d1c4; color: #6b6f7a; font-size: .8rem; text-align: center; }
+    @media (max-width: 640px) { .sheet { padding: 22px 18px; } .grid { grid-template-columns: 1fr; } .totals { width: 100%; } }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .toolbar { display: none; }
+      .sheet { border: 0; border-radius: 0; padding: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class='toolbar'>
+    <a class='btn btn-line' href='{{ back_url }}'>Kembali</a>
+    <button class='btn' type='button' data-print>Cetak / Simpan PDF</button>
+  </div>
+  <main class='sheet'>
+    <header class='head'>
+      <div>
+        <div class='brand'>Merchku</div>
+        <div class='muted'>Kampus &amp; komunitas merchandise</div>
+        {% if shop_names %}<div class='muted'>Toko: {{ shop_names|join(', ') }}</div>{% endif %}
+      </div>
+      <div class='doc-title'>
+        <h1>NOTA PESANAN</h1>
+        <div>No. INV-{{ order.created_at.strftime('%Y%m%d') }}-{{ '%05d'|format(order.id) }}</div>
+        <div class='muted'>{{ order.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+        <div style='margin-top:6px'><span class='status'>{{ order.display_status.replace('_', ' ') }}</span></div>
+      </div>
+    </header>
+
+    <section class='grid'>
+      <div>
+        <div class='label'>Dikirim ke</div>
+        <strong>{{ order.recipient_name }}</strong> ({{ order.address_label|title }})<br>
+        {{ order.phone }}<br>
+        {{ order.address }}<br>
+        {{ order.district }}, {{ order.city }}, {{ order.province }} {{ order.postal_code }}
+      </div>
+      <div>
+        <div class='label'>Pengiriman &amp; pembayaran</div>
+        Kurir: {{ order.courier_label }}{% if order.shipping_service %} · {{ order.shipping_service }}{% endif %}<br>
+        {% if order.tracking_number %}No. resi: <strong>{{ order.tracking_number }}</strong><br>{% endif %}
+        Metode: {{ order.payment_method_label }}
+      </div>
+    </section>
+
+    <table>
+      <thead><tr><th>Produk</th><th>Ukuran</th><th class='num'>Harga</th><th class='num'>Qty</th><th class='num'>Subtotal</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.product_name }}{% if it.product_color %}<div class='muted'>{{ it.product_color }}</div>{% endif %}</td>
+          <td>{{ it.size or '-' }}</td>
+          <td class='num'>Rp {{ '{:,}'.format(it.unit_price).replace(',', '.') }}</td>
+          <td class='num'>{{ it.quantity }}</td>
+          <td class='num'>Rp {{ '{:,}'.format(it.subtotal).replace(',', '.') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class='totals'>
+      <div><span>Subtotal ({{ items|sum(attribute='quantity') }} barang)</span><span>Rp {{ '{:,}'.format(items_total).replace(',', '.') }}</span></div>
+      {% if show_fees %}
+      <div><span>Ongkos kirim</span><span>Rp {{ '{:,}'.format(order.shipping_cost).replace(',', '.') }}</span></div>
+      {% if order.service_fee %}<div><span>Biaya layanan</span><span>Rp {{ '{:,}'.format(order.service_fee).replace(',', '.') }}</span></div>{% endif %}
+      {% if order.fragile_fee %}<div><span>Proteksi pecah belah</span><span>Rp {{ '{:,}'.format(order.fragile_fee).replace(',', '.') }}</span></div>{% endif %}
+      {% if order.shipping_discount %}<div><span>Diskon ongkir</span><span>- Rp {{ '{:,}'.format(order.shipping_discount).replace(',', '.') }}</span></div>{% endif %}
+      <div class='grand'><span>Total</span><span>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</span></div>
+      {% else %}
+      <div class='grand'><span>Total toko</span><span>Rp {{ '{:,}'.format(items_total).replace(',', '.') }}</span></div>
+      {% endif %}
+    </div>
+
+    <p class='foot'>Terima kasih telah berbelanja di Merchku. Nota ini dibuat otomatis dan sah tanpa tanda tangan.</p>
+  </main>
+  <script src='{{ url_for("static", filename="js/print.js") }}'></script>
+</body>
+</html>

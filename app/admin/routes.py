@@ -94,7 +94,10 @@ def dashboard():
     }
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
     _log('admin_viewed_dashboard')
-    return render_template('admin/dashboard.html', stats=stats, recent_orders=recent_orders)
+    from app.core.sales_chart import daily_revenue
+
+    return render_template('admin/dashboard.html', stats=stats, recent_orders=recent_orders,
+                           chart=daily_revenue(14))
 
 
 # ---------- Produk ----------
@@ -326,6 +329,9 @@ def user_delete(uid):
     from app.katalog.wishlist_model import Wishlist
 
     Wishlist.query.filter_by(user_id=u.id).delete()
+    from app.notifikasi.models import Notification
+
+    Notification.query.filter_by(user_id=u.id).delete()
     ShopFollow.query.filter(
         db.or_(ShopFollow.seller_id == u.id, ShopFollow.follower_id == u.id)
     ).delete(synchronize_session=False)
@@ -433,6 +439,11 @@ def pesanan_ubah_status(order_id):
     _log('order_status_changed', order_id=order_id,
          old_status=old_status, new_status=new_status,
          actor='admin', admin_id=current_user.id)
+    from app.notifikasi.models import notify_buyer_status, notify_sellers
+
+    notify_buyer_status(order, new_status)
+    notify_sellers(order, f'Admin mengubah status pesanan #{order.id} menjadi {order.display_status.replace("_", " ")}.')
+    db.session.commit()
 
     flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
     return redirect(url_for('admin.pesanan_detail', order_id=order_id))
@@ -525,4 +536,96 @@ def laporan():
         recent_orders=recent_orders,
         date_from=date_from_str,
         date_to=date_to_str,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Log keamanan (dibaca dari logs/security.json)
+# ═══════════════════════════════════════════════════════════════════
+
+SECURITY_EVENT_LABELS = {
+    'login_success': 'Login berhasil',
+    'login_failed': 'Login gagal',
+    'account_locked': 'Akun dikunci',
+    'access_denied': 'Akses ditolak',
+    'rate_limited': 'Terlalu banyak permintaan',
+    'file_upload_rejected': 'Upload ditolak',
+    'suspicious_request': 'Permintaan mencurigakan',
+    'server_error': 'Error server',
+    'register_success': 'Registrasi',
+    'password_changed': 'Ganti password',
+    'user_role_changed': 'Role diubah',
+    'user_status_changed': 'Status akun diubah',
+    'user_deleted': 'Pengguna dihapus',
+}
+SECURITY_WATCH = ('login_failed', 'account_locked', 'access_denied', 'rate_limited',
+                  'file_upload_rejected', 'suspicious_request', 'server_error')
+
+
+def _read_security_log(max_bytes=2_000_000):
+    """Baca bagian akhir log JSON (paling baru di depan). Baris rusak dilewati."""
+    import json
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    handler = next((h for h in logging.getLogger('security').handlers
+                    if isinstance(h, RotatingFileHandler)), None)
+    path = handler.baseFilename if handler else os.path.join(
+        current_app.config.get('LOG_DIR') or os.getenv('LOG_DIR', 'logs'), 'security.json')
+    if not os.path.isfile(path):
+        return []
+    with open(path, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(max(0, size - max_bytes))
+        chunk = f.read().decode('utf-8', errors='replace')
+    lines = chunk.splitlines()
+    if size > max_bytes and lines:
+        lines = lines[1:]  # baris pertama kemungkinan terpotong
+    entries = []
+    for line in reversed(lines):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict):
+            entries.append(entry)
+    return entries
+
+
+@bp.route('/log-keamanan')
+def log_keamanan():
+    """Pantau event keamanan: login gagal, akses ditolak, akun dikunci, dll."""
+    event = request.args.get('event', '').strip()
+    level = request.args.get('level', '').strip()
+    q = request.args.get('q', '').strip().lower()[:100]
+    entries = _read_security_log()
+
+    counts = {}
+    ip_counts = {}
+    for e in entries:
+        ev = e.get('event') or '-'
+        counts[ev] = counts.get(ev, 0) + 1
+        if ev in ('login_failed', 'access_denied', 'account_locked') and e.get('ip'):
+            ip_counts[e['ip']] = ip_counts.get(e['ip'], 0) + 1
+
+    def keep(e):
+        if event and e.get('event') != event:
+            return False
+        if level and e.get('level') != level:
+            return False
+        if q:
+            hay = ' '.join(str(e.get(k) or '') for k in ('email', 'ip', 'path', 'event')).lower()
+            if q not in hay:
+                return False
+        return True
+
+    filtered = [e for e in entries if keep(e)][:300]
+    top_ips = sorted(ip_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    _log('admin_viewed_security_log')
+    return render_template(
+        'admin/log_keamanan.html',
+        entries=filtered, total=len(entries), counts=counts, top_ips=top_ips,
+        watch=SECURITY_WATCH, labels=SECURITY_EVENT_LABELS,
+        event_options=sorted(counts), f_event=event, f_level=level, f_q=q,
     )

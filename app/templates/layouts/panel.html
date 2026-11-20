@@ -4,7 +4,7 @@
   Template turunan mengisi {% block panel_content %}.
 #}
 {% block extra_head %}
-<link href='{{ url_for("static", filename="css/panel.css") }}?v=3' rel='stylesheet'>
+<link href='{{ url_for("static", filename="css/panel.css") }}?v=4' rel='stylesheet'>
 {% endblock %}
 
 {% from 'partials/_panel_icons.html' import icon %}
@@ -19,6 +19,7 @@
     ('admin.user_list', 'Pengguna', 'users', ['admin.user_list', 'admin.user_role'], 0),
     ('admin.pesanan_list', 'Pesanan', 'bag', ['admin.pesanan_list', 'admin.pesanan_detail'], panel_badge or 0),
     ('admin.laporan', 'Laporan', 'chart', ['admin.laporan'], 0),
+    ('admin.log_keamanan', 'Log Keamanan', 'shield', ['admin.log_keamanan'], 0),
   ] %}
 {% else %}
   {% set menu = [

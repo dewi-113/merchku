@@ -5,6 +5,7 @@
     from app.cs.routes import bp as cs_bp
     from app.katalog.routes import bp as katalog_bp
     from app.keranjang.routes import bp as keranjang_bp
+    from app.notifikasi.routes import bp as notifikasi_bp
     from app.pesanan.routes import bp as pesanan_bp
     from app.profil.routes import bp as profil_bp
     from app.seller.routes import bp as seller_bp
@@ -17,4 +18,5 @@
     app.register_blueprint(katalog_bp)
     app.register_blueprint(keranjang_bp)
     app.register_blueprint(pesanan_bp)
+    app.register_blueprint(notifikasi_bp)
     app.register_blueprint(profil_bp)

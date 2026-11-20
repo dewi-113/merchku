@@ -713,7 +713,7 @@
   </style>
   {% block extra_head %}{% endblock %}
   {# Lapisan responsif bersama (desktop + tampilan aplikasi di HP), dimuat terakhir #}
-  <link href='{{ url_for("static", filename="css/app.css") }}?v=15' rel='stylesheet'>
+  <link href='{{ url_for("static", filename="css/app.css") }}?v=16' rel='stylesheet'>
   <link href='{{ url_for("static", filename="css/theme.css") }}?v=4' rel='stylesheet'>
 </head>
 <body class='marketplace-theme {% block body_class %}{% endblock %}'>
@@ -775,6 +775,7 @@
           <a href='{{ url_for("admin.pesanan_list") }}'>Pesanan</a>
           <div class='divider'></div>
           <a href='{{ url_for("admin.laporan") }}'>Laporan</a>
+          <a href='{{ url_for("admin.log_keamanan") }}'>Log Keamanan</a>
         </div>
       </div>
       {% endif %}
@@ -784,6 +785,10 @@
     {# Right Controls #}
     <div class='nav-controls'>
       {% if current_user.is_authenticated %}
+      <a class='nav-icon-btn nav-bell' href='{{ url_for("notifikasi.index") }}' aria-label='Notifikasi{% if notif_count %}, {{ notif_count }} belum dibaca{% endif %}'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/><path d='M10.3 21a1.9 1.9 0 0 0 3.4 0'/></svg>
+        {% if notif_count %}<span class='icon-badge'>{{ notif_count if notif_count < 100 else '99+' }}</span>{% endif %}
+      </a>
       <div class='nav-dropdown nav-user-dd' data-dd>
         <button type='button' class='user-avatar-btn dd-toggle' aria-haspopup='true' aria-label='Menu akun saya'>
           {% if current_user.avatar %}
@@ -801,6 +806,7 @@
             <span>{{ current_user.email }}</span>
           </div>
           <a href='{{ url_for("profil.index") }}'>Profil Saya</a>
+  <a href='{{ url_for("notifikasi.index") }}'>Notifikasi{% if notif_count %} ({{ notif_count }}){% endif %}</a>
   <a href='{{ url_for("katalog.favorit") }}'>Favorit Saya</a>
           <a href='{{ url_for("profil.index") }}#shipping-address'>Alamat Saya</a>
           <a href='{{ url_for("pesanan.riwayat") }}'>Pesanan Saya</a>

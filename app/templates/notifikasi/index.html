@@ -1,0 +1,40 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Notifikasi — Merchku{% endblock %}
+{% block extra_head %}
+<style>
+  .notif-page { max-width: 760px; padding-top: 28px; padding-bottom: 56px; }
+  .notif-list { overflow: hidden; border: 1px solid #e6e2d8; border-radius: 18px; background: #fff; }
+  .notif-item { display: flex; gap: 12px; align-items: flex-start; padding: 15px 18px; color: inherit; text-decoration: none; }
+  .notif-item + .notif-item { border-top: 1px solid #f0ede6; }
+  .notif-item:hover { background: #faf9f6; color: inherit; }
+  .notif-dot { flex: 0 0 auto; width: 9px; height: 9px; margin-top: 7px; border-radius: 50%; background: transparent; }
+  .notif-item.is-unread { background: #f5f8ff; }
+  .notif-item.is-unread .notif-dot { background: #2451d6; }
+  .notif-msg { font-weight: 600; line-height: 1.45; }
+  .notif-time { margin-top: 2px; color: #8a8f99; font-size: .8rem; }
+  .notif-empty { padding: 48px 20px; color: #6b6f7a; text-align: center; }
+</style>
+{% endblock %}
+{% block content %}
+<div class='container notif-page'>
+  <div class='d-flex justify-content-between align-items-center mb-3'>
+    <div>
+      <h1 class='h3 fw-bold mb-1'>Notifikasi</h1>
+      <p class='text-muted mb-0'>Kabar terbaru tentang pesananmu.</p>
+    </div>
+  </div>
+  <div class='notif-list'>
+    {% for n in items %}
+    <a class='notif-item {{ "is-unread" if n.id in unread_ids else "" }}' href='{{ url_for("notifikasi.buka", nid=n.id) }}'>
+      <span class='notif-dot' aria-hidden='true'></span>
+      <span>
+        <span class='notif-msg d-block'>{{ n.message }}</span>
+        <span class='notif-time d-block'>{{ n.created_at|chat_time }}</span>
+      </span>
+    </a>
+    {% else %}
+    <div class='notif-empty'>Belum ada notifikasi.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

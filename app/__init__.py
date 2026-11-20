@@ -123,15 +123,17 @@ def create_app(config_name=None):
         from flask_login import current_user
 
         if not current_user.is_authenticated:
-            return {'cart_count': 0}
+            return {'cart_count': 0, 'notif_count': 0}
         from app.keranjang.models import CartItem
+        from app.notifikasi.models import Notification
 
         total = (
             db.session.query(db.func.coalesce(db.func.sum(CartItem.quantity), 0))
             .filter(CartItem.user_id == current_user.id)
             .scalar()
         )
-        return {'cart_count': int(total or 0)}
+        unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return {'cart_count': int(total or 0), 'notif_count': unread}
 
     from app.katalog.follow_model import follower_counts
     from app.katalog.stats import product_stats, reviewer_name, sold_label

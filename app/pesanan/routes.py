@@ -316,9 +316,14 @@ def checkout():
             flash('Terjadi kesalahan saat memproses pesanan. Coba lagi.', 'danger')
             return redirect(url_for('keranjang.index'))
 
+        from app.notifikasi.models import notify_sellers
+
         for order in orders:
             _log('checkout_created', order_id=order.id, total=order.total_price,
                  item_count=len(order.items))
+            cara = 'COD' if order.payment_method == 'cod' else order.payment_method_label
+            notify_sellers(order, f'Pesanan baru #{order.id} dari {order.recipient_name} ({cara}).')
+        db.session.commit()
         if len(orders) > 1:
             flash(
                 f'{len(orders)} pesanan berhasil dibuat (satu per toko). '
@@ -520,6 +525,9 @@ def terima(order_id):
         flash('Pesanan ini belum bisa dikonfirmasi diterima.', 'warning')
         return redirect(url_for('pesanan.detail', order_id=order_id))
     order.status = 'selesai'
+    from app.notifikasi.models import notify_sellers
+
+    notify_sellers(order, f'Pesanan #{order.id} sudah diterima pembeli dan selesai.')
     db.session.commit()
     _log('order_status_changed', order_id=order.id, old_status='dikirim',
          new_status='selesai', actor='customer')
@@ -560,6 +568,10 @@ def batalkan(order_id):
 
 
     _log('order_status_changed', order_id=order.id, new_status='dibatalkan', actor='customer')
+    from app.notifikasi.models import notify_sellers
+
+    notify_sellers(order, f'Pesanan #{order.id} dibatalkan oleh pembeli.')
+    db.session.commit()
     flash('Pesanan berhasil dibatalkan.', 'success')
     return redirect(url_for('pesanan.riwayat'))
 
@@ -643,7 +655,11 @@ def upload_bukti(order_id):
             fname=fname,
         )
         _log('order_status_changed', order_id=order.id, new_status='menunggu_verifikasi', actor='customer')
-        flash('Bukti bayar berhasil diunggah. Menunggu verifikasi admin.', 'success')
+        from app.notifikasi.models import notify_sellers
+
+        notify_sellers(order, f'Bukti bayar pesanan #{order.id} masuk. Silakan konfirmasi pembayaran.')
+        db.session.commit()
+        flash('Bukti bayar berhasil diunggah. Menunggu konfirmasi penjual.', 'success')
         return redirect(url_for('pesanan.detail', order_id=order_id))
 
     return render_template('pesanan/upload_bukti.html', form=form, order=order)
@@ -693,3 +709,24 @@ def serve_bukti(order_id):
     )
     response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
+
+
+@bp.route('/<int:order_id>/nota')
+@login_required
+def invoice(order_id):
+    """Nota pesanan siap cetak. Hanya pemilik pesanan."""
+    order = db.session.get(Order, order_id)
+    if not order:
+        abort(404)
+    if order.user_id != current_user.id:
+        log_access_denied('order', order_id, reason='ownership')
+        abort(403)
+    shops = sorted({
+        (it.product.owner.shop_name or it.product.owner.email.split('@')[0])
+        for it in order.items if it.product and it.product.owner
+    })
+    return render_template(
+        'pesanan/invoice.html', order=order, items=order.items,
+        items_total=order.total_products, show_fees=True, shop_names=shops,
+        back_url=url_for('pesanan.detail', order_id=order.id),
+    )

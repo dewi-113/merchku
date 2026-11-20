@@ -40,7 +40,9 @@ def setup_security_logger(app=None):
     logger.propagate = False
     if logger.handlers:
         return logger
-    log_dir = os.getenv('LOG_DIR','logs')
+    # Pakai LOG_DIR dari konfigurasi (path absolut di folder proyek) agar lokasi
+    # log tidak bergantung pada folder kerja proses (mis. di PythonAnywhere).
+    log_dir = (app.config.get('LOG_DIR') if app is not None else None) or os.getenv('LOG_DIR', 'logs')
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir,'security.json')
     fh = RotatingFileHandler(log_path, maxBytes=int(os.getenv('LOG_MAX_BYTES','10485760')), backupCount=int(os.getenv('LOG_BACKUP_COUNT','5')), encoding='utf-8')

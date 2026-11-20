@@ -87,6 +87,7 @@
       <h1>Detail Pesanan #{{ order.id }}</h1>
       <div class='order-detail-subtitle'>Dibuat {{ order.created_at.strftime('%d %b %Y · %H:%M') }}</div>
     </div>
+    <a class='btn btn-outline-secondary btn-sm ms-auto' href='{{ url_for("pesanan.invoice", order_id=order.id) }}' target='_blank' rel='noopener'>Cetak nota</a>
   </header>
 
   <section class='order-detail-card'>

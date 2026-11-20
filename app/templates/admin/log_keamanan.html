@@ -1,0 +1,67 @@
+{% extends 'layouts/panel.html' %}
+{% block title %}Log Keamanan — Merchku{% endblock %}
+{% block panel_content %}
+<div class='pn-hero'>
+  <div>
+    <h1 class='pn-title'>Log Keamanan</h1>
+    <p>Pantau percobaan login gagal, akses ditolak, dan aktivitas mencurigakan. Dibaca dari <code>logs/security.json</code>.</p>
+  </div>
+</div>
+
+<div class='pn-stats'>
+  {% for ev in watch %}
+  <a class='pn-stat {{ "tone-rose" if ev in ("login_failed", "account_locked", "server_error") else "tone-amber" }}' href='{{ url_for("admin.log_keamanan", event=ev) }}'>
+    <span class='pn-stat-label'>{{ labels.get(ev, ev) }}</span>
+    <span class='pn-stat-value'>{{ counts.get(ev, 0) }}</span>
+    <span class='pn-stat-sub'>{{ ev }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+{% if top_ips %}
+<section class='pn-panel mb-3'>
+  <div class='pn-panel-head'><h2>IP paling sering gagal / ditolak</h2></div>
+  <div class='d-flex flex-wrap gap-2'>
+    {% for ip, n in top_ips %}
+    <a class='btn btn-sm btn-outline-danger' href='{{ url_for("admin.log_keamanan", q=ip) }}'>{{ ip }} · {{ n }}x</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class='pn-panel'>
+  <form class='d-flex flex-wrap gap-2 mb-3' method='get'>
+    <select name='event' class='form-select' style='max-width:240px' aria-label='Filter event'>
+      <option value=''>Semua event</option>
+      {% for ev in event_options %}<option value='{{ ev }}' {{ 'selected' if ev == f_event }}>{{ labels.get(ev, ev) }} ({{ counts[ev] }})</option>{% endfor %}
+    </select>
+    <select name='level' class='form-select' style='max-width:160px' aria-label='Filter level'>
+      <option value=''>Semua level</option>
+      {% for lv in ['info', 'warning', 'error'] %}<option value='{{ lv }}' {{ 'selected' if lv == f_level }}>{{ lv }}</option>{% endfor %}
+    </select>
+    <input type='search' name='q' value='{{ f_q }}' class='form-control' style='max-width:260px' placeholder='Cari email, IP, atau path' aria-label='Cari'>
+    <button class='btn btn-primary' type='submit'>Terapkan</button>
+    {% if f_event or f_level or f_q %}<a class='btn btn-light' href='{{ url_for("admin.log_keamanan") }}'>Reset</a>{% endif %}
+  </form>
+  <p class='small text-muted mb-2'>Menampilkan {{ entries|length }} dari {{ total }} event terbaru.</p>
+  <div class='table-responsive'>
+    <table class='table align-middle'>
+      <thead><tr><th>Waktu (UTC)</th><th>Event</th><th>Level</th><th>Pengguna</th><th>IP</th><th>Path</th></tr></thead>
+      <tbody>
+      {% for e in entries %}
+        <tr>
+          <td class='text-nowrap small'>{{ (e.timestamp or '')[:19]|replace('T', ' ') }}</td>
+          <td><span class='fw-semibold'>{{ labels.get(e.event, e.event) }}</span><div class='small text-muted'>{{ e.event }}{% if e.reason %} · {{ e.reason }}{% endif %}</div></td>
+          <td><span class='pn-status {{ "s-dibatalkan" if e.level == "error" else ("s-menunggu_verifikasi" if e.level == "warning" else "s-selesai") }}'>{{ e.level }}</span></td>
+          <td class='small'>{{ e.email or '-' }}{% if e.role %}<div class='text-muted'>{{ e.role }}</div>{% endif %}</td>
+          <td class='small text-nowrap'>{{ e.ip or '-' }}</td>
+          <td class='small'><code>{{ e.method or '' }} {{ e.path or '' }}</code></td>
+        </tr>
+      {% else %}
+        <tr><td colspan='6' class='pn-empty'>Tidak ada event yang cocok.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

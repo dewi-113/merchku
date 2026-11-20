@@ -1,0 +1,45 @@
+{#
+  Grafik batang pendapatan harian (satu seri, satu warna).
+  Tooltip CSS (hover/fokus keyboard) + tabel data di <details> untuk aksesibilitas.
+#}
+{% macro rp(v) %}Rp {{ '{:,}'.format(v or 0).replace(',', '.') }}{% endmacro %}
+{% macro short_rp(v) -%}
+  {%- if v >= 1000000 -%}{{ '%.1f'|format(v / 1000000) }} jt{%- elif v >= 1000 -%}{{ (v // 1000) }} rb{%- else -%}{{ v }}{%- endif -%}
+{%- endmacro %}
+
+{% macro sales_chart(chart, title='Pendapatan harian') %}
+{% set peak = chart.peak or 1 %}
+<section class='pn-panel sc-panel' aria-labelledby='sc-title'>
+  <div class='pn-panel-head'>
+    <h2 id='sc-title'>{{ title }} <span class='sc-sub'>· {{ chart.days }} hari terakhir</span></h2>
+    <span class='sc-total'>{{ rp(chart.total) }}</span>
+  </div>
+  {% if chart.total %}
+  <div class='sc-plot' role='img' aria-label='{{ title }} {{ chart.days }} hari terakhir, total {{ rp(chart.total) }}, tertinggi {{ rp(chart.peak) }}'>
+    <div class='sc-grid' aria-hidden='true'>
+      <span data-v='{{ short_rp(chart.peak) }}'></span>
+      <span data-v='{{ short_rp(chart.peak // 2) }}'></span>
+      <span data-v='0'></span>
+    </div>
+    <div class='sc-bars'>
+      {% for p in chart.points %}
+      <div class='sc-col' tabindex='0'>
+        <span class='sc-bar{{ " is-zero" if not p.value }}' style='height: {{ ((p.value * 100 / peak) if p.value else 0)|round(1) }}%'></span>
+        <span class='sc-tip' role='tooltip'><strong>{{ rp(p.value) }}</strong><span>{{ p.label }}</span></span>
+        <span class='sc-x{{ " is-hidden" if not (loop.first or loop.last or loop.index0 % 3 == 0) }}'>{{ p.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <details class='sc-table'>
+    <summary>Lihat tabel data</summary>
+    <table class='table table-sm mb-0'>
+      <thead><tr><th>Tanggal</th><th class='text-end'>Pendapatan</th></tr></thead>
+      <tbody>{% for p in chart.points %}<tr><td>{{ p.label }}</td><td class='text-end'>{{ rp(p.value) }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </details>
+  {% else %}
+  <div class='pn-empty'>Belum ada pendapatan dalam {{ chart.days }} hari terakhir.</div>
+  {% endif %}
+</section>
+{% endmacro %}

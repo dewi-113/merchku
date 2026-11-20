@@ -105,6 +105,7 @@ img { max-width: 100%; }
 }
 .nav-icon-btn:hover, .nav-icon-btn:active { background: rgba(20, 22, 28, .06); color: var(--mk-ink); }
 .nav-icon-btn svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav-bell { display: inline-flex; }
 .icon-badge {
   position: absolute; top: 2px; right: 0;
   min-width: 18px; height: 18px; padding: 0 5px;
