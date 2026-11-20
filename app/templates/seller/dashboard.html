@@ -58,6 +58,22 @@
   </a>
 </div>
 
+{% if low_stock %}
+<section class='pn-panel mb-3' style='border-color:#f5c2c7'>
+  <div class='pn-panel-head'>
+    <h2>Stok menipis</h2>
+    <span class='small text-muted'>stok {{ low_stock_limit }} atau kurang</span>
+  </div>
+  <div class='d-flex flex-wrap gap-2'>
+    {% for p in low_stock %}
+    <a class='btn btn-sm {{ "btn-outline-danger" if p.total_stock == 0 else "btn-outline-secondary" }}' href='{{ url_for("seller.produk_edit", pid=p.id) }}'>
+      {{ p.name }} · {% if p.total_stock == 0 %}habis{% else %}sisa {{ p.total_stock }}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <div class='pn-grid-2'>
   <section class='pn-panel'>
     <div class='pn-panel-head'>

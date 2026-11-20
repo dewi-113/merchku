@@ -323,6 +323,9 @@ def user_delete(uid):
 
     CartItem.query.filter_by(user_id=u.id).delete()
     Address.query.filter_by(user_id=u.id).delete()
+    from app.katalog.wishlist_model import Wishlist
+
+    Wishlist.query.filter_by(user_id=u.id).delete()
     ShopFollow.query.filter(
         db.or_(ShopFollow.seller_id == u.id, ShopFollow.follower_id == u.id)
     ).delete(synchronize_session=False)

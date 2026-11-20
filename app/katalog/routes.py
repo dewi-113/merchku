@@ -18,6 +18,7 @@ from app.katalog.follow_model import ShopFollow, follower_counts
 from app.katalog.forms import ReviewForm
 from app.katalog.models import CATEGORIES, Product
 from app.katalog.review_model import Review
+from app.katalog.wishlist_model import Wishlist
 from app.pesanan.models import Order, OrderItem
 from app.security_logger import sec_log
 
@@ -186,6 +187,10 @@ def detail(pid):
             flash('Data ulasan tidak valid.', 'danger')
             return redirect(url_for('katalog.detail', pid=p.id))
 
+    is_favorite = bool(
+        current_user.is_authenticated
+        and Wishlist.query.filter_by(user_id=current_user.id, product_id=p.id).first()
+    )
     reviews = Review.query.filter_by(product_id=p.id).order_by(Review.created_at.desc()).limit(100).all()
     avg = db.session.query(db.func.avg(Review.rating)).filter(Review.product_id == p.id).scalar() or 0.0
     size_stocks = []
@@ -231,6 +236,7 @@ def detail(pid):
                            reviews=reviews, existing_review=existing_review,
                            avg=f'{avg:.1f}', size_stocks=size_stocks,
                            can_review=can_review, recommendations=recommendations,
+                           is_favorite=is_favorite,
                            seller_stats=seller_stats)
 
 
@@ -364,3 +370,40 @@ def create_review_limited(pid):
     else:
         flash('Data ulasan tidak valid.', 'danger')
     return redirect(url_for('katalog.detail', pid=p.id))
+
+
+@bp.route('/<int:pid>/favorit', methods=['POST'])
+@limiter.limit('120 per hour')
+@login_required
+def toggle_favorit(pid):
+    """Simpan / hapus produk dari daftar favorit."""
+    p = db.session.get(Product, pid)
+    if not p or not p.is_active:
+        abort(404)
+    fav = Wishlist.query.filter_by(user_id=current_user.id, product_id=p.id).first()
+    if fav:
+        db.session.delete(fav)
+        flash('Produk dihapus dari favorit.', 'info')
+    else:
+        db.session.add(Wishlist(user_id=current_user.id, product_id=p.id))
+        flash('Produk disimpan ke favorit.', 'success')
+    db.session.commit()
+    nxt = request.form.get('next', '')
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    return redirect(url_for('katalog.detail', pid=p.id))
+
+
+@bp.route('/favorit')
+@login_required
+def favorit():
+    """Daftar produk favorit milik pengguna."""
+    from app.katalog.stats import product_stats
+
+    rows = (
+        Wishlist.query.filter_by(user_id=current_user.id)
+        .order_by(Wishlist.created_at.desc())
+        .all()
+    )
+    products = [w.product for w in rows if w.product and w.product.is_active]
+    return render_template('katalog/favorit.html', products=products, stats=product_stats(products))

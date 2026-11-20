@@ -31,6 +31,7 @@
           <li class='list-group-item'><strong>Provinsi:</strong> {{ order.province or '-' }} · <strong>Kode Pos:</strong> {{ order.postal_code or '-' }}</li>
           <li class='list-group-item'><strong>HP:</strong> {{ order.phone }}</li>
           <li class='list-group-item'><strong>Kurir:</strong> {{ order.courier_label }} (ongkir dikonfirmasi admin)</li>
+          {% if order.tracking_number %}<li class='list-group-item'><strong>No. resi:</strong> {{ order.tracking_number }}</li>{% endif %}
           <li class='list-group-item'><strong>Pembayaran:</strong> {{ order.payment_method_label }}</li>
           {% if order.delivery_note %}<li class='list-group-item'><strong>Catatan kurir:</strong> {{ order.delivery_note }}</li>{% endif %}
           <li class='list-group-item'><strong>Tanggal:</strong> {{ order.created_at.strftime('%d %b %Y %H:%M') }}</li>

@@ -95,6 +95,12 @@
   .product-description { line-height: 1.75; color: #42536a; white-space: pre-wrap; }
   .size-guide-button { min-height: 42px; }
   .review-panel { padding: clamp(18px, 3vw, 28px); }
+  .btn-favorite { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 14px;
+    border: 1px solid #e3e7ec; border-radius: 99px; background: #fff; color: #344054; font-size: .88rem; font-weight: 650; }
+  .btn-favorite svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .btn-favorite:hover { border-color: #e5484d; color: #e5484d; }
+  .btn-favorite.is-active { border-color: #fbd0d2; background: #fff1f2; color: #e5484d; }
+  .btn-favorite.is-active svg { fill: currentColor; }
   .review-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #edf0f2; }
   .review-summary { color: #2451d6; font-size: 1.7rem; font-weight: 800; }
   .review-card {
@@ -170,6 +176,12 @@
             {% set detail_stats = product_stats([product])[product.id] %}
             {% if detail_stats.sold %}<span class='product-sold'>{{ detail_stats.sold_label }} terjual</span>{% endif %}
           </div>
+          {% if current_user.is_authenticated %}
+          <button type='submit' form='favoritForm' class='btn btn-favorite{{ " is-active" if is_favorite }}' aria-pressed='{{ "true" if is_favorite else "false" }}'>
+            <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'/></svg>
+            {{ 'Tersimpan di favorit' if is_favorite else 'Simpan ke favorit' }}
+          </button>
+          {% endif %}
           <div class='product-summary-row'>
             <span class='product-summary-label'>Ketersediaan</span>
             {% if product.total_stock > 0 %}
@@ -419,4 +431,9 @@
   </section>
 </div>
 
+{% if current_user.is_authenticated %}
+<form id='favoritForm' method='post' action='{{ url_for("katalog.toggle_favorit", pid=product.id) }}' hidden>
+  <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+</form>
+{% endif %}
 {% endblock %}

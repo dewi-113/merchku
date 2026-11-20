@@ -1,5 +1,6 @@
 import contextlib
 import os
+import re
 from datetime import UTC, datetime
 
 from flask import (
@@ -40,6 +41,8 @@ from app.pesanan.models import (
 from app.security_logger import sec_log
 
 bp = Blueprint('seller', __name__, url_prefix='/seller')
+
+LOW_STOCK_LIMIT = 5  # peringatan stok menipis di dashboard
 
 
 class ShopProfileForm(FlaskForm):
@@ -130,9 +133,14 @@ def dashboard():
     stats['sold'] = int(sold_q.scalar() or 0)
 
     recent = base.order_by(Product.created_at.desc()).limit(8).all()
+    low_stock = sorted(
+        (p for p in base.filter(Product.is_active.is_(True)).all() if p.total_stock <= LOW_STOCK_LIMIT),
+        key=lambda p: p.total_stock,
+    )[:8]
     _log('seller_viewed_dashboard')
     return render_template(
         'seller/dashboard.html', stats=stats, recent=recent, perf=_shop_performance(),
+        low_stock=low_stock, low_stock_limit=LOW_STOCK_LIMIT,
     )
 
 
@@ -523,6 +531,11 @@ def pesanan_ubah_status(order_id):
         flash(f'Transisi {order.display_status} ke {new_status} tidak valid.', 'danger')
         return redirect(url_for('seller.pesanan_detail', order_id=order_id))
 
+    resi = (request.form.get('tracking_number') or '').strip()
+    if new_status == 'dikirim' and resi and not re.fullmatch(r'[A-Za-z0-9\-]{4,60}', resi):
+        flash('Nomor resi hanya boleh huruf, angka, dan tanda minus (4-60 karakter).', 'danger')
+        return redirect(url_for('seller.pesanan_detail', order_id=order_id))
+
     # Pesanan lama multi-toko: pisahkan produk toko ini lebih dulu.
     if not _seller_owns_all(order):
         order = _split_off_seller_items(order)
@@ -530,6 +543,8 @@ def pesanan_ubah_status(order_id):
 
     old_status = order.status
     is_cod = order.payment_method == 'cod'
+    if new_status == 'dikirim' and resi:
+        order.tracking_number = resi
     if new_status == 'dibatalkan' and old_status in STOCK_RESERVED_STATUSES:
         restore_reserved_stock(order)
     order.status = new_status
@@ -550,7 +565,7 @@ def pesanan_ubah_status(order_id):
                     else 'Pembayaran pesanan #{id} dikonfirmasi. Silakan kemas dan kirim.'),
         'ditolak': 'Bukti bayar pesanan #{id} ditolak. Pembeli diminta mengunggah ulang.',
         'dibatalkan': 'Pesanan #{id} dibatalkan dan stok dikembalikan.',
-        'dikirim': 'Pesanan #{id} ditandai dikirim.',
+        'dikirim': 'Pesanan #{id} ditandai dikirim.' + (f' Resi: {resi}.' if resi else ''),
         'selesai': 'Pesanan #{id} ditandai selesai.',
     }
     flash(messages[new_status].format(id=order.id), 'success')

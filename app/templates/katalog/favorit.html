@@ -1,0 +1,25 @@
+{% extends 'layouts/base.html' %}
+{% from 'partials/product_card.html' import product_card %}
+{% block title %}Favorit Saya — Merchku{% endblock %}
+{% block content %}
+<div class='container py-4'>
+  <div class='d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3'>
+    <div>
+      <h1 class='h3 fw-bold mb-1'>Favorit Saya</h1>
+      <p class='text-muted mb-0'>Produk yang kamu simpan untuk dibeli nanti.</p>
+    </div>
+    <span class='text-muted small'>{{ products|length }} produk</span>
+  </div>
+  {% if products %}
+  <div class='mk-grid'>
+    {% for product in products %}{{ product_card(product, stats, quick_add=current_user.role == 'customer') }}{% endfor %}
+  </div>
+  {% else %}
+  <div class='text-center py-5 border rounded-4 bg-white'>
+    <h2 class='h5 fw-bold'>Belum ada produk favorit</h2>
+    <p class='text-muted'>Tekan "Simpan ke favorit" di halaman produk untuk menyimpannya di sini.</p>
+    <a class='btn btn-primary' href='{{ url_for("katalog.index") }}'>Jelajahi katalog</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

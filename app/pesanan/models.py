@@ -144,6 +144,7 @@ class Order(db.Model):
 
     # Bukti bayar (nama file di uploads/private)
     payment_proof = db.Column(db.String(255), nullable=True)
+    tracking_number = db.Column(db.String(60), nullable=True)  # nomor resi dari penjual
 
     # Catatan admin saat approve/reject
     admin_note = db.Column(db.Text, nullable=True)

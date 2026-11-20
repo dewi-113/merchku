@@ -19,6 +19,7 @@
           <p class='mb-1'><strong>Kota/Kabupaten:</strong> {{ order.city or '-' }} · {{ order.province or '-' }} {{ order.postal_code or '' }}</p>
           <p class='mb-0'><strong>Telepon:</strong> {{ order.phone }}</p>
           <p class='mb-1'><strong>Kurir:</strong> {{ order.courier_label }} (ongkir dikonfirmasi admin)</p>
+          {% if order.tracking_number %}<p class='mb-1'><strong>No. resi:</strong> {{ order.tracking_number }}</p>{% endif %}
           <p class='mb-1'><strong>Metode pembayaran:</strong> {{ order.payment_method_label }}</p>
           {% if order.delivery_note %}<p class='mb-0'><strong>Catatan kurir:</strong> {{ order.delivery_note }}</p>{% endif %}
         </div>
@@ -99,9 +100,13 @@
       <div class='d-flex flex-wrap gap-2'>
         {% for st in actions %}
         {% set label, cls, confirm_msg = labels[st] %}
-        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'{% if confirm_msg %} data-confirm='{{ confirm_msg }}'{% endif %}>
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'{% if confirm_msg %} data-confirm='{{ confirm_msg }}'{% endif %} class='d-flex flex-wrap gap-2'>
           <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
           <input type='hidden' name='new_status' value='{{ st }}'>
+          {% if st == 'dikirim' %}
+          <input type='text' name='tracking_number' class='form-control' style='max-width:260px' maxlength='60'
+            pattern='[A-Za-z0-9\-]{4,60}' placeholder='Nomor resi (opsional)' aria-label='Nomor resi pengiriman'>
+          {% endif %}
           <button class='btn {{ cls }}' type='submit'>{{ label }}</button>
         </form>
         {% endfor %}

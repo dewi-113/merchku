@@ -801,8 +801,10 @@
             <span>{{ current_user.email }}</span>
           </div>
           <a href='{{ url_for("profil.index") }}'>Profil Saya</a>
+  <a href='{{ url_for("katalog.favorit") }}'>Favorit Saya</a>
           <a href='{{ url_for("profil.index") }}#shipping-address'>Alamat Saya</a>
           <a href='{{ url_for("pesanan.riwayat") }}'>Pesanan Saya</a>
+          <a href='{{ url_for("katalog.favorit") }}'>Favorit Saya</a>
           <a href='{{ url_for("profil.keamanan") }}'>Keamanan Akun</a>
           <div class='divider'></div>
           <a class='nav-user-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>Keluar</a>

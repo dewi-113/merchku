@@ -238,3 +238,59 @@ def test_jumlah_barang_sesuai_di_penjual_dan_pembeli():
         c.post('/auth/login', data={'email': 'b@t.test', 'password': 'Customer12345'})
         riwayat = c.get('/pesanan/').get_data(as_text=True)
         assert '2 produk, 4 barang' in riwayat
+
+
+def test_nomor_resi_saat_dikirim_tampil_di_pembeli():
+    app, oid = _setup()
+    with app.app_context():
+        db.session.get(Order, oid).status = 'dibayar'
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        r = c.post(f'/seller/pesanan/{oid}/status',
+                   data={'new_status': 'dikirim', 'tracking_number': 'JNE-1234567890'})
+        assert r.status_code == 302
+    with app.app_context():
+        o = db.session.get(Order, oid)
+        assert o.status == 'dikirim' and o.tracking_number == 'JNE-1234567890'
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'b@t.test', 'password': 'Customer12345'})
+        assert b'JNE-1234567890' in c.get(f'/pesanan/{oid}').data
+
+
+def test_nomor_resi_tidak_valid_ditolak():
+    app, oid = _setup()
+    with app.app_context():
+        db.session.get(Order, oid).status = 'dibayar'
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        c.post(f'/seller/pesanan/{oid}/status',
+               data={'new_status': 'dikirim', 'tracking_number': '<script>'})
+    with app.app_context():
+        o = db.session.get(Order, oid)
+        assert o.status == 'dibayar' and o.tracking_number is None
+
+
+def test_favorit_simpan_tampil_dan_hapus():
+    app, _ = _setup()
+    with app.app_context():
+        pid = Product.query.filter_by(name='Stiker').one().id
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'b@t.test', 'password': 'Customer12345'})
+        c.post(f'/katalog/{pid}/favorit')
+        assert b'Stiker' in c.get('/katalog/favorit').data
+        assert b'Tersimpan di favorit' in c.get(f'/katalog/{pid}').data
+        c.post(f'/katalog/{pid}/favorit')
+        assert b'Belum ada produk favorit' in c.get('/katalog/favorit').data
+
+
+def test_dashboard_peringatan_stok_menipis():
+    app, _ = _setup()
+    with app.app_context():
+        Product.query.filter_by(name='Stiker').one().stock = 2
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        page = c.get('/seller/').get_data(as_text=True)
+        assert 'Stok menipis' in page and 'sisa 2' in page
