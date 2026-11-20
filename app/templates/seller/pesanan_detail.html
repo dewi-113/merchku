@@ -59,7 +59,26 @@
 
   {% set transitions = {'dibayar': ['dikirim'], 'dikirim': ['selesai']} %}
   {% set allowed = transitions.get(order.status, []) %}
-  {% if allowed %}
+  {% if can_verify %}
+  <div class='card border-primary mb-3'>
+    <div class='card-body'>
+      <h5 class='card-title'>Konfirmasi Pembayaran</h5>
+      <p class='mb-3'>Cek bukti bayar lewat tombol <strong>Lihat Bukti Bayar</strong> di atas. Jika nominal dan bukti sesuai, konfirmasi pembayaran agar pesanan bisa dikirim.</p>
+      <div class='d-flex flex-wrap gap-2'>
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='new_status' value='dibayar'>
+          <button class='btn btn-success' type='submit'>Konfirmasi Pembayaran</button>
+        </form>
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' data-confirm='Tolak bukti bayar ini? Pembeli harus mengunggah ulang.'>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='new_status' value='ditolak'>
+          <button class='btn btn-outline-danger' type='submit'>Tolak Bukti Bayar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% elif allowed %}
   <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' class='d-flex align-items-center gap-2'>
     <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
     <label class='form-label mb-0'>Ubah status:</label>
@@ -71,7 +90,7 @@
   {% else %}
   {% set notes = {
     'menunggu_pembayaran': 'Menunggu pembeli membayar. Status bisa diubah setelah pembayaran diverifikasi admin.',
-    'menunggu_verifikasi': 'Bukti bayar sedang diverifikasi admin. Setelah status menjadi "dibayar", Anda bisa mengubahnya ke "dikirim".',
+    'menunggu_verifikasi': 'Pesanan ini berisi produk dari beberapa toko, jadi bukti bayar diverifikasi admin. Setelah status menjadi "dibayar", Anda bisa mengubahnya ke "dikirim".',
     'ditolak': 'Bukti bayar ditolak admin. Menunggu pembeli mengunggah ulang bukti bayar.',
     'selesai': 'Pesanan sudah selesai.',
     'dibatalkan': 'Pesanan dibatalkan.',

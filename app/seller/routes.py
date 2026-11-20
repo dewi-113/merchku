@@ -329,6 +329,18 @@ def _seller_items(order):
     return [it for it in order.items if it.product and it.product.owner_id == current_user.id]
 
 
+def _seller_can_verify(order):
+    """Penjual boleh memverifikasi bukti bayar hanya jika SEMUA item pesanan
+    adalah produk miliknya (pembayaran pesanan multi-toko tetap diverifikasi admin)."""
+    if order.status != 'menunggu_verifikasi' or not order.payment_proof:
+        return False
+    if current_user.role == 'admin':
+        return True
+    return bool(order.items) and all(
+        it.product and it.product.owner_id == current_user.id for it in order.items
+    )
+
+
 @bp.route('/pesanan/<int:order_id>')
 def pesanan_detail(order_id):
     """Detail pesanan: hanya menampilkan item milik penjual ini."""
@@ -336,7 +348,10 @@ def pesanan_detail(order_id):
     items = _seller_items(order)
     subtotal = sum(it.subtotal for it in items)
     _log('seller_viewed_order', order_id=order_id)
-    return render_template('seller/pesanan_detail.html', order=order, items=items, subtotal=subtotal)
+    return render_template(
+        'seller/pesanan_detail.html', order=order, items=items, subtotal=subtotal,
+        can_verify=_seller_can_verify(order),
+    )
 
 
 @bp.route('/pesanan/<int:order_id>/status', methods=['POST'])
@@ -346,6 +361,8 @@ def pesanan_ubah_status(order_id):
     new_status = request.form.get('new_status', '').strip()
 
     seller_allowed = {'dikirim', 'selesai'}
+    if _seller_can_verify(order):
+        seller_allowed |= {'dibayar', 'ditolak'}
     if current_user.role != 'admin' and new_status not in seller_allowed:
         _log('access_denied', level='warning', resource='order_status',
              order_id=order_id, reason='role', new_status=new_status)
@@ -360,6 +377,10 @@ def pesanan_ubah_status(order_id):
         restore_reserved_stock(order)
     order.status = new_status
     db.session.commit()
+    if old_status == 'menunggu_verifikasi' and new_status == 'dibayar':
+        _log('bukti_bayar_approved', order_id=order_id, actor='seller')
+    elif old_status == 'menunggu_verifikasi' and new_status == 'ditolak':
+        _log('bukti_bayar_rejected', order_id=order_id, actor='seller')
     _log('order_status_changed', order_id=order_id, old_status=old_status,
          new_status=new_status, actor='seller', seller_id=current_user.id)
     flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
