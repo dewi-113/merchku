@@ -408,6 +408,16 @@ def _seller_items(order):
     return [it for it in order.items if it.product and it.product.owner_id == current_user.id]
 
 
+# Tindakan penjual per status (berlaku untuk semua metode pembayaran).
+SELLER_ACTIONS = {
+    'menunggu_pembayaran': ('dibayar', 'dibatalkan'),
+    'menunggu_verifikasi': ('dibayar', 'ditolak'),
+    'ditolak': ('dibayar', 'dibatalkan'),
+    'dibayar': ('dikirim',),
+    'dikirim': ('selesai',),
+}
+
+
 def _seller_owns_all(order):
     """True bila SEMUA item pesanan adalah produk milik penjual ini."""
     if current_user.role == 'admin':
@@ -417,19 +427,57 @@ def _seller_owns_all(order):
     )
 
 
-def _seller_can_verify(order):
-    """Penjual boleh memverifikasi bukti bayar hanya jika SEMUA item pesanan
-    adalah produk miliknya (pembayaran pesanan multi-toko tetap diverifikasi admin)."""
-    if order.status != 'menunggu_verifikasi' or not order.payment_proof:
-        return False
-    return _seller_owns_all(order)
+def _seller_actions(order):
+    return [st for st in SELLER_ACTIONS.get(order.status, ()) if order.can_transition_to(st)]
 
 
-def _seller_can_confirm_cod(order):
-    """Pesanan COD baru: penjual boleh menerima (siap kirim) atau menolaknya."""
-    if order.payment_method != 'cod' or order.status != 'menunggu_pembayaran':
-        return False
-    return _seller_owns_all(order)
+def _copy_private_file(fname):
+    """Salin bukti bayar agar pesanan hasil pemisahan punya file sendiri."""
+    import shutil
+    import uuid
+
+    private_dir = current_app.config['UPLOAD_PRIVATE']
+    src = os.path.join(private_dir, os.path.basename(fname))
+    if not os.path.isfile(src):
+        return fname
+    new_name = f'{uuid.uuid4().hex}{os.path.splitext(fname)[1]}'
+    shutil.copyfile(src, os.path.join(private_dir, new_name))
+    return new_name
+
+
+def _split_off_seller_items(order):
+    """Pisahkan produk milik penjual ini dari pesanan multi-toko menjadi pesanan baru.
+
+    Dipakai saat penjual memproses pesanan lama yang berisi produk beberapa
+    toko, supaya status hanya berubah untuk produk tokonya sendiri.
+    Biaya tambahan (ongkir, layanan, dll.) tetap di pesanan asal.
+    """
+    mine = [it for it in order.items if it.product and it.product.owner_id == current_user.id]
+    moved_total = sum(it.subtotal for it in mine)
+    copy_fields = (
+        'user_id', 'status', 'recipient_name', 'address', 'address_label', 'district',
+        'city', 'postal_code', 'province', 'phone', 'delivery_note', 'courier',
+        'shipping_service', 'shipping_duration', 'payment_method', 'admin_note',
+    )
+    new_order = Order(**{f: getattr(order, f) for f in copy_fields})
+    new_order.shipping_cost = 0
+    new_order.shipping_discount = 0
+    new_order.service_fee = 0
+    new_order.fragile_protection = False
+    new_order.fragile_fee = 0
+    new_order.total_price = moved_total
+    if order.payment_proof:
+        new_order.payment_proof = _copy_private_file(order.payment_proof)
+    db.session.add(new_order)
+    db.session.flush()
+    for it in mine:
+        it.order_id = new_order.id
+    order.total_price = max(0, order.total_price - moved_total)
+    db.session.flush()
+    db.session.refresh(order)
+    db.session.refresh(new_order)
+    _log('order_split', order_id=order.id, new_order_id=new_order.id, moved_total=moved_total)
+    return new_order
 
 
 @bp.route('/pesanan/<int:order_id>')
@@ -441,47 +489,51 @@ def pesanan_detail(order_id):
     _log('seller_viewed_order', order_id=order_id)
     return render_template(
         'seller/pesanan_detail.html', order=order, items=items, subtotal=subtotal,
-        can_verify=_seller_can_verify(order),
-        can_confirm_cod=_seller_can_confirm_cod(order),
+        actions=_seller_actions(order),
+        multi_shop=not _seller_owns_all(order),
     )
 
 
 @bp.route('/pesanan/<int:order_id>/status', methods=['POST'])
 def pesanan_ubah_status(order_id):
-    """Penjual mengubah status pesanan untuk item miliknya (dibayar -> dikirim -> selesai)."""
+    """Penjual memproses pesanan: konfirmasi/tolak pembayaran, terima/tolak COD,
+    batalkan, kirim, dan selesaikan. Berlaku untuk semua metode pembayaran."""
     order = _seller_order_or_404(order_id)
     new_status = request.form.get('new_status', '').strip()
 
-    seller_allowed = {'dikirim', 'selesai'}
-    if _seller_can_verify(order):
-        seller_allowed |= {'dibayar', 'ditolak'}
-    if _seller_can_confirm_cod(order):
-        seller_allowed |= {'dibayar', 'dibatalkan'}
-    if current_user.role != 'admin' and new_status not in seller_allowed:
-        _log('access_denied', level='warning', resource='order_status',
-             order_id=order_id, reason='role', new_status=new_status)
-        abort(403)
-
-    if not order.can_transition_to(new_status):
-        flash(f'Transisi {order.status} ke {new_status} tidak valid.', 'danger')
+    if new_status not in _seller_actions(order):
+        flash(f'Transisi {order.display_status} ke {new_status} tidak valid.', 'danger')
         return redirect(url_for('seller.pesanan_detail', order_id=order_id))
 
+    # Pesanan lama multi-toko: pisahkan produk toko ini lebih dulu.
+    if not _seller_owns_all(order):
+        order = _split_off_seller_items(order)
+        flash(f'Produk toko Anda dipisah menjadi pesanan #{order.id}.', 'info')
+
     old_status = order.status
+    is_cod = order.payment_method == 'cod'
     if new_status == 'dibatalkan' and old_status in STOCK_RESERVED_STATUSES:
         restore_reserved_stock(order)
     order.status = new_status
     db.session.commit()
-    if old_status == 'menunggu_verifikasi' and new_status == 'dibayar':
-        _log('bukti_bayar_approved', order_id=order_id, actor='seller')
-    elif old_status == 'menunggu_verifikasi' and new_status == 'ditolak':
-        _log('bukti_bayar_rejected', order_id=order_id, actor='seller')
-    elif order.payment_method == 'cod' and old_status == 'menunggu_pembayaran':
+
+    if is_cod and old_status == 'menunggu_pembayaran':
         _log('cod_confirmed' if new_status == 'dibayar' else 'cod_rejected',
-             order_id=order_id, actor='seller')
-    _log('order_status_changed', order_id=order_id, old_status=old_status,
+             order_id=order.id, actor='seller')
+    elif new_status == 'dibayar':
+        _log('bukti_bayar_approved', order_id=order.id, actor='seller', manual=old_status != 'menunggu_verifikasi')
+    elif new_status == 'ditolak':
+        _log('bukti_bayar_rejected', order_id=order.id, actor='seller')
+    _log('order_status_changed', order_id=order.id, old_status=old_status,
          new_status=new_status, actor='seller', seller_id=current_user.id)
-    if order.payment_method == 'cod' and old_status == 'menunggu_pembayaran' and new_status == 'dibayar':
-        flash(f'Pesanan COD #{order_id} diterima. Silakan kemas dan ubah status ke "dikirim".', 'success')
-    else:
-        flash(f'Status pesanan #{order_id} diubah ke {new_status}.', 'success')
-    return redirect(url_for('seller.pesanan_detail', order_id=order_id))
+
+    messages = {
+        'dibayar': ('Pesanan COD #{id} diterima. Silakan kemas dan kirim.' if is_cod
+                    else 'Pembayaran pesanan #{id} dikonfirmasi. Silakan kemas dan kirim.'),
+        'ditolak': 'Bukti bayar pesanan #{id} ditolak. Pembeli diminta mengunggah ulang.',
+        'dibatalkan': 'Pesanan #{id} dibatalkan dan stok dikembalikan.',
+        'dikirim': 'Pesanan #{id} ditandai dikirim.',
+        'selesai': 'Pesanan #{id} ditandai selesai.',
+    }
+    flash(messages[new_status].format(id=order.id), 'success')
+    return redirect(url_for('seller.pesanan_detail', order_id=order.id))

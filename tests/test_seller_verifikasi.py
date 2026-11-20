@@ -19,7 +19,8 @@ def _setup(second_shop_item=False):
         db.session.add_all([p1, p2])
         db.session.flush()
         order = Order(user_id=buyer.id, status='menunggu_verifikasi', recipient_name='rene',
-                      address='polibatam', phone='0812', payment_proof='bukti.png', total_price=18000)
+                      address='polibatam', phone='0812', payment_proof='bukti.png',
+                      total_price=68000 if second_shop_item else 18000)
         db.session.add(order)
         db.session.flush()
         db.session.add(OrderItem(order_id=order.id, product_id=p1.id, product_name='Stiker',
@@ -55,15 +56,22 @@ def test_seller_bisa_tolak_bukti_bayar():
         assert db.session.get(Order, oid).status == 'ditolak'
 
 
-def test_pesanan_multi_toko_tetap_diverifikasi_admin():
+def test_pesanan_multi_toko_dipisah_saat_seller_konfirmasi():
     app, oid = _setup(second_shop_item=True)
     with app.test_client() as c:
         _login(c)
-        assert b'Konfirmasi Pembayaran' not in c.get(f'/seller/pesanan/{oid}').data
-        assert c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'}).status_code == 403
+        page = c.get(f'/seller/pesanan/{oid}').data
+        assert b'Konfirmasi Pembayaran' in page and b'otomatis dipisah' in page
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
     with app.app_context():
-        assert db.session.get(Order, oid).status == 'menunggu_verifikasi'
-
+        asal = db.session.get(Order, oid)
+        assert asal.status == 'menunggu_verifikasi'
+        assert [it.product_name for it in asal.items] == ['Topi']
+        assert asal.total_price == 50000
+        baru = Order.query.filter(Order.id != oid).one()
+        assert baru.status == 'dibayar'
+        assert [it.product_name for it in baru.items] == ['Stiker']
+        assert baru.total_price == 18000
 
 def test_dashboard_tampilkan_performa_toko():
     app, oid = _setup()
@@ -173,10 +181,40 @@ def test_seller_tolak_cod_mengembalikan_stok():
         assert Product.query.filter_by(name='Stiker').one().stock == stok_awal + 1
 
 
-def test_cod_multi_toko_tidak_bisa_dikonfirmasi_seller():
+def test_cod_multi_toko_dipisah_lalu_diterima():
     app, oid = _setup(second_shop_item=True)
     _make_cod(app, oid)
     with app.test_client() as c:
         _login(c)
-        assert b'Terima Pesanan COD' not in c.get(f'/seller/pesanan/{oid}').data
+        assert b'Terima Pesanan COD' in c.get(f'/seller/pesanan/{oid}').data
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'menunggu_pembayaran'
+        assert Order.query.filter(Order.id != oid).one().status == 'dibayar'
+
+
+def test_konfirmasi_manual_tanpa_bukti_untuk_transfer():
+    app, oid = _setup()
+    with app.app_context():
+        o = db.session.get(Order, oid)
+        o.status = 'menunggu_pembayaran'
+        o.payment_proof = None
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        page = c.get(f'/seller/pesanan/{oid}').data
+        assert b'Konfirmasi Pembayaran' in page and b'Batalkan Pesanan' in page
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dikirim'})
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'selesai'})
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'selesai'
+
+
+def test_seller_toko_lain_tidak_bisa_proses():
+    app, oid = _setup()
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 's2@t.test', 'password': 'Seller123456'})
         assert c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'}).status_code == 403
+    with app.app_context():
+        assert db.session.get(Order, oid).status == 'menunggu_verifikasi'

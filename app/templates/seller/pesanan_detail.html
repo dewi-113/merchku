@@ -57,68 +57,47 @@
     </table>
   </div>
 
-  {% set transitions = {'dibayar': ['dikirim'], 'dikirim': ['selesai']} %}
-  {% set allowed = transitions.get(order.status, []) %}
-  {% if can_verify %}
-  <div class='card border-primary mb-3'>
-    <div class='card-body'>
-      <h5 class='card-title'>Konfirmasi Pembayaran</h5>
-      <p class='mb-3'>Cek bukti bayar lewat tombol <strong>Lihat Bukti Bayar</strong> di atas. Jika nominal dan bukti sesuai, konfirmasi pembayaran agar pesanan bisa dikirim.</p>
-      <div class='d-flex flex-wrap gap-2'>
-        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'>
-          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-          <input type='hidden' name='new_status' value='dibayar'>
-          <button class='btn btn-success' type='submit'>Konfirmasi Pembayaran</button>
-        </form>
-        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' data-confirm='Tolak bukti bayar ini? Pembeli harus mengunggah ulang.'>
-          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-          <input type='hidden' name='new_status' value='ditolak'>
-          <button class='btn btn-outline-danger' type='submit'>Tolak Bukti Bayar</button>
-        </form>
-      </div>
-    </div>
-  </div>
-  {% elif can_confirm_cod %}
-  <div class='card border-primary mb-3'>
-    <div class='card-body'>
-      <h5 class='card-title'>Konfirmasi Pesanan COD</h5>
-      <p class='mb-3'>Pembeli akan membayar <strong>tunai saat barang diterima</strong>. Terima pesanan jika stok siap dikirim; setelah itu ubah status ke "dikirim". Jika tidak bisa diproses, tolak pesanan dan stok akan dikembalikan.</p>
-      <div class='d-flex flex-wrap gap-2'>
-        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'>
-          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-          <input type='hidden' name='new_status' value='dibayar'>
-          <button class='btn btn-success' type='submit'>Terima Pesanan COD</button>
-        </form>
-        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' data-confirm='Tolak pesanan COD ini? Pesanan akan dibatalkan.'>
-          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-          <input type='hidden' name='new_status' value='dibatalkan'>
-          <button class='btn btn-outline-danger' type='submit'>Tolak Pesanan</button>
-        </form>
-      </div>
-    </div>
-  </div>
-  {% elif allowed %}
-  <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}' class='d-flex align-items-center gap-2'>
-    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-    <label class='form-label mb-0'>Ubah status:</label>
-    <select name='new_status' class='form-select' style='width:auto'>
-      {% for st in allowed %}<option value='{{ st }}'>{{ st }}</option>{% endfor %}
-    </select>
-    <button class='btn btn-primary' type='submit'>Simpan</button>
-  </form>
-  {% else %}
-  {% set notes = {
-    'menunggu_pembayaran': 'Menunggu pembeli membayar. Status bisa diubah setelah pembayaran diverifikasi admin.',
-    'menunggu_verifikasi': 'Pesanan ini berisi produk dari beberapa toko, jadi bukti bayar diverifikasi admin. Setelah status menjadi "dibayar", Anda bisa mengubahnya ke "dikirim".',
-    'ditolak': 'Bukti bayar ditolak admin. Menunggu pembeli mengunggah ulang bukti bayar.',
-    'selesai': 'Pesanan sudah selesai.',
-    'dibatalkan': 'Pesanan dibatalkan.',
+  {% set is_cod = order.payment_method == 'cod' %}
+  {% set info = {
+    'menunggu_pembayaran': ('Konfirmasi Pesanan COD', 'Pembeli membayar tunai saat barang diterima. Terima pesanan jika barang siap dikirim, atau tolak jika tidak bisa diproses (stok dikembalikan).') if is_cod
+      else ('Konfirmasi Pembayaran', 'Pembeli belum mengunggah bukti bayar. Jika dana sudah Anda terima (cek mutasi rekening / aplikasi), konfirmasi pembayaran secara manual. Batalkan jika pesanan tidak dibayar.'),
+    'menunggu_verifikasi': ('Konfirmasi Pembayaran', 'Cek bukti bayar lewat tombol Lihat Bukti Bayar di atas. Konfirmasi jika nominal dan bukti sesuai.'),
+    'ditolak': ('Pembayaran Ditolak', 'Bukti bayar sebelumnya ditolak. Jika pembayaran ternyata sudah masuk, Anda tetap bisa mengonfirmasinya, atau batalkan pesanan.'),
+    'dibayar': ('Kirim Pesanan', 'Pembayaran sudah dikonfirmasi. Kemas barang lalu tandai pesanan sebagai dikirim.' if not is_cod else 'Pesanan COD sudah diterima. Kemas barang lalu tandai pesanan sebagai dikirim.'),
+    'dikirim': ('Pesanan Dalam Pengiriman', 'Pembeli akan menekan "Pesanan Diterima" saat barang sampai. Anda juga bisa menandai selesai jika barang sudah diterima' ~ (' dan uang COD sudah diterima.' if is_cod else '.')),
   } %}
-  {% if order.payment_method == 'cod' and order.status == 'menunggu_pembayaran' %}
-  <div class='alert alert-info mb-0'>Pesanan COD ini berisi produk dari beberapa toko, jadi dikonfirmasi admin. Setelah dikonfirmasi, Anda bisa mengubah status ke "dikirim".</div>
-  {% elif notes.get(order.status) %}
-  <div class='alert alert-info mb-0'>{{ notes[order.status] }}</div>
-  {% endif %}
+  {% set labels = {
+    'dibayar': ('Terima Pesanan COD' if is_cod and order.status == 'menunggu_pembayaran' else 'Konfirmasi Pembayaran', 'btn-success', ''),
+    'ditolak': ('Tolak Bukti Bayar', 'btn-outline-danger', 'Tolak bukti bayar ini? Pembeli harus mengunggah ulang.'),
+    'dibatalkan': ('Tolak Pesanan' if is_cod else 'Batalkan Pesanan', 'btn-outline-danger', 'Batalkan pesanan ini? Stok akan dikembalikan.'),
+    'dikirim': ('Tandai Dikirim', 'btn-primary', ''),
+    'selesai': ('Tandai Selesai', 'btn-success', 'Tandai pesanan ini selesai?'),
+  } %}
+  {% if actions %}
+  {% set title, desc = info.get(order.status, ('Tindakan Pesanan', '')) %}
+  <div class='card border-primary mb-3'>
+    <div class='card-body'>
+      <h5 class='card-title'>{{ title }}</h5>
+      <p class='mb-3'>{{ desc }}</p>
+      {% if multi_shop %}
+      <div class='alert alert-warning py-2 small'>Pesanan ini juga berisi produk toko lain. Saat Anda memproses, produk toko Anda otomatis dipisah menjadi pesanan tersendiri.</div>
+      {% endif %}
+      <div class='d-flex flex-wrap gap-2'>
+        {% for st in actions %}
+        {% set label, cls, confirm_msg = labels[st] %}
+        <form method='post' action='{{ url_for("seller.pesanan_ubah_status", order_id=order.id) }}'{% if confirm_msg %} data-confirm='{{ confirm_msg }}'{% endif %}>
+          <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+          <input type='hidden' name='new_status' value='{{ st }}'>
+          <button class='btn {{ cls }}' type='submit'>{{ label }}</button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% elif order.status == 'selesai' %}
+  <div class='alert alert-success mb-0'>Pesanan sudah selesai. 🎉</div>
+  {% elif order.status == 'dibatalkan' %}
+  <div class='alert alert-secondary mb-0'>Pesanan dibatalkan.</div>
   {% endif %}
 </div>
 {% endblock %}

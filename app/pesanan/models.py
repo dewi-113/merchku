@@ -16,10 +16,12 @@ ORDER_STATUSES = [
 
 # Transisi yang diizinkan: {status_asal: [status_tujuan, ...]}
 VALID_TRANSITIONS = {
-    'menunggu_pembayaran':  ['menunggu_verifikasi', 'dibatalkan'],
+    # 'dibayar' dari menunggu_pembayaran/ditolak = konfirmasi manual oleh
+    # penjual/admin (mis. dana sudah masuk tapi pembeli belum unggah bukti).
+    'menunggu_pembayaran':  ['menunggu_verifikasi', 'dibayar', 'dibatalkan'],
     'menunggu_verifikasi':  ['dibayar', 'ditolak'],
     'dibayar':              ['dikirim'],
-    'ditolak':              ['menunggu_pembayaran', 'menunggu_verifikasi', 'dibatalkan'],
+    'ditolak':              ['menunggu_pembayaran', 'menunggu_verifikasi', 'dibayar', 'dibatalkan'],
     'dikirim':              ['selesai'],
     'selesai':              [],
     'dibatalkan':           [],
