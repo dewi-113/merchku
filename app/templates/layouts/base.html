@@ -284,6 +284,20 @@
       pointer-events: auto;
       transform: translateX(-50%) translateY(0);
     }
+    /* Jembatan tak terlihat di celah tombol-menu agar menu tidak menutup
+       saat kursor bergerak turun, plus jeda sebelum menu menutup. */
+    .nav-dropdown-menu::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -14px;
+      height: 14px;
+    }
+    .nav-dropdown-menu { transition: opacity .2s ease .15s, transform .2s ease .15s; }
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu,
+    .nav-dropdown.open .nav-dropdown-menu { transition-delay: 0s; }
     .dd-toggle {
       background: none;
       border: none;
@@ -303,7 +317,7 @@
     }
     .nav-dropdown-menu a {
       display: block;
-      padding: 8px 14px;
+      padding: 10px 14px;
       font-size: 0.85rem;
       font-weight: 500;
       color: var(--text-primary);
@@ -786,12 +800,12 @@
             <strong>{{ current_user.recipient_name or current_user.email.split('@')[0] }}</strong>
             <span>{{ current_user.email }}</span>
           </div>
-          <a href='{{ url_for("profil.index") }}'>👤 Profil Saya</a>
-          <a href='{{ url_for("profil.index") }}#shipping-address'>📍 Alamat Saya</a>
-          <a href='{{ url_for("pesanan.riwayat") }}'>🧾 Pesanan Saya</a>
-          <a href='{{ url_for("profil.keamanan") }}'>🔒 Keamanan Akun</a>
+          <a href='{{ url_for("profil.index") }}'>Profil Saya</a>
+          <a href='{{ url_for("profil.index") }}#shipping-address'>Alamat Saya</a>
+          <a href='{{ url_for("pesanan.riwayat") }}'>Pesanan Saya</a>
+          <a href='{{ url_for("profil.keamanan") }}'>Keamanan Akun</a>
           <div class='divider'></div>
-          <a class='nav-user-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>↪ Keluar</a>
+          <a class='nav-user-logout' href='{{ url_for("auth.logout", token=csrf_token()) }}'>Keluar</a>
         </div>
       </div>
       {% else %}
