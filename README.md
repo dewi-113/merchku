@@ -4,6 +4,16 @@ Toko merch kampus: katalog + pencarian/filter, ukuran S–XXL, keranjang,
 checkout + transfer manual (upload bukti bayar), chat customer–penjual,
 ulasan/rating setelah pesanan selesai, dan dashboard admin.
 
+## Tim & Pembagian Tugas
+
+| Anggota | Peminatan | Tanggung jawab di proyek |
+|---|---|---|
+| **Dewi Fahera Ellyanti** | Web Fundamental | Ketua & pengembang utama aplikasi Flask: struktur *application factory* + blueprint, model SQLAlchemy & migration, login/register + hashing password, CRUD produk, katalog, dashboard admin, template Jinja2, validasi client-side & server-side (`app/`, `migrations/`, `app/templates/`, `app/static/js/form-validation.js`) |
+| **Bram Lumazato Manao** | Internetworking | Deployment & jaringan: konfigurasi server (Gunicorn, Nginx, Passenger/PythonAnywhere), environment `.env`, database MySQL, topologi jaringan & akses domain/HTTPS (`config.py`, `passenger_wsgi.py`, `nginx-merchku.conf.example`, `gunicorn-merchku.service.example`, `scripts/sqlite_ke_mysql.py`) |
+| **Keisha Bilqis Sabil** | — | Konten & UI/UX: data dan foto produk, tampilan katalog & halaman toko, data demo, serta pengujian fungsional fitur dari sisi pengguna (`product_photos/`, `app/static/css/`, `app/cli.py` seed data) |
+| **Irene Selestial Purba** | SOC (Security Operations Center) | Logging & monitoring keamanan: format log event keamanan (login gagal, akses ditolak, perubahan data), analisis log, dan dokumentasi pengujian keamanan (`app/security_logger.py`, `docs/contoh-app.log`, `docs/UJI_KEAMANAN.md`) |
+| **Justin** | Network Defender | Hardening & pengujian keamanan: security headers/CSP, proteksi CSRF, rate limiting, validasi upload & input (mis. menolak payload `{{7*7}}`), keamanan sesi, hardening server (`app/core/middleware.py`, `app/core/uploads.py`, `app/core/validators.py`, `docs/HARDENING_VM.md`, `tests/test_hardening.py`) |
+
 ## Fitur
 
 | Modul | Rute | Keterangan |
