@@ -182,6 +182,11 @@ class Order(db.Model):
         return sum(item.subtotal for item in self.items)
 
     @property
+    def total_quantity(self):
+        """Jumlah seluruh barang (bukan jumlah jenis produk)."""
+        return sum(item.quantity for item in self.items)
+
+    @property
     def payment_method_label(self):
         return PAYMENT_METHOD_LABELS.get(self.payment_method, self.payment_method or '-')
 

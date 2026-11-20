@@ -134,14 +134,14 @@
           <div class='order-shop'>Toko: {{ first_item.product.owner.shop_name or first_item.product.owner.email.split('@')[0] }}</div>
           {% endif %}
           {% if order.items|length > 1 %}
-          <div class='order-item-more'>+ {{ order.items|length - 1 }} produk lainnya</div>
+          <div class='order-item-more'>+ {{ order.items|length - 1 }} produk lainnya: {{ order.items[1:]|map(attribute='product_name')|join(', ') }}</div>
           {% endif %}
           {% else %}
           <div class='order-item-name'>Detail produk tidak tersedia</div>
           {% endif %}
         </div>
         <div class='order-total'>
-          <div class='order-total-label'>Total belanja</div>
+          <div class='order-total-label'>Total belanja · {{ order.items|length }} produk, {{ order.total_quantity }} barang</div>
           <div class='order-total-price'>Rp {{ '{:,}'.format(order.total_price).replace(',', '.') }}</div>
         </div>
       </div>

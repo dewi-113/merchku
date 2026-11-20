@@ -380,7 +380,17 @@ def pesanan_list():
         q = q.filter(Product.owner_id == current_user.id)
     q = q.distinct().order_by(Order.created_at.desc())
     pagination = q.paginate(page=page, per_page=20, error_out=False)
-    return render_template('seller/pesanan_list.html', pagination=pagination)
+    rows = []
+    for o in pagination.items:
+        mine = _seller_items(o)
+        rows.append({
+            'order': o,
+            'items': mine,
+            'quantity': sum(it.quantity for it in mine),
+            'subtotal': sum(it.subtotal for it in mine),
+            'multi_shop': len(mine) != len(o.items),
+        })
+    return render_template('seller/pesanan_list.html', pagination=pagination, rows=rows)
 
 
 def _seller_order_or_404(order_id):

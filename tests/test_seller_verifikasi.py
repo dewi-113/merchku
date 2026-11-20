@@ -218,3 +218,23 @@ def test_seller_toko_lain_tidak_bisa_proses():
         assert c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'}).status_code == 403
     with app.app_context():
         assert db.session.get(Order, oid).status == 'menunggu_verifikasi'
+
+
+def test_jumlah_barang_sesuai_di_penjual_dan_pembeli():
+    app, oid = _setup(second_shop_item=True)
+    with app.app_context():
+        it = OrderItem.query.filter_by(order_id=oid, product_name='Stiker').one()
+        it.quantity = 3
+        db.session.commit()
+    with app.test_client() as c:
+        _login(c)
+        daftar = c.get('/seller/pesanan').get_data(as_text=True)
+        assert '3 barang' in daftar
+        assert 'Rp 54.000' in daftar          # bagian toko ini saja (3 x 18.000)
+        assert 'produk toko lain' in daftar
+        detail = c.get(f'/seller/pesanan/{oid}').get_data(as_text=True)
+        assert '1 produk, 3 barang' in detail
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'b@t.test', 'password': 'Customer12345'})
+        riwayat = c.get('/pesanan/').get_data(as_text=True)
+        assert '2 produk, 4 barang' in riwayat

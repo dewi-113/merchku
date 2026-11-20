@@ -153,7 +153,7 @@
         {% endfor %}
         <div class='order-detail-card-body'>
           <div class='summary-list'>
-            <div class='summary-row'><span>Subtotal produk</span><span>Rp {{ '{:,}'.format(order.total_products).replace(',', '.') }}</span></div>
+            <div class='summary-row'><span>Subtotal produk ({{ order.items|length }} produk · {{ order.total_quantity }} barang)</span><span>Rp {{ '{:,}'.format(order.total_products).replace(',', '.') }}</span></div>
             <div class='summary-row'><span>Ongkos kirim</span><span>Rp {{ '{:,}'.format(order.shipping_cost).replace(',', '.') }}</span></div>
             <div class='summary-row'><span>Biaya layanan</span><span>Rp {{ '{:,}'.format(order.service_fee).replace(',', '.') }}</span></div>
             {% if order.fragile_protection %}

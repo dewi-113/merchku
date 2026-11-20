@@ -29,7 +29,7 @@
     </div>
   </div>
 
-  <h5>Produk Milik Anda</h5>
+  <h5>Produk Milik Anda <span class='text-muted fw-normal fs-6'>· {{ items|length }} produk, {{ items|sum(attribute='quantity') }} barang</span></h5>
   <div class='table-responsive'>
     <table class='table align-middle'>
       <thead class='table-light'>
@@ -50,9 +50,23 @@
       </tbody>
       <tfoot>
         <tr>
-          <td colspan='4' class='text-end fw-bold'>Subtotal Anda:</td>
+          <td colspan='3' class='text-end fw-bold'>Total barang &amp; subtotal Anda:</td>
+          <td class='fw-bold'>{{ items|sum(attribute='quantity') }}</td>
           <td class='fw-bold'>Rp {{ '{:,}'.format(subtotal).replace(',','.') }}</td>
         </tr>
+        {% if not multi_shop %}
+        {% set extra = order.total_price - subtotal %}
+        {% if extra %}
+        <tr>
+          <td colspan='4' class='text-end text-muted'>Ongkir &amp; biaya lain (dibayar pembeli):</td>
+          <td class='text-muted'>Rp {{ '{:,}'.format(extra).replace(',','.') }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td colspan='4' class='text-end fw-bold'>Total dibayar pembeli:</td>
+          <td class='fw-bold'>Rp {{ '{:,}'.format(order.total_price).replace(',','.') }}</td>
+        </tr>
+        {% endif %}
       </tfoot>
     </table>
   </div>
