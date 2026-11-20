@@ -222,7 +222,8 @@ def checkout():
                 unit_price = product.price
                 total += unit_price * qty
 
-                order_items_data.append(
+                order_items_data.append((
+                    product.owner_id,
                     OrderItem(
                         product_id=product.id,
                         product_name=product.name,  # snapshot nama
@@ -232,8 +233,8 @@ def checkout():
                         size=cart_item.size,
                         quantity=qty,
                         unit_price=unit_price,       # snapshot harga
-                    )
-                )
+                    ),
+                ))
 
             # Buat order; biaya tambahan berasal dari konfigurasi server, bukan input browser.
             shipping_cost = selected_rate['price'] if selected_rate else 0
@@ -249,37 +250,51 @@ def checkout():
                 max(0, current_app.config.get('FRAGILE_PACKING_FEE_RP', 0))
                 if fragile_protection else 0
             )
-            order = Order(
-                user_id=current_user.id,
-                status='menunggu_pembayaran',
-                recipient_name=current_user.recipient_name.strip(),
-                address=current_user.address.strip(),
-                address_label=current_user.address_label,
-                district=current_user.district.strip(),
-                city=current_user.city.strip(),
-                postal_code=current_user.postal_code.strip(),
-                province=current_user.province.strip(),
-                phone=current_user.phone.strip(),
-                delivery_note=(current_user.delivery_note or '').strip() or None,
-                courier=selected_rate['courier'] if selected_rate else form.courier.data,
-                shipping_service=selected_rate['service'] if selected_rate else None,
-                shipping_duration=selected_rate['duration'] if selected_rate else None,
-                shipping_cost=shipping_cost,
-                shipping_discount=shipping_discount,
-                service_fee=service_fee,
-                fragile_protection=fragile_protection,
-                fragile_fee=fragile_fee,
-                payment_method=form.payment_method.data,
-                total_price=(
-                    total + shipping_cost - shipping_discount + service_fee + fragile_fee
-                ),
-            )
-            db.session.add(order)
-            db.session.flush()  # dapatkan order.id sebelum commit
+            # Satu pesanan per toko (seperti marketplace) agar tiap penjual bisa
+            # memproses pesanannya sendiri. Biaya tambahan (ongkir, layanan,
+            # proteksi, diskon) dibebankan ke pesanan pertama sehingga total
+            # keseluruhan sama dengan ringkasan checkout.
+            per_shop = {}
+            for owner_id, oi in order_items_data:
+                per_shop.setdefault(owner_id, []).append(oi)
 
-            for oi in order_items_data:
-                oi.order_id = order.id
-                db.session.add(oi)
+            orders = []
+            for index, shop_items in enumerate(per_shop.values()):
+                first = index == 0
+                shop_total = sum(oi.unit_price * oi.quantity for oi in shop_items)
+                o_shipping = shipping_cost if first else 0
+                o_discount = shipping_discount if first else 0
+                o_service = service_fee if first else 0
+                o_fragile = fragile_fee if first else 0
+                order = Order(
+                    user_id=current_user.id,
+                    status='menunggu_pembayaran',
+                    recipient_name=current_user.recipient_name.strip(),
+                    address=current_user.address.strip(),
+                    address_label=current_user.address_label,
+                    district=current_user.district.strip(),
+                    city=current_user.city.strip(),
+                    postal_code=current_user.postal_code.strip(),
+                    province=current_user.province.strip(),
+                    phone=current_user.phone.strip(),
+                    delivery_note=(current_user.delivery_note or '').strip() or None,
+                    courier=selected_rate['courier'] if selected_rate else form.courier.data,
+                    shipping_service=selected_rate['service'] if selected_rate else None,
+                    shipping_duration=selected_rate['duration'] if selected_rate else None,
+                    shipping_cost=o_shipping,
+                    shipping_discount=o_discount,
+                    service_fee=o_service,
+                    fragile_protection=fragile_protection and first,
+                    fragile_fee=o_fragile,
+                    payment_method=form.payment_method.data,
+                    total_price=shop_total + o_shipping - o_discount + o_service + o_fragile,
+                )
+                db.session.add(order)
+                db.session.flush()  # dapatkan order.id sebelum commit
+                for oi in shop_items:
+                    oi.order_id = order.id
+                    db.session.add(oi)
+                orders.append(order)
 
             # Hapus hanya item yang di-checkout; item lain tetap di keranjang
             CartItem.query.filter(
@@ -295,7 +310,17 @@ def checkout():
             flash('Terjadi kesalahan saat memproses pesanan. Coba lagi.', 'danger')
             return redirect(url_for('keranjang.index'))
 
-        _log('checkout_created', order_id=order.id, total=total, item_count=len(order_items_data))
+        for order in orders:
+            _log('checkout_created', order_id=order.id, total=order.total_price,
+                 item_count=len(order.items))
+        if len(orders) > 1:
+            flash(
+                f'{len(orders)} pesanan berhasil dibuat (satu per toko). '
+                'Lakukan pembayaran untuk masing-masing pesanan.',
+                'success',
+            )
+            return redirect(url_for('pesanan.riwayat'))
+        order = orders[0]
         if order.payment_method == 'midtrans':
             return redirect(url_for('pesanan.bayar', order_id=order.id))
         flash('Pesanan berhasil dibuat! Silakan lakukan pembayaran.', 'success')

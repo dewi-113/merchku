@@ -604,3 +604,34 @@ def test_checkout_item_milik_orang_lain_diabaikan():
         assert r.status_code == 302  # keranjang sendiri kosong -> kembali ke keranjang
     with app.app_context():
         assert Order.query.count() == 0
+
+
+def test_checkout_multi_toko_dipecah_satu_pesanan_per_toko():
+    app = _make_app()
+    u1_id, _, p_plain, p_sized = _seed(app)
+    with app.app_context():
+        s1 = User(email='s1@t.test', password_hash='x', role='seller', is_active=True)
+        s2 = User(email='s2@t.test', password_hash='x', role='seller', is_active=True)
+        db.session.add_all([s1, s2])
+        db.session.flush()
+        db.session.get(Product, p_plain).owner_id = s1.id
+        db.session.get(Product, p_sized).owner_id = s2.id
+        db.session.add_all([
+            CartItem(user_id=u1_id, product_id=p_plain, size=None, quantity=2),
+            CartItem(user_id=u1_id, product_id=p_sized, size='M', quantity=1),
+        ])
+        db.session.commit()
+        s1_id, s2_id = s1.id, s2.id
+
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'a@t.test', 'password': 'Password111'})
+        r = c.post('/pesanan/checkout', data={'courier': 'jne', 'payment_method': 'cod'})
+        assert r.status_code == 302
+
+    with app.app_context():
+        orders = Order.query.filter_by(user_id=u1_id).order_by(Order.id).all()
+        assert len(orders) == 2
+        owners = [{it.product.owner_id for it in o.items} for o in orders]
+        assert {s1_id} in owners and {s2_id} in owners
+        assert sum(o.total_price for o in orders) == 75000 * 2 + 200000
+        assert CartItem.query.filter_by(user_id=u1_id).count() == 0
