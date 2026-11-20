@@ -112,7 +112,64 @@ def dashboard():
 
     recent = base.order_by(Product.created_at.desc()).limit(8).all()
     _log('seller_viewed_dashboard')
-    return render_template('seller/dashboard.html', stats=stats, recent=recent)
+    return render_template(
+        'seller/dashboard.html', stats=stats, recent=recent, perf=_shop_performance(),
+    )
+
+
+def _shop_performance():
+    """Ringkasan performa toko: pendapatan, pesanan, rating, pengikut, produk terlaris."""
+    from app.katalog.follow_model import follower_counts
+    from app.katalog.stats import SOLD_STATUSES
+
+    is_admin = current_user.role == 'admin'
+
+    def own(q):
+        return q if is_admin else q.filter(Product.owner_id == current_user.id)
+
+    items = own(
+        db.session.query(OrderItem)
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(Product, Product.id == OrderItem.product_id)
+    )
+
+    def count_orders(*conds):
+        return int(items.filter(*conds).with_entities(func.count(func.distinct(Order.id))).scalar() or 0)
+
+    revenue = items.filter(Order.status.in_(SOLD_STATUSES)).with_entities(
+        func.coalesce(func.sum(OrderItem.quantity * OrderItem.unit_price), 0)
+    ).scalar()
+    orders_total = count_orders(Order.status != 'dibatalkan')
+    orders_completed = count_orders(Order.status == 'selesai')
+
+    rating_avg, rating_count = own(
+        db.session.query(func.avg(Review.rating), func.count(Review.id))
+        .join(Product, Product.id == Review.product_id)
+    ).one()
+
+    sold_qty = func.sum(OrderItem.quantity)
+    top_products = (
+        items.filter(Order.status.in_(SOLD_STATUSES))
+        .with_entities(Product.id, Product.name, sold_qty.label('sold'),
+                       func.sum(OrderItem.quantity * OrderItem.unit_price).label('revenue'))
+        .group_by(Product.id, Product.name)
+        .order_by(sold_qty.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        'revenue': int(revenue or 0),
+        'orders_total': orders_total,
+        'orders_completed': orders_completed,
+        'completion_rate': round(orders_completed * 100 / orders_total) if orders_total else 0,
+        'to_verify': count_orders(Order.status == 'menunggu_verifikasi'),
+        'to_ship': count_orders(Order.status == 'dibayar'),
+        'rating': round(float(rating_avg), 1) if rating_avg else None,
+        'rating_count': int(rating_count or 0),
+        'followers': 0 if is_admin else follower_counts([current_user.id])[current_user.id],
+        'top_products': top_products,
+    }
 
 
 @bp.route('/toko', methods=['GET', 'POST'])

@@ -63,3 +63,36 @@ def test_pesanan_multi_toko_tetap_diverifikasi_admin():
         assert c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'}).status_code == 403
     with app.app_context():
         assert db.session.get(Order, oid).status == 'menunggu_verifikasi'
+
+
+def test_dashboard_tampilkan_performa_toko():
+    app, oid = _setup()
+    with app.test_client() as c:
+        _login(c)
+        c.post(f'/seller/pesanan/{oid}/status', data={'new_status': 'dibayar'})
+        r = c.get('/seller/')
+        assert r.status_code == 200
+        assert b'Performa Toko' in r.data
+        assert b'Rp 18.000' in r.data
+        assert b'Stiker' in r.data
+
+
+def test_cli_bersihkan_dan_reset_demo():
+    app, _ = _setup()
+    with app.app_context():
+        s1 = User.query.filter_by(email='s1@t.test').one()
+        s1.shop_name = '{{7*7}}sst'
+        db.session.add(Product(name='{{7*7}}', price=1000, owner_id=s1.id, stock=1))
+        db.session.add(User(email='seller@demo.test', password_hash='x', role='seller',
+                            is_active=True, failed_attempts=5))
+        db.session.commit()
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=['bersihkan-nama-toko', '--terapkan']).exit_code == 0
+    assert runner.invoke(args=['reset-akun-demo']).exit_code == 0
+    with app.app_context():
+        assert User.query.filter_by(email='s1@t.test').one().shop_name is None
+        assert Product.query.filter_by(name='{{7*7}}').one().is_active is False
+        assert User.query.filter_by(email='seller@demo.test').one().failed_attempts == 0
+    with app.test_client() as c:
+        r = c.post('/auth/login', data={'email': 'seller@demo.test', 'password': 'SellerDemo1234'})
+        assert r.status_code == 302

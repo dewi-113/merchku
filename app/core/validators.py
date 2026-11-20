@@ -12,6 +12,10 @@ SHOP_NAME_RE = re.compile(r"^[^\W_][\w\s.,'&()\-]*$")
 _FORBIDDEN_RE = re.compile(r'[{}<>`$\\\x00-\x1f\x7f]')
 
 
+def has_markup(value):
+    return bool(value and _FORBIDDEN_RE.search(value))
+
+
 def shop_name_valid(value):
     return bool(SHOP_NAME_RE.match(value))
 

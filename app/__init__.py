@@ -155,6 +155,7 @@ def create_app(config_name=None):
         bersihkan_nama_toko,
         create_admin,
         kunci_akun_demo,
+        reset_akun_demo,
         seed_demo,
         seed_promo,
         seed_sosial,
@@ -169,6 +170,7 @@ def create_app(config_name=None):
     app.cli.add_command(seed_sosial)
     app.cli.add_command(kunci_akun_demo)
     app.cli.add_command(bersihkan_nama_toko)
+    app.cli.add_command(reset_akun_demo)
 
     @app.before_request
     def _https_forwarded():

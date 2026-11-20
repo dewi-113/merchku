@@ -1068,19 +1068,57 @@ def kunci_akun_demo(password):
 @click.option('--terapkan', is_flag=True, default=False, help='Simpan perubahan (tanpa ini hanya pratinjau).')
 @with_appcontext
 def bersihkan_nama_toko(terapkan):
-    """Kosongkan nama toko yang berisi karakter tidak valid (mis. '{{7*7}}')."""
-    from app.core.validators import shop_name_valid
+    """Bersihkan data berisi sintaks template/HTML (mis. '{{7*7}}').
 
-    bad = [
+    Nama toko tidak valid dikosongkan; produk yang nama/jenis/warnanya berisi
+    karakter terlarang dinonaktifkan agar tidak tampil di katalog.
+    """
+    from app.core.validators import has_markup, shop_name_valid
+    from app.katalog.models import Product
+
+    bad_shops = [
         u for u in User.query.filter(User.shop_name.isnot(None)).all()
         if not shop_name_valid(u.shop_name.strip())
     ]
-    for u in bad:
-        click.echo(f'  [!] user #{u.id}: {u.shop_name!r}')
+    for u in bad_shops:
+        click.echo(f'  [!] toko user #{u.id}: {u.shop_name!r}')
         if terapkan:
             u.shop_name = None
+
+    bad_products = [
+        p for p in Product.query.filter(Product.is_active.is_(True)).all()
+        if has_markup(p.name) or has_markup(p.product_type) or has_markup(p.color)
+    ]
+    for p in bad_products:
+        click.echo(f'  [!] produk #{p.id} (pemilik #{p.owner_id}): {p.name!r}')
+        if terapkan:
+            p.is_active = False
+
+    total = len(bad_shops) + len(bad_products)
     if terapkan:
         db.session.commit()
-        click.echo(f'Dibersihkan: {len(bad)} nama toko.')
+        click.echo(f'Dibersihkan: {len(bad_shops)} nama toko, {len(bad_products)} produk dinonaktifkan.')
     else:
-        click.echo(f'{len(bad)} nama toko tidak valid. Jalankan dengan --terapkan untuk membersihkan.')
+        click.echo(f'{total} data tidak valid. Jalankan dengan --terapkan untuk membersihkan.')
+
+
+@click.command('reset-akun-demo')
+@with_appcontext
+def reset_akun_demo():
+    """Kembalikan password default akun demo (admin, pembeli, semua toko) & buka kunci."""
+    accounts = [
+        ('admin@demo.test', 'AdminDemo1234'),
+        ('customer1@demo.test', 'Customer1Demo1'),
+        ('seller@demo.test', 'SellerDemo1234'),
+    ] + [(shop['email'], shop['password']) for shop in EXTRA_SHOPS]
+    for email, password in accounts:
+        u = User.query.filter_by(email=email).first()
+        if u is None:
+            click.echo(f'  [-] {email}: tidak ada')
+            continue
+        u.password_hash = hash_password(password)
+        u.failed_attempts = 0
+        u.locked_until = None
+        u.is_active = True
+        click.echo(f'  [+] {email} / {password}  ({u.role}{", " + u.shop_name if u.shop_name else ""})')
+    db.session.commit()
