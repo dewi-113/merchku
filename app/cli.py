@@ -1062,3 +1062,25 @@ def kunci_akun_demo(password):
         user.password_hash = new_hash
     db.session.commit()
     click.echo(f'{len(users)} akun demo dikunci dengan password dari DEMO_PASSWORD.')
+
+
+@click.command('bersihkan-nama-toko')
+@click.option('--terapkan', is_flag=True, default=False, help='Simpan perubahan (tanpa ini hanya pratinjau).')
+@with_appcontext
+def bersihkan_nama_toko(terapkan):
+    """Kosongkan nama toko yang berisi karakter tidak valid (mis. '{{7*7}}')."""
+    from app.core.validators import shop_name_valid
+
+    bad = [
+        u for u in User.query.filter(User.shop_name.isnot(None)).all()
+        if not shop_name_valid(u.shop_name.strip())
+    ]
+    for u in bad:
+        click.echo(f'  [!] user #{u.id}: {u.shop_name!r}')
+        if terapkan:
+            u.shop_name = None
+    if terapkan:
+        db.session.commit()
+        click.echo(f'Dibersihkan: {len(bad)} nama toko.')
+    else:
+        click.echo(f'{len(bad)} nama toko tidak valid. Jalankan dengan --terapkan untuk membersihkan.')

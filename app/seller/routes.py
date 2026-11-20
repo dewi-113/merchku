@@ -23,6 +23,7 @@ from app.admin.forms import ProductForm
 from app.auth.decorators import role_required
 from app.core.uploads import UploadRejected, reencode_and_save, validate_image_upload
 from app.core.utils import get_client_ip
+from app.core.validators import NoMarkup, SafeShopName
 from app.katalog.models import (
     SIZES,
     Product,
@@ -42,8 +43,8 @@ bp = Blueprint('seller', __name__, url_prefix='/seller')
 
 
 class ShopProfileForm(FlaskForm):
-    shop_name = StringField('Nama Toko', validators=[Optional(), Length(max=120)])
-    shop_description = TextAreaField('Deskripsi Toko', validators=[Optional(), Length(max=2000)])
+    shop_name = StringField('Nama Toko', validators=[Optional(), Length(min=3, max=120), SafeShopName()])
+    shop_description = TextAreaField('Deskripsi Toko', validators=[Optional(), Length(max=2000), NoMarkup()])
     submit = SubmitField('Simpan')
 
 

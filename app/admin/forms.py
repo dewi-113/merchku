@@ -15,14 +15,15 @@ from wtforms.validators import (
     Optional,
 )
 
+from app.core.validators import NoMarkup
 from app.katalog.models import CATEGORIES
 
 
 class ProductForm(FlaskForm):
-    name = StringField('Nama', validators=[DataRequired(), Length(max=200)])
+    name = StringField('Nama', validators=[DataRequired(), Length(max=200), NoMarkup()])
     description = TextAreaField('Deskripsi', validators=[Optional(), Length(max=5000)])
-    product_type = StringField('Jenis produk / potongan', validators=[Optional(), Length(max=100)])
-    color = StringField('Warna', validators=[Optional(), Length(max=80)])
+    product_type = StringField('Jenis produk / potongan', validators=[Optional(), Length(max=100), NoMarkup()])
+    color = StringField('Warna', validators=[Optional(), Length(max=80), NoMarkup()])
     category = SelectField('Kategori', choices=[(c, c) for c in CATEGORIES])
     price = IntegerField('Harga (Rp)', validators=[DataRequired(), NumberRange(min=100, max=100_000_000)])
     original_price = IntegerField(
