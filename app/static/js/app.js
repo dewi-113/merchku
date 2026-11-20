@@ -368,6 +368,56 @@ document.querySelectorAll('[data-cart-step]').forEach((button) => {
   });
 });
 
+// Keranjang: pilih produk (per item / per toko / semua) untuk checkout sebagian.
+(() => {
+  const form = document.getElementById('cartCheckoutForm');
+  if (!form) return;
+  const items = [...document.querySelectorAll('[data-cart-check]')];
+  const shopToggles = [...document.querySelectorAll('[data-cart-shop-toggle]')];
+  const allToggles = [...document.querySelectorAll('[data-cart-all-toggle]')];
+  const totalEl = document.getElementById('cartSelectedTotal');
+  const countEl = document.getElementById('cartSelectedCount');
+  const submit = form.querySelector('[type="submit"]');
+  const rupiah = (n) => 'Rp ' + n.toLocaleString('id-ID');
+
+  const syncToggle = (toggle, boxes) => {
+    const checked = boxes.filter((b) => b.checked).length;
+    toggle.checked = boxes.length > 0 && checked === boxes.length;
+    toggle.indeterminate = checked > 0 && checked < boxes.length;
+  };
+
+  const refresh = () => {
+    let total = 0;
+    let count = 0;
+    items.forEach((box) => {
+      box.closest('.cart-item')?.classList.toggle('is-unselected', !box.checked);
+      if (box.checked) {
+        total += Number(box.dataset.subtotal || 0);
+        count += 1;
+      }
+    });
+    shopToggles.forEach((toggle) => {
+      syncToggle(toggle, items.filter((b) => b.dataset.shop === toggle.dataset.shop));
+    });
+    allToggles.forEach((toggle) => syncToggle(toggle, items));
+    if (totalEl) totalEl.textContent = rupiah(total);
+    if (countEl) countEl.textContent = String(count);
+    if (submit) submit.disabled = count === 0;
+  };
+
+  items.forEach((box) => box.addEventListener('change', refresh));
+  shopToggles.forEach((toggle) => toggle.addEventListener('change', () => {
+    items.filter((b) => b.dataset.shop === toggle.dataset.shop)
+      .forEach((b) => { b.checked = toggle.checked; });
+    refresh();
+  }));
+  allToggles.forEach((toggle) => toggle.addEventListener('change', () => {
+    items.forEach((b) => { b.checked = toggle.checked; });
+    refresh();
+  }));
+  refresh();
+})();
+
 document.querySelectorAll('[data-product-size]').forEach((sizeOption) => {
   sizeOption.addEventListener('change', () => {
     const form = sizeOption.closest('form');

@@ -559,3 +559,48 @@ def test_batalkan_hanya_saat_menunggu_pembayaran():
         with app.app_context():
             o = db.session.get(Order, oid)
             assert o.status == status, f'Status seharusnya tetap {status}, dapat {o.status}'
+
+
+def test_checkout_sebagian_hanya_item_terpilih():
+    """Checkout ?item=<id>: hanya item terpilih jadi pesanan, sisanya tetap di keranjang."""
+    app = _make_app()
+    u1_id, _, p_plain, p_sized = _seed(app)
+    with app.app_context():
+        a = CartItem(user_id=u1_id, product_id=p_plain, size=None, quantity=1)
+        b = CartItem(user_id=u1_id, product_id=p_sized, size='M', quantity=1)
+        db.session.add_all([a, b])
+        db.session.commit()
+        a_id, b_id = a.id, b.id
+
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'a@t.test', 'password': 'Password111'})
+        page = c.get('/keranjang/')
+        assert b'Pilih semua' in page.data and b'cartCheckoutForm' in page.data
+        preview = c.get(f'/pesanan/checkout?item={a_id}')
+        assert b'Kaos Polos' in preview.data and b'Hoodie' not in preview.data
+        r = c.post(f'/pesanan/checkout?item={a_id}',
+                   data={'courier': 'jne', 'payment_method': 'qris'})
+        assert r.status_code == 302
+
+    with app.app_context():
+        order = Order.query.filter_by(user_id=u1_id).one()
+        assert [it.product_id for it in order.items] == [p_plain]
+        assert order.total_price == 75000
+        remaining = [it.id for it in CartItem.query.filter_by(user_id=u1_id)]
+        assert remaining == [b_id]
+
+
+def test_checkout_item_milik_orang_lain_diabaikan():
+    app = _make_app()
+    _, u2_id, p_plain, _ = _seed(app)
+    with app.app_context():
+        other = CartItem(user_id=u2_id, product_id=p_plain, size=None, quantity=1)
+        db.session.add(other)
+        db.session.commit()
+        other_id = other.id
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'a@t.test', 'password': 'Password111'})
+        r = c.get(f'/pesanan/checkout?item={other_id}')
+        assert r.status_code == 302  # keranjang sendiri kosong -> kembali ke keranjang
+    with app.app_context():
+        assert Order.query.count() == 0

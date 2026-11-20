@@ -78,6 +78,30 @@
   .cart-checkout { min-height: 49px; border: 0; border-radius: 12px; font-weight: 750; box-shadow: 0 8px 18px rgba(38,118,201,.2); }
   .cart-checkout:hover { box-shadow: 0 10px 22px rgba(38,118,201,.27); }
   .cart-summary-note { display: flex; align-items: flex-start; gap: 8px; color: #718196; font-size: .8rem; line-height: 1.5; }
+  .cart-select-all {
+    display: flex; align-items: center; gap: 10px; margin: 0; color: #1d2b3c; font-weight: 750; cursor: pointer;
+  }
+  .cart-check {
+    flex: 0 0 auto; width: 20px; height: 20px; margin: 0; border: 1.5px solid #b8c4d1; border-radius: 6px; cursor: pointer;
+  }
+  .cart-check:checked, .cart-check:indeterminate { background-color: var(--mk-ink, #14161c); border-color: var(--mk-ink, #14161c); }
+  .cart-shop + .cart-shop { border-top: 8px solid #f4f6f9; }
+  .cart-shop-head {
+    display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: #fbfcfe; border-bottom: 1px solid #edf1f5;
+  }
+  .cart-shop-badge {
+    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px;
+    background: linear-gradient(135deg, #3b6cf0, #2451d6); color: #fff; font-size: .8rem; font-weight: 800;
+  }
+  .cart-shop-name { color: #1d2b3c; font-weight: 750; text-decoration: none; }
+  .cart-shop-name:hover { color: #2676c9; }
+  .cart-shop-count { margin-left: auto; color: #8090a3; font-size: .8rem; font-weight: 650; }
+  .cart-item { transition: opacity .18s ease, background .18s ease; }
+  .cart-item.is-unselected { opacity: .55; }
+  .cart-item.is-unselected:hover { opacity: .85; }
+  .cart-unavailable { color: #c0392b; font-size: .8rem; font-weight: 700; }
+  .cart-selected-line { display: flex; justify-content: space-between; color: #66788b; font-size: .88rem; margin-bottom: 6px; }
+  .cart-checkout:disabled { opacity: .5; box-shadow: none; cursor: not-allowed; }
   .cart-empty { padding: 58px 24px; text-align: center; }
   .cart-empty-icon {
     display: grid; place-items: center; width: 78px; height: 78px; margin: 0 auto 18px;
@@ -120,62 +144,91 @@
   {% if items %}
   <div class='row g-3 align-items-start'>
     <section class='col-lg-8' aria-label='Item keranjang'>
+      <form id='cartCheckoutForm' method='get' action='{{ url_for("pesanan.checkout") }}'></form>
       <div class='cart-list'>
         <header class='cart-list-heading'>
-          <h2>Produk pilihan</h2>
-          <span class='cart-count'>{{ items|length }} produk</span>
+          <label class='cart-select-all'>
+            <input type='checkbox' class='form-check-input cart-check' data-cart-all-toggle checked aria-label='Pilih semua produk'>
+            <span>Pilih semua</span>
+          </label>
+          <span class='cart-count'>{{ items|length }} produk · {{ groups|length }} toko</span>
         </header>
-        {% for item in items %}
-        {% if item.product %}
-        <article class='cart-item'>
-          <div class='row g-3 align-items-center'>
-            <div class='col-auto'>
-              {{ product_image(item.product, 'cart-image') }}
-            </div>
-            <div class='col'>
-              <a class='cart-item-name' href='{{ url_for("katalog.detail", pid=item.product.id) }}'>{{ item.product.name }}</a>
-              <div><span class='cart-variant'>{{ 'Ukuran ' ~ item.size if item.size else 'Satu ukuran' }}</span></div>
-              <div class='cart-unit-price'>Rp {{ '{:,}'.format(item.product.price).replace(',', '.') }}{% if item.product.discount_percent %} <del class='cart-old-price'>Rp {{ '{:,}'.format(item.product.original_price).replace(',', '.') }}</del>{% endif %} <span class='text-muted fw-normal'>/ item</span></div>
-            </div>
-            <div class='col-12 col-md-auto cart-item-actions'>
-              <div class='d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-3'>
-                <div class='d-flex align-items-center gap-2'>
-                  <form method='post' action='{{ url_for("keranjang.ubah", item_id=item.id) }}' class='cart-quantity-form'>
-                    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-                    <label class='visually-hidden' for='quantity-{{ item.id }}'>Jumlah {{ item.product.name }}</label>
-                    <div class='cart-stepper' aria-label='Jumlah produk'>
-                      <button type='button' data-cart-step='-1' aria-label='Kurangi jumlah'>−</button>
-                      <input id='quantity-{{ item.id }}' type='number' name='quantity' value='{{ item.quantity }}' min='1' max='99' class='form-control cart-quantity' inputmode='numeric' required>
-                      <button type='button' data-cart-step='1' aria-label='Tambah jumlah'>+</button>
-                    </div>
-                    <button type='submit' class='btn btn-outline-secondary cart-update'>Simpan</button>
-                  </form>
-                  <form method='post' action='{{ url_for("keranjang.hapus", item_id=item.id) }}' data-confirm='Hapus item ini dari keranjang?'>
-                    <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
-                    <button type='submit' class='btn btn-link text-danger cart-remove px-1'>Hapus</button>
-                  </form>
-                </div>
-                <div class='cart-subtotal text-md-end'>
-                  <span class='text-muted'>Subtotal</span><br>
-                  <strong>Rp {{ '{:,}'.format(item.product.price * item.quantity).replace(',', '.') }}</strong>
+        {% for group in groups %}
+        {% set shop_key = group.seller.id if group.seller else 0 %}
+        <section class='cart-shop' aria-label='Produk dari {{ group.name }}'>
+          <div class='cart-shop-head'>
+            <input type='checkbox' class='form-check-input cart-check' data-cart-shop-toggle data-shop='{{ shop_key }}' checked aria-label='Pilih semua produk dari {{ group.name }}'>
+            <span class='cart-shop-badge' aria-hidden='true'>{{ group.name[0]|upper }}</span>
+            {% if group.seller %}
+            <a class='cart-shop-name' href='{{ url_for("katalog.toko_public", seller_id=group.seller.id) }}'>{{ group.name }}</a>
+            {% else %}
+            <span class='cart-shop-name'>{{ group.name }}</span>
+            {% endif %}
+            <span class='cart-shop-count'>{{ group['items']|length }} produk</span>
+          </div>
+          {% for item in group['items'] %}
+          {% set available = item.product.is_active %}
+          <article class='cart-item'>
+            <div class='row g-3 align-items-center'>
+              <div class='col-auto'>
+                {% if available %}
+                <input type='checkbox' class='form-check-input cart-check' form='cartCheckoutForm' name='item' value='{{ item.id }}'
+                  data-cart-check data-shop='{{ shop_key }}' data-subtotal='{{ item.product.price * item.quantity }}' checked
+                  aria-label='Pilih {{ item.product.name }} untuk checkout'>
+                {% else %}
+                <input type='checkbox' class='form-check-input cart-check' disabled aria-label='Produk tidak tersedia'>
+                {% endif %}
+              </div>
+              <div class='col-auto'>
+                {{ product_image(item.product, 'cart-image') }}
+              </div>
+              <div class='col'>
+                <a class='cart-item-name' href='{{ url_for("katalog.detail", pid=item.product.id) }}'>{{ item.product.name }}</a>
+                <div><span class='cart-variant'>{{ 'Ukuran ' ~ item.size if item.size else 'Satu ukuran' }}</span></div>
+                <div class='cart-unit-price'>Rp {{ '{:,}'.format(item.product.price).replace(',', '.') }}{% if item.product.discount_percent %} <del class='cart-old-price'>Rp {{ '{:,}'.format(item.product.original_price).replace(',', '.') }}</del>{% endif %} <span class='text-muted fw-normal'>/ item</span></div>
+                {% if not available %}<div class='cart-unavailable mt-1'>Produk tidak tersedia</div>{% endif %}
+              </div>
+              <div class='col-12 col-md-auto cart-item-actions'>
+                <div class='d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-3'>
+                  <div class='d-flex align-items-center gap-2'>
+                    <form method='post' action='{{ url_for("keranjang.ubah", item_id=item.id) }}' class='cart-quantity-form'>
+                      <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+                      <label class='visually-hidden' for='quantity-{{ item.id }}'>Jumlah {{ item.product.name }}</label>
+                      <div class='cart-stepper' aria-label='Jumlah produk'>
+                        <button type='button' data-cart-step='-1' aria-label='Kurangi jumlah'>−</button>
+                        <input id='quantity-{{ item.id }}' type='number' name='quantity' value='{{ item.quantity }}' min='1' max='99' class='form-control cart-quantity' inputmode='numeric' required>
+                        <button type='button' data-cart-step='1' aria-label='Tambah jumlah'>+</button>
+                      </div>
+                      <button type='submit' class='btn btn-outline-secondary cart-update'>Simpan</button>
+                    </form>
+                    <form method='post' action='{{ url_for("keranjang.hapus", item_id=item.id) }}' data-confirm='Hapus item ini dari keranjang?'>
+                      <input type='hidden' name='csrf_token' value='{{ csrf_token() }}'>
+                      <button type='submit' class='btn btn-link text-danger cart-remove px-1'>Hapus</button>
+                    </form>
+                  </div>
+                  <div class='cart-subtotal text-md-end'>
+                    <span class='text-muted'>Subtotal</span><br>
+                    <strong>Rp {{ '{:,}'.format(item.product.price * item.quantity).replace(',', '.') }}</strong>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </article>
-        {% endif %}
+          </article>
+          {% endfor %}
+        </section>
         {% endfor %}
       </div>
     </section>
     <aside class='col-lg-4'>
       <div class='cart-summary mk-action-bar'>
         <h2 class='cart-summary-title'>Ringkasan belanja</h2>
+        <div class='cart-selected-line'><span>Produk dipilih</span><span><strong id='cartSelectedCount'>{{ items|length }}</strong> produk</span></div>
         <div class='cart-summary-total d-flex justify-content-between align-items-center gap-3 mb-3'>
-          <span class='text-muted'>Total sementara</span>
-          <span class='cart-total'>Rp {{ '{:,}'.format(total).replace(',', '.') }}</span>
+          <span class='text-muted'>Total dipilih</span>
+          <span class='cart-total' id='cartSelectedTotal'>Rp {{ '{:,}'.format(total).replace(',', '.') }}</span>
         </div>
-        <p class='cart-summary-note mb-3'><span aria-hidden='true'>ⓘ</span><span>Ongkos kirim dan biaya lainnya akan dihitung di tahap checkout.</span></p>
-        <a href='{{ url_for("pesanan.checkout") }}' class='btn btn-primary btn-lg w-100 cart-checkout'>Lanjut ke checkout <span aria-hidden='true'>→</span></a>
+        <p class='cart-summary-note mb-3'><span aria-hidden='true'>ⓘ</span><span>Hanya produk yang dicentang yang masuk checkout. Produk lain tetap tersimpan di keranjang.</span></p>
+        <button type='submit' form='cartCheckoutForm' class='btn btn-primary btn-lg w-100 cart-checkout'>Checkout produk dipilih <span aria-hidden='true'>→</span></button>
         <div class='text-center small text-muted mt-3'>Belanja aman dan praktis di Merchku</div>
       </div>
     </aside>

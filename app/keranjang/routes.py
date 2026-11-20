@@ -83,7 +83,20 @@ def index():
         for item in items
         if item.product and item.product.is_active
     )
-    return render_template('keranjang/index.html', items=items, total=total)
+    # Kelompokkan per toko (urutan mengikuti item terbaru)
+    groups = {}
+    for item in items:
+        if not item.product:
+            continue
+        owner = item.product.owner
+        key = owner.id if owner else 0
+        if key not in groups:
+            name = (owner.shop_name or owner.email.split('@')[0]) if owner else 'Merchku'
+            groups[key] = {'seller': owner, 'name': name, 'items': []}
+        groups[key]['items'].append(item)
+    return render_template(
+        'keranjang/index.html', items=items, total=total, groups=list(groups.values()),
+    )
 
 
 @bp.route('/tambah', methods=['POST'])
@@ -145,7 +158,8 @@ def tambah():
     flash('Produk ditambahkan ke keranjang.', 'success')
 
     if request.form.get('buy_now'):
-        return redirect(url_for('pesanan.checkout'))
+        # Beli sekarang: checkout hanya produk ini, item lain tetap di keranjang
+        return redirect(url_for('pesanan.checkout', item=item.id))
     return redirect(url_for('keranjang.index'))
 
 

@@ -88,6 +88,14 @@ def checkout():
     if not items:
         flash('Keranjang kamu kosong.', 'warning')
         return redirect(url_for('keranjang.index'))
+    # ?item=<id>&item=<id> : checkout sebagian. Tanpa parameter: semua item.
+    selected_ids = set(request.args.getlist('item', type=int))
+    if selected_ids:
+        items = [it for it in items if it.id in selected_ids]
+        if not items:
+            flash('Pilih minimal satu produk untuk checkout.', 'warning')
+            return redirect(url_for('keranjang.index'))
+    selected_param = sorted(it.id for it in items) if selected_ids else []
 
     if not current_user.has_shipping_details:
         flash('Lengkapi data penerima dan alamat di profil sebelum checkout.', 'warning')
@@ -153,7 +161,7 @@ def checkout():
             )
             if rates_error or not selected_rate:
                 flash('Tarif pengiriman tidak tersedia. Coba muat ulang checkout.', 'danger')
-                return redirect(url_for('pesanan.checkout'))
+                return redirect(url_for('pesanan.checkout', item=selected_param))
 
         # --- Kunci seluruh proses dalam satu transaksi ---
         try:
@@ -273,8 +281,11 @@ def checkout():
                 oi.order_id = order.id
                 db.session.add(oi)
 
-            # Kosongkan keranjang
-            CartItem.query.filter_by(user_id=current_user.id).delete()
+            # Hapus hanya item yang di-checkout; item lain tetap di keranjang
+            CartItem.query.filter(
+                CartItem.user_id == current_user.id,
+                CartItem.id.in_([it.id for it in items]),
+            ).delete(synchronize_session=False)
 
             db.session.commit()
 
