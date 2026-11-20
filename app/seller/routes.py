@@ -205,7 +205,9 @@ def shop_profile():
         _log('seller_shop_updated')
         flash('Profil toko diperbarui.', 'success')
         return redirect(url_for('seller.shop_profile'))
-    return render_template('seller/shop_profile.html', form=form)
+    from app.profil.forms import AvatarForm
+
+    return render_template('seller/shop_profile.html', form=form, av_form=AvatarForm(prefix='av'))
 
 
 @bp.route('/produk')

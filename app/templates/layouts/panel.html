@@ -4,7 +4,7 @@
   Template turunan mengisi {% block panel_content %}.
 #}
 {% block extra_head %}
-<link href='{{ url_for("static", filename="css/panel.css") }}?v=2' rel='stylesheet'>
+<link href='{{ url_for("static", filename="css/panel.css") }}?v=3' rel='stylesheet'>
 {% endblock %}
 
 {% from 'partials/_panel_icons.html' import icon %}
@@ -34,7 +34,7 @@
 <div class='pn-shell'>
   <aside class='pn-sidebar' aria-label='{{ "Menu admin" if is_admin_panel else "Menu toko" }}'>
     <div class='pn-identity'>
-      <span class='pn-avatar {{ "is-admin" if is_admin_panel else "" }}'>{{ ('A' if is_admin_panel else shop_label[0])|upper }}</span>
+      <span class='pn-avatar {{ "is-admin" if is_admin_panel else "" }}'>{% if current_user.avatar and not is_admin_panel %}<img src='{{ url_for("core.avatar_media", filename=current_user.avatar) }}' alt=''>{% else %}{{ ('A' if is_admin_panel else shop_label[0])|upper }}{% endif %}</span>
       <span class='pn-identity-text'>
         <span class='pn-identity-name'>{{ 'Panel Admin' if is_admin_panel else shop_label }}</span>
         <span class='pn-identity-sub'>{{ current_user.email if is_admin_panel else 'Pusat Penjual' }}</span>

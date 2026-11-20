@@ -60,6 +60,8 @@
   font-weight: 700;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
+.pn-avatar { overflow: hidden; }
+.pn-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .pn-avatar.is-admin { background: linear-gradient(135deg, #f0a43b, #d9741c); }
 .pn-identity-text { display: flex; flex-direction: column; min-width: 0; }
 .pn-identity-name {

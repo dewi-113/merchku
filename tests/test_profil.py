@@ -268,3 +268,27 @@ def test_alamat_orang_lain_tidak_bisa_diubah():
         c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
         assert c.post(f'/profil/alamat/{aid}/hapus').status_code == 403
         assert c.get(f'/profil/alamat/{aid}/ubah').status_code == 403
+
+
+def test_upload_foto_toko_dari_profil_toko_kembali_ke_halaman_toko():
+    app = _make_app()
+    uid = _seed(app)
+    with app.app_context():
+        u = db.session.get(User, uid)
+        u.role = 'seller'
+        db.session.commit()
+    with app.test_client() as c:
+        c.post('/auth/login', data={'email': 'user@t.test', 'password': 'Password111'})
+        page = c.get('/seller/toko')
+        assert page.status_code == 200 and b'Foto Toko' in page.data
+        r = c.post('/profil/upload-avatar',
+                   data={'av-avatar': (_valid_jpg(), 'logo.jpg', 'image/jpeg'), 'next': '/seller/toko'},
+                   content_type='multipart/form-data')
+        assert r.status_code == 302 and r.headers['Location'].endswith('/seller/toko')
+        # next ke situs luar diabaikan (anti open redirect)
+        r = c.post('/profil/upload-avatar',
+                   data={'av-avatar': (_valid_jpg(), 'logo.jpg', 'image/jpeg'), 'next': '//evil.test/x'},
+                   content_type='multipart/form-data')
+        assert r.headers['Location'].endswith('/profil/')
+    with app.app_context():
+        assert db.session.get(User, uid).avatar

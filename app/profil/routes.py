@@ -215,6 +215,14 @@ def buka_toko():
     return redirect(url_for('profil.index'))
 
 
+def _back_url():
+    """Halaman asal setelah upload (hanya path lokal, cegah open redirect)."""
+    nxt = request.form.get('next', '')
+    if nxt.startswith('/') and not nxt.startswith('//') and '\\' not in nxt:
+        return nxt
+    return url_for('profil.index')
+
+
 @bp.route('/upload-avatar', methods=['POST'])
 @login_required
 @limiter.limit(
@@ -234,7 +242,7 @@ def upload_avatar():
 
         if not file or not getattr(file, 'filename', ''):
             flash('Pilih foto profil terlebih dahulu.', 'warning')
-            return redirect(url_for('profil.index'))
+            return redirect(_back_url())
 
         try:
             result = validate_image_upload(file, kind='avatar', max_bytes=MAX_AVATAR_BYTES)
@@ -246,6 +254,8 @@ def upload_avatar():
                 alasan=e.reason,
             )
             flash(f'Foto profil ditolak: {e.reason}', 'danger')
+            if request.form.get('next'):
+                return redirect(_back_url())
             return _render_profile(ShippingAddressForm(prefix='addr'), av_form=av_form, status=400)
 
         _, img = result
@@ -266,4 +276,4 @@ def upload_avatar():
     else:
         flash('Foto profil harus berformat JPG atau PNG.', 'danger')
 
-    return redirect(url_for('profil.index'))
+    return redirect(_back_url())
